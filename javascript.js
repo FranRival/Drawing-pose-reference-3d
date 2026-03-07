@@ -65,6 +65,18 @@ function(gltf){
 const model = gltf.scene
 scene.add(model)
 
+
+model.traverse(function(object){
+
+if(object.isBone){
+
+console.log("Bone:", object.name)
+
+}
+
+})
+
+
 /* calcular bounding box */
 const box = new THREE.Box3().setFromObject(model)
 const center = box.getCenter(new THREE.Vector3())
