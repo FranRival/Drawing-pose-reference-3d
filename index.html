@@ -1,14 +1,10 @@
+e01"}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
-<title>Pose Reference Tool</title>
-
+<title>Pose Generator</title>
 <link rel="stylesheet" href="style.css">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
 </head>
 
 <body>
@@ -16,25 +12,17 @@
 <div class="container">
 
     <div class="left-panel">
-        <h3>Pose Controls</h3>
-
-        <label>Brazo izquierdo</label>
-        <input type="range" id="armL" min="-2" max="2" step="0.01">
-
-        <label>Brazo derecho</label>
-        <input type="range" id="armR" min="-2" max="2" step="0.01">
-
-        <button id="downloadBtn">Descargar imagen</button>
-
+        <h2>Perspectivas</h2>
+        <div id="views"></div>
     </div>
 
     <div class="right-panel">
-        <canvas id="scene"></canvas>
+        <div id="viewer"></div>
     </div>
 
 </div>
 
-<script src="app.js"></script>
+<script type="module" src="main.js"></script>
 
 </body>
-</html>
+</
