@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { inspectBones } from './viewer.js'
+import { initUI } from './ui.js'
 
 export let scene
 export let camera
@@ -96,6 +97,9 @@ obj.receiveShadow = true
 
 /* ejecutar bone inspector */
 inspectBones()
+
+//movimiento de cabeza
+initUI()
 
 /* calcular bounding box */
 const box = new THREE.Box3().setFromObject(model)
