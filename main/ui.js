@@ -10,7 +10,7 @@ headSlider.addEventListener("input",(e)=>{
 
 const value = parseFloat(e.target.value)
 
-rotateBone("head", value, 0, 0)
+rotateBone("neck", value, 0, 0)
 
 })
 

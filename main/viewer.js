@@ -17,7 +17,7 @@ if(obj.isBone){
 
 const name = obj.name.toLowerCase()
 
-if(name === "maximoringhead") bones.head = obj
+if(name.includes("head")) bones.head = obj
 if(name.includes("neck")) bones.neck = obj
 
 if(name.includes("leftarm")) bones.leftArm = obj
@@ -35,7 +35,9 @@ console.log("Bone detected:", obj.name)
 
 })
 
+window.bones = bones
 console.log("Bone registry:", bones)
+
 
 }
 
