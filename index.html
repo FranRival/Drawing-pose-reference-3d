@@ -19,21 +19,80 @@
 
 <div class="container">
 
-    <div class="left-panel">
-        <h2>Perspectivas</h2>
-        <div id="views"></div>
-        <div class="control">
-          <label for="">Cabeza arriba / abajo</label>
+    <!DOCTYPE html>
 
-          <input type="range" id="headX" min="-1.5" max="1.5" step="0.01" value="0">
-        </div>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>Pose Generator</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+```
+<!-- PANEL IZQUIERDO -->
+<div class="left-panel">
+
+    <h2>Perspectivas</h2>
+    <div id="views"></div>
+
+    <h3>Controles de Pose</h3>
+
+    <div class="control">
+        <label for="headX">Cabeza arriba / abajo</label>
+        <input type="range" id="headX" min="-1.5" max="1.5" step="0.01" value="0">
     </div>
 
-    <div class="right-panel">
-        <div id="viewer"></div>
+    <div class="control">
+        <label for="leftArmX">Brazo izquierdo</label>
+        <input type="range" id="leftArmX" min="-2" max="2" step="0.01" value="0">
+    </div>
+
+    <div class="control">
+        <label for="rightArmX">Brazo derecho</label>
+        <input type="range" id="rightArmX" min="-2" max="2" step="0.01" value="0">
+    </div>
+
+    <div class="control">
+        <label for="leftForeArmX">Antebrazo izquierdo</label>
+        <input type="range" id="leftForeArmX" min="-2" max="2" step="0.01" value="0">
+    </div>
+
+    <div class="control">
+        <label for="rightForeArmX">Antebrazo derecho</label>
+        <input type="range" id="rightForeArmX" min="-2" max="2" step="0.01" value="0">
     </div>
 
 </div>
+
+<!-- PANEL DERECHO -->
+<div class="right-panel">
+    <div id="viewer"></div>
+</div>
+```
+
+</div>
+
+<script type="module" src="./main/core.js"></script>
+
+</body>
+</html>
+
 
 <script type="module" src="./main/core.js"></script>
 

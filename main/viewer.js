@@ -15,23 +15,35 @@ model.traverse((obj)=>{
 
 if(obj.isBone){
 
-bones[obj.name] = obj
+const name = obj.name.toLowerCase()
+
+if(name === "maximoringhead") bones.head = obj
+if(name.includes("neck")) bones.neck = obj
+
+if(name.includes("leftarm")) bones.leftArm = obj
+if(name.includes("rightarm")) bones.rightArm = obj
+
+if(name.includes("leftforearm")) bones.leftForeArm = obj
+if(name.includes("rightforearm")) bones.rightForeArm = obj
+
+if(name.includes("lefthand")) bones.leftHand = obj
+if(name.includes("righthand")) bones.rightHand = obj
+
 console.log("Bone detected:", obj.name)
 
 }
 
 })
 
-console.log("Total bones:", Object.keys(bones).length)
+console.log("Bone registry:", bones)
 
 }
 
-/* ROTAR HUESO */
-
-export function rotateBone(name, x, y, z){
+export function rotateBone(name,x,y,z){
 
 if(!bones[name]){
-console.warn("Bone not found:", name)
+console.warn("Bone not found:",name)
+console.log("HEAD BONE:", bones.head)
 return
 }
 
