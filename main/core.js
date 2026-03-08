@@ -1,19 +1,23 @@
-//python -m http.server
+// python -m http.server
 
 import * as THREE from 'three'
-
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { inspectBones } from './viewer.js'
+
+export let scene
+export let camera
+export let renderer
+export let model
 
 const viewer = document.getElementById('viewer')
 
 /* SCENE */
-const scene = new THREE.Scene()
+scene = new THREE.Scene()
 scene.background = new THREE.Color(0x222222)
 
 /* CAMERA */
-const camera = new THREE.PerspectiveCamera(
+camera = new THREE.PerspectiveCamera(
 60,
 viewer.clientWidth / viewer.clientHeight,
 0.1,
@@ -23,8 +27,12 @@ viewer.clientWidth / viewer.clientHeight,
 camera.position.set(0,1.5,3)
 
 /* RENDERER */
-const renderer = new THREE.WebGLRenderer({antialias:true})
+renderer = new THREE.WebGLRenderer({antialias:true})
 renderer.setSize(viewer.clientWidth, viewer.clientHeight)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.physicallyCorrectLights = true
+renderer.outputColorSpace = THREE.SRGBColorSpace
 
 viewer.appendChild(renderer.domElement)
 
@@ -40,6 +48,7 @@ scene.add(cube)
 /* LIGHTS */
 const light1 = new THREE.DirectionalLight(0xffffff,1)
 light1.position.set(5,5,5)
+light1.castShadow = true
 scene.add(light1)
 
 const light2 = new THREE.AmbientLight(0xffffff,0.5)
@@ -52,8 +61,15 @@ scene.add(grid)
 const axes = new THREE.AxesHelper(5)
 scene.add(axes)
 
-renderer.physicallyCorrectLights = true
-renderer.outputColorSpace = THREE.SRGBColorSpace
+/* FLOOR */
+const floorGeometry = new THREE.PlaneGeometry(50,50)
+const floorMaterial = new THREE.MeshStandardMaterial({color:0x444444})
+const floor = new THREE.Mesh(floorGeometry, floorMaterial)
+
+floor.rotation.x = -Math.PI / 2
+floor.receiveShadow = true
+
+scene.add(floor)
 
 /* MODEL LOADER */
 const loader = new GLTFLoader()
@@ -63,21 +79,23 @@ loader.load(
 
 function(gltf){
 
-
-const model = gltf.scene
+model = gltf.scene
 scene.add(model)
 
+/* activar sombras en el modelo */
+model.traverse((obj) => {
 
-model.traverse(function(object){
+if(obj.isMesh){
 
-if(object.isBone){
-
-console.log("Bone:", object.name)
+obj.castShadow = true
+obj.receiveShadow = true
 
 }
 
 })
 
+/* ejecutar bone inspector */
+inspectBones()
 
 /* calcular bounding box */
 const box = new THREE.Box3().setFromObject(model)
@@ -87,8 +105,9 @@ const size = box.getSize(new THREE.Vector3())
 /* centrar modelo */
 model.position.sub(center)
 
-/* ajustar cámara según tamaño */
+/* ajustar cámara */
 const maxDim = Math.max(size.x, size.y, size.z)
+
 camera.position.set(0, maxDim * 1.2, maxDim * 2)
 
 controls.target.set(0, maxDim * 0.5, 0)
@@ -96,32 +115,22 @@ controls.update()
 
 console.log("Modelo centrado:", size)
 
-
-model.scale.set(1,1,1)
-model.position.set(0,0,0)
-
-console.log("Modelo cargado correctamente")
-
-
 },
 
 function(xhr){
 
-
 console.log((xhr.loaded / xhr.total * 100) + '% loaded')
-
 
 },
 
 function(error){
 
-
 console.error("Error cargando modelo:", error)
 
+}
+)
 
-})
-
-/* LOOP */
+/* RENDER LOOP */
 function animate(){
 
 requestAnimationFrame(animate)
@@ -133,7 +142,14 @@ renderer.render(scene,camera)
 
 }
 
+/* RESIZE HANDLER */
+window.addEventListener("resize", () => {
 
+camera.aspect = viewer.clientWidth / viewer.clientHeight
+camera.updateProjectionMatrix()
 
+renderer.setSize(viewer.clientWidth, viewer.clientHeight)
+
+})
 
 animate()
