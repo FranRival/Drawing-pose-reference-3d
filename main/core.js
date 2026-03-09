@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { inspectBones } from './viewer.js'
+import { inspectBones, initRaycasting } from './viewer.js'
 import { initUI } from './ui.js'
 
 export let scene
@@ -40,12 +40,6 @@ viewer.appendChild(renderer.domElement)
 /* CONTROLS */
 const controls = new OrbitControls(camera, renderer.domElement)
 
-/* TEST CUBE */
-const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshStandardMaterial({color:0x00ff00})
-const cube = new THREE.Mesh(geometry, material)
-scene.add(cube)
-
 /* LIGHTS */
 const light1 = new THREE.DirectionalLight(0xffffff,1)
 light1.position.set(5,5,5)
@@ -65,14 +59,15 @@ scene.add(axes)
 /* FLOOR */
 const floorGeometry = new THREE.PlaneGeometry(50,50)
 const floorMaterial = new THREE.MeshStandardMaterial({color:0x444444})
-const floor = new THREE.Mesh(floorGeometry, floorMaterial)
 
+const floor = new THREE.Mesh(floorGeometry, floorMaterial)
 floor.rotation.x = -Math.PI / 2
 floor.receiveShadow = true
 
 scene.add(floor)
 
 /* MODEL LOADER */
+
 const loader = new GLTFLoader()
 
 loader.load(
@@ -83,10 +78,21 @@ function(gltf){
 model = gltf.scene
 scene.add(model)
 
-/* activar sombras en el modelo */
-model.traverse((obj) => {
+/* export para debug desde consola */
+window.model = model
+
+/* activar sombras en meshes */
+
+model.traverse((obj)=>{
 
 if(obj.isMesh){
+
+console.log("Mesh found:", obj)
+
+/* importante para raycasting */
+
+obj.geometry.computeBoundingBox()
+obj.geometry.computeBoundingSphere()
 
 obj.castShadow = true
 obj.receiveShadow = true
@@ -95,21 +101,26 @@ obj.receiveShadow = true
 
 })
 
-/* ejecutar bone inspector */
+/* detectar huesos */
+
 inspectBones()
 
-//movimiento de cabeza
+/* controles de UI */
+
 initUI()
 
-/* calcular bounding box */
+/* raycasting */
+
+initRaycasting()
+
+/* centrar modelo */
+
 const box = new THREE.Box3().setFromObject(model)
 const center = box.getCenter(new THREE.Vector3())
 const size = box.getSize(new THREE.Vector3())
 
-/* centrar modelo */
 model.position.sub(center)
 
-/* ajustar cámara */
 const maxDim = Math.max(size.x, size.y, size.z)
 
 camera.position.set(0, maxDim * 1.2, maxDim * 2)
@@ -132,21 +143,21 @@ function(error){
 console.error("Error cargando modelo:", error)
 
 }
+
 )
 
 /* RENDER LOOP */
+
 function animate(){
 
 requestAnimationFrame(animate)
-
-cube.rotation.x += 0.01
-cube.rotation.y += 0.01
 
 renderer.render(scene,camera)
 
 }
 
-/* RESIZE HANDLER */
+/* RESIZE */
+
 window.addEventListener("resize", () => {
 
 camera.aspect = viewer.clientWidth / viewer.clientHeight

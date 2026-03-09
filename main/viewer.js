@@ -1,4 +1,9 @@
-import { model } from './core.js'
+import { model, camera, renderer, scene} from './core.js'
+import * as THREE from 'three'
+
+const raycaster = new THREE.Raycaster()
+const mouse = new THREE.Vector2()
+
 
 export let bones = {}
 
@@ -53,4 +58,53 @@ bones[name].rotation.x = x
 bones[name].rotation.y = y
 bones[name].rotation.z = z
 
+}
+
+export function initRaycasting(){
+
+console.log("Raycasting initialized")
+
+const skinnedMeshes = []
+
+/* encontrar todos los SkinnedMesh */
+
+model.traverse((obj)=>{
+    if(obj.isSkinnedMesh){
+
+        obj.frustumCulled = false
+
+        skinnedMeshes.push(obj)
+
+        console.log("SkinnedMesh detected:", obj.name)
+
+    }
+})
+
+renderer.domElement.addEventListener("pointerdown",(event)=>{
+
+console.log("Canvas clicked")
+
+const rect = renderer.domElement.getBoundingClientRect()
+
+mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+raycaster.setFromCamera(mouse, camera)
+
+/* raycast contra todos los meshes */
+
+const intersects = raycaster.intersectObjects(skinnedMeshes, true)
+
+console.log("Intersections:", intersects)
+
+if(intersects.length > 0){
+
+const hit = intersects[0]
+
+console.log("Hit mesh:", hit.object.name)
+console.log("Point:", hit.point)
+
+}
+
+})
 }
