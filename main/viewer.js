@@ -66,23 +66,29 @@ console.log("Raycasting initialized")
 
 const skinnedMeshes = []
 
-/* encontrar todos los SkinnedMesh */
+/* buscar meshes dentro del armature */
 
 model.traverse((obj)=>{
-    if(obj.isSkinnedMesh){
 
-        obj.frustumCulled = false
+if(obj.isSkinnedMesh){
 
-        skinnedMeshes.push(obj)
+obj.frustumCulled = false
 
-        console.log("SkinnedMesh detected:", obj.name)
+skinnedMeshes.push(obj)
 
-    }
+console.log("SkinnedMesh detected:", obj.name)
+
+}
+
 })
 
 renderer.domElement.addEventListener("pointerdown",(event)=>{
 
 console.log("Canvas clicked")
+
+/* actualizar matrices antes del raycast */
+
+model.updateWorldMatrix(true, true)
 
 const rect = renderer.domElement.getBoundingClientRect()
 
@@ -91,7 +97,7 @@ mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
 
 raycaster.setFromCamera(mouse, camera)
 
-/* raycast contra todos los meshes */
+/* raycast contra los meshes */
 
 const intersects = raycaster.intersectObjects(skinnedMeshes, true)
 
@@ -102,9 +108,10 @@ if(intersects.length > 0){
 const hit = intersects[0]
 
 console.log("Hit mesh:", hit.object.name)
-console.log("Point:", hit.point)
+console.log("Hit point:", hit.point)
 
 }
 
 })
+
 }

@@ -77,6 +77,9 @@ function(gltf){
 
 model = gltf.scene
 scene.add(model)
+console.log("====== MODEL HIERARCHY ======")
+printHierarchy(model)
+console.log("====== END HIERARCHY ======")
 
 /* export para debug desde consola */
 window.model = model
@@ -146,7 +149,23 @@ console.error("Error cargando modelo:", error)
 
 )
 
+
+function printHierarchy(object, level = 0){
+
+const indent = " ".repeat(level * 2)
+
+console.log(
+indent + "↳ " + object.type + (object.name ? " | " + object.name : "")
+)
+
+for(const child of object.children){
+printHierarchy(child, level + 1)
+}
+
+}
+
 /* RENDER LOOP */
+
 
 function animate(){
 
