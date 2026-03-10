@@ -35,6 +35,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.physicallyCorrectLights = true
 renderer.outputColorSpace = THREE.SRGBColorSpace
 
+THREE.Mesh.prototype.raycast = THREE.SkinnedMesh.prototype.raycast; // Esto hace que el raycasting use la geometría real de los meshes, no la caja estática
+
 viewer.appendChild(renderer.domElement)
 
 /* CONTROLS */
@@ -118,21 +120,29 @@ initRaycasting()
 
 /* centrar modelo */
 
-const box = new THREE.Box3().setFromObject(model)
-const center = box.getCenter(new THREE.Vector3())
-const size = box.getSize(new THREE.Vector3())
+/* centrar modelo - FORMA RECOMENDADA */
 
-model.position.sub(center)
-model.updateMatrixWorld(true);//culpable de que no detecte los huesos
+/* centrar modelo */
+model.updateMatrixWorld(true); // Actualiza antes de medir
+const box = new THREE.Box3().setFromObject(model);
+const center = box.getCenter(new THREE.Vector3());
 
-const maxDim = Math.max(size.x, size.y, size.z)
+model.position.sub(center);
+model.updateMatrixWorld(true); // Actualiza después de mover
 
-camera.position.set(0, maxDim * 1.2, maxDim * 2)
+// En lugar de mover el modelo completo, vamos a mover la posición
+// pero asegurando que el esqueleto se entienda con la nueva posición.
+model.position.sub(center);
 
-controls.target.set(0, maxDim * 0.5, 0)
-controls.update()
+model.traverse((obj) => {
+    if (obj.isSkinnedMesh) {
+        // Esto obliga al Raycaster a usar la posición real de los huesos 
+        // y no la caja estática original
+        obj.raycast = THREE.SkinnedMesh.prototype.raycast; 
+    }
+});
 
-console.log("Modelo centrado:", size)
+model.updateMatrixWorld(true);
 
 },
 

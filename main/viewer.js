@@ -30,52 +30,46 @@ export function rotateBone(name, x, y, z) {
 }
 
 export function initRaycasting() {
+    console.log("Raycasting de precisión activado");
+
     renderer.domElement.addEventListener("pointerdown", (event) => {
-        const rect = renderer.domElement.getBoundingClientRect()
+        const rect = renderer.domElement.getBoundingClientRect();
         
-        // Coordenadas normalizadas exactas
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera(mouse, camera)
+        raycaster.setFromCamera(mouse, camera);
 
-        // IMPORTANTE: model.updateMatrixWorld(true) asegura que Three.js 
-        // sepa dónde quedó el modelo después de centrarlo.
+        // Forzamos actualización de matrices
         model.updateMatrixWorld(true);
 
-        // Intersectamos directamente contra el modelo
-        const intersects = raycaster.intersectObject(model, true)
+        // Intersectamos SOLO el modelo
+        const intersects = raycaster.intersectObject(model, true);
 
         if (intersects.length > 0) {
-            // Filtramos para obtener solo la malla
-            const hit = intersects.find(i => i.object.isMesh || i.object.isSkinnedMesh)
+            // Buscamos la malla (SkinnedMesh)
+            const hit = intersects.find(i => i.object.isSkinnedMesh || i.object.isMesh);
             
-            if (hit) {
-                const mesh = hit.object
-                console.log("Detectado:", mesh.name)
+            if (hit && hit.object.isSkinnedMesh) {
+                const mesh = hit.object;
+                const geometry = mesh.geometry;
+                
+                // --- TRUCO MAESTRO: Obtener el hueso mediante SkinIndex ---
+                // Esto lee directamente qué hueso tiene asignado el vértice que tocaste
+                const skinIndex = geometry.attributes.skinIndex;
+                if (skinIndex && hit.face) {
+                    // Obtenemos el índice del hueso del primer vértice del triángulo tocado
+                    const boneIndex = skinIndex.getX(hit.face.a);
+                    const detectedBone = mesh.skeleton.bones[boneIndex];
 
-                if (mesh.isSkinnedMesh) {
-                    let closestBone = null
-                    let minDistance = Infinity
-                    const worldPos = new THREE.Vector3()
-
-                    // Buscamos el hueso más cercano al punto de impacto real
-                    mesh.skeleton.bones.forEach((bone) => {
-                        bone.getWorldPosition(worldPos)
-                        const dist = worldPos.distanceTo(hit.point)
-                        if (dist < minDistance) {
-                            minDistance = dist
-                            closestBone = bone
-                        }
-                    })
-
-                    if (closestBone) {
-                        console.log("%c HUESO SELECCIONADO: " + closestBone.name, "background: #000; color: #0f0; font-weight: bold;");
+                    if (detectedBone) {
+                        console.log("%c HUESO DETECTADO: " + detectedBone.name, "background: #222; color: #bada55; font-size: 1.2em; font-weight: bold;");
+                        return; // Salimos para evitar logs extra
                     }
                 }
             }
         } else {
-            console.warn("Click en el vacío (Rayo no tocó el modelo centrado)");
+            console.warn("Click fuera del modelo");
         }
-    })
+    });
 }
