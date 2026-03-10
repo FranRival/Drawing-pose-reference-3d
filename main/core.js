@@ -123,6 +123,7 @@ const center = box.getCenter(new THREE.Vector3())
 const size = box.getSize(new THREE.Vector3())
 
 model.position.sub(center)
+model.updateMatrixWorld(true);//culpable de que no detecte los huesos
 
 const maxDim = Math.max(size.x, size.y, size.z)
 
