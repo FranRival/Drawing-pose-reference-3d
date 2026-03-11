@@ -5,8 +5,12 @@ const raycaster = new THREE.Raycaster()
 const mouse = new THREE.Vector2()
 
 export let bones = {}
+
 let selectedBone = null
 let boneHelper = null
+let isDragging = false
+let lastMouseX = 0
+let lastMouseY = 0
 
 export function inspectBones() {
     if (!model) return
@@ -98,7 +102,10 @@ export function initRaycasting() {
 
                     if (detectedBone) {
                         console.log("%c HUESO DETECTADO: " + detectedBone.name, "background: #222; color: #bada55; font-size: 1.2em; font-weight: bold;");
+                        //esfera roja de deteccion de hueso
                         highlightBone(detectedBone)
+
+                        isDragging = true
                         return; // Salimos para evitar logs extra
                     }
                 }
@@ -107,4 +114,26 @@ export function initRaycasting() {
             console.warn("Click fuera del modelo");
         }
     });
+
+
+renderer.domElement.addEventListener("pointermove", (event) => {
+
+    if (!isDragging || !selectedBone) return
+
+    const deltaX = event.movementX
+    const deltaY = event.movementY
+
+    /* rotación básica */
+
+    selectedBone.rotation.y += deltaX * 0.01
+    selectedBone.rotation.x += deltaY * 0.01
+
+})
+
+renderer.domElement.addEventListener("pointerup", () => {
+
+    isDragging = false
+
+})
+
 }
