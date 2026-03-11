@@ -5,6 +5,8 @@ const raycaster = new THREE.Raycaster()
 const mouse = new THREE.Vector2()
 
 export let bones = {}
+let selectedBone = null
+let boneHelper = null
 
 export function inspectBones() {
     if (!model) return
@@ -27,6 +29,38 @@ export function rotateBone(name, x, y, z) {
     bones[name].rotation.x = x
     bones[name].rotation.y = y
     bones[name].rotation.z = z
+}
+
+function highlightBone(bone){
+
+    selectedBone = bone
+
+    // eliminar helper anterior
+    if(boneHelper){
+        scene.remove(boneHelper)
+        boneHelper = null
+    }
+
+    // crear helper visual
+    const geometry = new THREE.SphereGeometry(0.05,16,16)
+    const material = new THREE.MeshBasicMaterial({color:0xff0000})
+
+    boneHelper = new THREE.Mesh(geometry, material)
+
+    scene.add(boneHelper)
+
+}
+
+export function updateBoneHelper(){
+
+    if(!selectedBone || !boneHelper) return
+
+    const pos = new THREE.Vector3()
+
+    selectedBone.getWorldPosition(pos)
+
+    boneHelper.position.copy(pos)
+
 }
 
 export function initRaycasting() {
@@ -64,6 +98,7 @@ export function initRaycasting() {
 
                     if (detectedBone) {
                         console.log("%c HUESO DETECTADO: " + detectedBone.name, "background: #222; color: #bada55; font-size: 1.2em; font-weight: bold;");
+                        highlightBone(detectedBone)
                         return; // Salimos para evitar logs extra
                     }
                 }

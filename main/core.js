@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { inspectBones, initRaycasting } from './viewer.js'
+import { inspectBones, initRaycasting, updateBoneHelper} from './viewer.js'
 import { initUI } from './ui.js'
 
 export let scene
@@ -138,6 +138,7 @@ function printHierarchy(object, level = 0) {
 /* RENDER LOOP */
 function animate() {
     requestAnimationFrame(animate)
+    updateBoneHelper()
     renderer.render(scene, camera)
 }
 
