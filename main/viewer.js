@@ -12,6 +12,9 @@ let isDragging = false
 let lastMouseX = 0
 let lastMouseY = 0
 
+const tempQuaternion = new THREE.Quaternion()
+const tempAxis = new THREE.Vector3()
+
 export function inspectBones() {
     if (!model) return
     bones = {}
@@ -125,8 +128,29 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
     /* rotación básica */
 
-    selectedBone.rotation.y += deltaX * 0.01
-    selectedBone.rotation.x += deltaY * 0.01
+    const rotSpeed = 0.01
+
+    /* eje vertical */
+
+    tempAxis.set(0,1,0)
+
+    tempQuaternion.setFromAxisAngle(tempAxis, deltaX * rotSpeed)
+
+    selectedBone.quaternion.multiplyQuaternions(
+        tempQuaternion,
+        selectedBone.quaternion
+    )
+
+    /* eje horizontal */
+
+    tempAxis.set(1,0,0)
+
+    tempQuaternion.setFromAxisAngle(tempAxis, deltaY * rotSpeed)
+
+    selectedBone.quaternion.multiplyQuaternions(
+        tempQuaternion,
+        selectedBone.quaternion
+    )
 
 })
 
