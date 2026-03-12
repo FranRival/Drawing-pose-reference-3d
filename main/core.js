@@ -11,6 +11,10 @@ export let camera
 export let renderer
 export let model
 
+export let cameraFront
+export let cameraSide
+export let cameraTop
+
 const viewer = document.getElementById('viewer')
 
 /* SCENE */
