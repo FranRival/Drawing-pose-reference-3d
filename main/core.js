@@ -15,6 +15,21 @@ export let cameraFront
 export let cameraSide
 export let cameraTop
 
+
+// Configuración de cámaras adicionales para vistas frontales, laterales y superiores
+cameraFront = new THREE.PerspectiveCamera(60,1,0.1,1000)
+cameraSide = new THREE.PerspectiveCamera(60,1,0.1,1000)
+cameraTop = new THREE.PerspectiveCamera(60,1,0.1,1000)
+
+cameraFront.position.set(0,1.5,3)
+cameraSide.position.set(3,1.5,0)
+cameraTop.position.set(0,5,0)
+
+cameraFront.lookAt(0,1,0)
+cameraSide.lookAt(0,1,0)
+cameraTop.lookAt(0,1,0)
+
+const viewsContainer = document.getElementById("views")
 const viewer = document.getElementById('viewer')
 
 /* SCENE */
@@ -144,6 +159,12 @@ function animate() {
     requestAnimationFrame(animate)
     updateBoneHelper()
     renderer.render(scene, camera)
+
+    /* render secondary views */
+
+    views.forEach(view=>{
+    view.renderer.render(scene, view.camera)
+})
 }
 
 /* RESIZE */
@@ -153,4 +174,24 @@ window.addEventListener("resize", () => {
     renderer.setSize(viewer.clientWidth, viewer.clientHeight)
 })
 
+//paneles de vistas
+function createView(camera){
+
+const viewRenderer = new THREE.WebGLRenderer({antialias:true})
+
+viewRenderer.setSize(200,200)
+
+viewsContainer.appendChild(viewRenderer.domElement)
+
+return {camera, renderer:viewRenderer}
+
+}
+
+const views = [
+
+createView(cameraFront),
+createView(cameraSide),
+createView(cameraTop)
+
+]
 animate()
