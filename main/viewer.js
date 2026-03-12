@@ -109,6 +109,8 @@ export function initRaycasting() {
                         highlightBone(detectedBone)
 
                         isDragging = true
+                        lastMouseX = event.clientX
+                        lastMouseY = event.clientY  
                         return; // Salimos para evitar logs extra
                     }
                 }
@@ -123,8 +125,11 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
     if (!isDragging || !selectedBone) return
 
-    const deltaX = event.movementX
-    const deltaY = event.movementY
+    const deltaX = event.movementX - lastMouseX
+    const deltaY = event.movementY - lastMouseY
+    
+    lastMouseX = event.clientX 
+    lastMouseY = event.clientY  
 
     /* rotación básica */
 
