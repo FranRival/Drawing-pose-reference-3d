@@ -15,19 +15,55 @@ export let cameraFront
 export let cameraSide
 export let cameraTop
 
+const orthoSize = 2
+
+cameraFront = new THREE.OrthographicCamera(
+-orthoSize,
+orthoSize,
+orthoSize,
+-orthoSize,
+0.1,
+100
+)
+
+cameraSide = new THREE.OrthographicCamera(
+-orthoSize,
+orthoSize,
+orthoSize,
+-orthoSize,
+0.1,
+100
+)
+
+cameraTop = new THREE.OrthographicCamera(
+-orthoSize,
+orthoSize,
+orthoSize,
+-orthoSize,
+0.1,
+100
+)
+
 
 // Configuración de cámaras adicionales para vistas frontales, laterales y superiores
-cameraFront = new THREE.PerspectiveCamera(60,1,0.1,1000)
-cameraSide = new THREE.PerspectiveCamera(60,1,0.1,1000)
-cameraTop = new THREE.PerspectiveCamera(60,1,0.1,1000)
 
-cameraFront.position.set(0,1.5,3)
-cameraSide.position.set(3,1.5,0)
-cameraTop.position.set(0,5,0)
-
+cameraFront.position.set(0,1.5,5)
 cameraFront.lookAt(0,1,0)
+
+cameraSide.position.set(5,1.5,0)
 cameraSide.lookAt(0,1,0)
-cameraTop.lookAt(0,1,0)
+
+cameraTop.position.set(0,6,0)
+cameraTop.lookAt(0,0,0)
+
+
+cameraFront.zoom = 1.5
+cameraSide.zoom = 1.5
+cameraTop.zoom = 1.5
+
+cameraFront.updateProjectionMatrix()
+cameraSide.updateProjectionMatrix()
+cameraTop.updateProjectionMatrix()
 
 const viewsContainer = document.getElementById("views")
 const viewer = document.getElementById('viewer')
@@ -174,6 +210,8 @@ window.addEventListener("resize", () => {
     renderer.setSize(viewer.clientWidth, viewer.clientHeight)
 })
 
+
+const views = []    
 //paneles de vistas
 function createView(camera){
 
@@ -187,11 +225,9 @@ return {camera, renderer:viewRenderer}
 
 }
 
-const views = [
 
-createView(cameraFront),
-createView(cameraSide),
-createView(cameraTop)
+views.push(createView(cameraFront))
+views.push(createView(cameraSide))
+views.push(createView(cameraTop))
 
-]
 animate()
