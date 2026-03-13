@@ -19,6 +19,9 @@ const orthoSize = 2
 const referenceObjects = []
 
 export let sunLight
+export let sunGizmo
+
+
 
 cameraFront = new THREE.OrthographicCamera(
 -orthoSize,
@@ -75,6 +78,14 @@ const viewer = document.getElementById('viewer')
 scene = new THREE.Scene()
 scene.background = new THREE.Color(0x222222)
 
+
+const sunGeometry = new THREE.SphereGeometry(0.25, 16, 16)
+const sunMaterial = new THREE.MeshBasicMaterial({color:0xffff00})
+
+sunGizmo = new THREE.Mesh(sunGeometry, sunMaterial)
+scene.add(sunGizmo)
+
+
 /* CAMERA */
 camera = new THREE.PerspectiveCamera(
     60,
@@ -92,7 +103,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.outputColorSpace = THREE.SRGBColorSpace
 
 // Crucial: Mantiene la lógica de Raycasting para SkinnedMeshes globalmente
-THREE.Mesh.prototype.raycast = THREE.SkinnedMesh.prototype.raycast;
+
 
 viewer.appendChild(renderer.domElement)
 
@@ -244,7 +255,7 @@ cameraTop.updateProjectionMatrix()
 
 }
 
-let sunAngle = 0
+export let sunAngle = 0
 
 function updateSun(){
 
@@ -255,8 +266,8 @@ const z = Math.sin(sunAngle) * radius
 const y = 6
 
 sunLight.position.set(x,y,z)
-
 sunLight.lookAt(0,1,0)
+sunGizmo.position.set(x,y,z)
 
 }
 

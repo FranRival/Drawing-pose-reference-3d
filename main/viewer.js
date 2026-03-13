@@ -1,4 +1,4 @@
-import { model, camera, renderer, scene } from './core.js'
+import { model, camera, renderer, scene, sunGizmo, sunAngle, setSunAngle } from './core.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -6,11 +6,15 @@ const mouse = new THREE.Vector2()
 
 export let bones = {}
 
+let selectedSun = false
+let skinnedMeshes = []
+
 let selectedBone = null
 let boneHelper = null
 let isDragging = false
 let lastMouseX = 0
 let lastMouseY = 0
+let localSunAngle = 0
 
 const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
@@ -21,6 +25,7 @@ export function inspectBones() {
     model.traverse((obj) => {
         if (obj.isBone) {
             const name = obj.name.toLowerCase()
+            
             if (name.includes("head")) bones.head = obj
             if (name.includes("neck")) bones.neck = obj
             if (name.includes("leftarm")) bones.leftArm = obj
@@ -84,6 +89,19 @@ export function initRaycasting() {
         // Forzamos actualización de matrices
         model.updateMatrixWorld(true);
 
+        const sunHit = raycaster.intersectObject(sunGizmo)
+
+        if(sunHit.length > 0){
+
+        console.log("Sun selected")
+
+        selectedSun = true
+        isDragging = false
+        selectedBone = null
+        return
+
+        }
+
         // Intersectamos SOLO el modelo
         const intersects = raycaster.intersectObject(model, true);
 
@@ -115,6 +133,7 @@ export function initRaycasting() {
                     }
                 }
             }
+
         } else {
             console.warn("Click fuera del modelo");
         }
@@ -123,6 +142,14 @@ export function initRaycasting() {
 
 renderer.domElement.addEventListener("pointermove", (event) => {
 
+    if(selectedSun){
+
+    sunAngle += event.movementX * 0.01
+    setSunAngle(localSunAngle)
+
+    return
+
+    }
     if (!isDragging || !selectedBone) return
 
     const deltaX = event.movementX - lastMouseX
@@ -162,6 +189,7 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 renderer.domElement.addEventListener("pointerup", () => {
 
     isDragging = false
+    selectedSun = false
 
 })
 
