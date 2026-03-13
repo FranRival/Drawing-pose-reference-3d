@@ -1,6 +1,25 @@
 import { rotateBone } from './viewer.js'
+import { setSunAngle } from './core.js'
+
+
 
 export function initUI(){
+
+/* SUN CONTROL */
+
+const sunSlider = document.getElementById("sunAngle")
+
+if(sunSlider){
+
+sunSlider.addEventListener("input",(e)=>{
+
+const value = parseFloat(e.target.value)
+
+setSunAngle(value)
+
+})
+
+}
 
 /* CABEZA */
 

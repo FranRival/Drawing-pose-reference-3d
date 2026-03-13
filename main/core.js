@@ -18,6 +18,8 @@ export let cameraTop
 const orthoSize = 2
 const referenceObjects = []
 
+export let sunLight
+
 cameraFront = new THREE.OrthographicCamera(
 -orthoSize,
 orthoSize,
@@ -98,10 +100,13 @@ viewer.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 
 /* LIGHTS */
-const light1 = new THREE.DirectionalLight(0xffffff, 1)
-light1.position.set(5, 5, 5)
-light1.castShadow = true
-scene.add(light1)
+sunLight = new THREE.DirectionalLight(0xffffff, 1.2)
+
+sunLight.position.set(5,5,5)
+
+sunLight.castShadow = true
+
+scene.add(sunLight)
 
 const light2 = new THREE.AmbientLight(0xffffff, 0.5)
 scene.add(light2)
@@ -239,11 +244,28 @@ cameraTop.updateProjectionMatrix()
 
 }
 
+let sunAngle = 0
+
+function updateSun(){
+
+const radius = 8
+
+const x = Math.cos(sunAngle) * radius
+const z = Math.sin(sunAngle) * radius
+const y = 6
+
+sunLight.position.set(x,y,z)
+
+sunLight.lookAt(0,1,0)
+
+}
+
 /* RENDER LOOP */
 function animate() {
     requestAnimationFrame(animate)
     updateBoneHelper()
     updateOrthoCameras()
+    updateSun()
     renderer.render(scene, camera)
 
     /* render secondary views */
@@ -286,6 +308,12 @@ viewRenderer.setSize(200,200)
 viewsContainer.appendChild(viewRenderer.domElement)
 
 return {camera, renderer:viewRenderer}
+
+}
+
+export function setSunAngle(v){
+
+sunAngle = v
 
 }
 
