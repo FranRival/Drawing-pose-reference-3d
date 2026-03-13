@@ -175,6 +175,8 @@ loader.load(
         
         controls.target.set(0, size.y * 0.5, 0); // Apunta al centro del cuerpo
         controls.update();
+        
+        updateOrthoCameras()
 
         console.log("Modelo posicionado correctamente sobre el grid.");
     },
@@ -190,10 +192,54 @@ function printHierarchy(object, level = 0) {
     }
 }
 
+function updateOrthoCameras(){
+
+if(!model) return
+
+const box = new THREE.Box3().setFromObject(model)
+const size = box.getSize(new THREE.Vector3())
+const center = box.getCenter(new THREE.Vector3())
+
+const maxDim = Math.max(size.x, size.y, size.z)
+const padding = 1.2
+
+const half = (maxDim * padding) / 2
+
+cameraFront.left = -half
+cameraFront.right = half
+cameraFront.top = half
+cameraFront.bottom = -half
+
+cameraSide.left = -half
+cameraSide.right = half
+cameraSide.top = half
+cameraSide.bottom = -half
+
+cameraTop.left = -half
+cameraTop.right = half
+cameraTop.top = half
+cameraTop.bottom = -half
+
+cameraFront.position.set(center.x, center.y, center.z + maxDim)
+cameraFront.lookAt(center)
+
+cameraSide.position.set(center.x + maxDim, center.y, center.z)
+cameraSide.lookAt(center)
+
+cameraTop.position.set(center.x, center.y + maxDim, center.z)
+cameraTop.lookAt(center)
+
+cameraFront.updateProjectionMatrix()
+cameraSide.updateProjectionMatrix()
+cameraTop.updateProjectionMatrix()
+
+}
+
 /* RENDER LOOP */
 function animate() {
     requestAnimationFrame(animate)
     updateBoneHelper()
+    updateOrthoCameras()
     renderer.render(scene, camera)
 
     /* render secondary views */
