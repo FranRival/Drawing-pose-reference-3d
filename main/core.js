@@ -16,6 +16,7 @@ export let cameraSide
 export let cameraTop
 
 const orthoSize = 2
+const referenceObjects = []
 
 cameraFront = new THREE.OrthographicCamera(
 -orthoSize,
@@ -119,6 +120,9 @@ const floor = new THREE.Mesh(floorGeometry, floorMaterial)
 floor.rotation.x = -Math.PI / 2
 floor.receiveShadow = true
 scene.add(floor)
+referenceObjects.push(grid)
+referenceObjects.push(axes)
+referenceObjects.push(floor)
 
 /* MODEL LOADER */
 const loader = new GLTFLoader()
@@ -245,8 +249,22 @@ function animate() {
     /* render secondary views */
 
     views.forEach(view=>{
+
+    /* ocultar helpers */
+
+    referenceObjects.forEach(obj=>{
+    obj.visible = false
+    })
+
     view.renderer.render(scene, view.camera)
-})
+
+    /* volver a mostrar */
+
+    referenceObjects.forEach(obj=>{
+    obj.visible = true
+    })
+
+    })
 }
 
 /* RESIZE */
