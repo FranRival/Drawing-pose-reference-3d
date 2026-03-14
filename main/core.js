@@ -148,6 +148,18 @@ sunLight = new THREE.DirectionalLight(0xffffff, 1.2)
 sunLight.position.set(5,5,5)
 
 sunLight.castShadow = true
+sunLight.shadow.mapSize.width = 2048
+sunLight.shadow.mapSize.height = 2048
+
+sunLight.shadow.camera.near = 0.5
+sunLight.shadow.camera.far = 30
+
+sunLight.shadow.camera.left = -10
+sunLight.shadow.camera.right = 10
+sunLight.shadow.camera.top = 10
+sunLight.shadow.camera.bottom = -10
+
+sunLight.shadow.bias = -0.0001
 
 scene.add(sunLight)
 
