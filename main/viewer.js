@@ -98,6 +98,7 @@ export function initRaycasting() {
         selectedSun = true
         isDragging = false
         selectedBone = null
+        localSunAngle=sunAngle
         return
 
         }
@@ -144,7 +145,8 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
     if(selectedSun){
 
-    sunAngle += event.movementX * 0.01
+    localSunAngle += event.movementX * 0.01
+
     setSunAngle(localSunAngle)
 
     return
@@ -152,8 +154,8 @@ renderer.domElement.addEventListener("pointermove", (event) => {
     }
     if (!isDragging || !selectedBone) return
 
-    const deltaX = event.movementX - lastMouseX
-    const deltaY = event.movementY - lastMouseY
+    const deltaX = event.movementX
+    const deltaY = event.movementY
     
     lastMouseX = event.clientX 
     lastMouseY = event.clientY  
