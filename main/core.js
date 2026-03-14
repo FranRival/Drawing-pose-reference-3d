@@ -23,6 +23,8 @@ export let sunGizmo
 
 
 
+
+
 cameraFront = new THREE.OrthographicCamera(
 -orthoSize,
 orthoSize,
@@ -77,6 +79,36 @@ const viewer = document.getElementById('viewer')
 /* SCENE */
 scene = new THREE.Scene()
 scene.background = new THREE.Color(0x222222)
+
+const arcRadius = 8
+const arcSegments = 64
+
+const arcGeometry = new THREE.BufferGeometry()
+const arcPoints = []
+
+for(let i=0;i<=arcSegments;i++){
+
+const t = i/arcSegments * Math.PI
+
+const x = Math.cos(t) * arcRadius
+const y = Math.sin(t) * arcRadius
+const z = 0
+
+arcPoints.push(new THREE.Vector3(x,y,z))
+
+}
+
+arcGeometry.setFromPoints(arcPoints)
+
+const arcMaterial = new THREE.LineBasicMaterial({
+color:0xffff00,
+transparent:true,
+opacity:0.4
+})
+
+const sunArc = new THREE.Line(arcGeometry, arcMaterial)
+
+scene.add(sunArc)
 
 
 const sunGeometry = new THREE.SphereGeometry(0.25, 16, 16)
@@ -271,6 +303,9 @@ sunLight.position.set(x,y,z)
 sunLight.lookAt(0,1,0)
 
 sunGizmo.position.set(x,y,z)
+
+sunArc.rotation.y = sunAzimuth
+sunArc.position.set(0,1,0)
 
 }
 
