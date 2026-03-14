@@ -255,19 +255,30 @@ cameraTop.updateProjectionMatrix()
 
 }
 
-export let sunAngle = 0
+export let sunAzimuth = 0
+export let sunElevation = 0.6
 
 function updateSun(){
 
 const radius = 8
 
-const x = Math.cos(sunAngle) * radius
-const z = Math.sin(sunAngle) * radius
-const y = 6
+const x = Math.cos(sunElevation) * Math.cos(sunAzimuth) * radius
+const z = Math.cos(sunElevation) * Math.sin(sunAzimuth) * radius
+const y = Math.sin(sunElevation) * radius
 
 sunLight.position.set(x,y,z)
+
 sunLight.lookAt(0,1,0)
+
 sunGizmo.position.set(x,y,z)
+
+}
+
+export function setSunAngles(azimuth, elevation){
+
+sunAzimuth = azimuth
+
+sunElevation = THREE.MathUtils.clamp(elevation, -1.2, 1.2)
 
 }
 

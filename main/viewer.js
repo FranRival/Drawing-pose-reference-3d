@@ -1,4 +1,4 @@
-import { model, camera, renderer, scene, sunGizmo, sunAngle, setSunAngle } from './core.js'
+import { model, camera, renderer, scene, sunGizmo, sunAzimuth, sunElevation, setSunAngles } from './core.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -14,7 +14,8 @@ let boneHelper = null
 let isDragging = false
 let lastMouseX = 0
 let lastMouseY = 0
-let localSunAngle = 0
+let localSunAzimuth = 0
+let localSunElevation = 0
 
 const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
@@ -99,6 +100,9 @@ export function initRaycasting() {
         isDragging = false
         selectedBone = null
         localSunAngle=sunAngle
+
+        localSunAzimuth = sunAzimuth
+        localSunElevation = sunElevation
         return
 
         }
@@ -145,9 +149,10 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
     if(selectedSun){
 
-    localSunAngle += event.movementX * 0.01
+    localSunAzimuth += event.movementX * 0.01
+    localSunElevation -= event.movementY * 0.01
 
-    setSunAngle(localSunAngle)
+    setSunAngles(localSunAzimuth, localSunElevation)
 
     return
 
