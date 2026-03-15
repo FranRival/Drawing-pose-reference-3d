@@ -16,6 +16,8 @@ let isDragging = false
 let lastMouseX = 0
 let lastMouseY = 0
 
+let selectedGizmo = null
+
 let localSunAzimuth = 0
 let localSunElevation = 0
 
@@ -83,7 +85,10 @@ export function createJointGizmos(){
     Object.values(bones).forEach(bone=>{
 
         const geometry = new THREE.SphereGeometry(0.06,12,12)
-        const material = new THREE.MeshBasicMaterial({color:0x00ffff})
+        const material = new THREE.MeshBasicMaterial({
+            color:0x00ffff,
+            depthTest:false
+        })
 
         const gizmo = new THREE.Mesh(geometry,material)
 
@@ -132,6 +137,16 @@ export function rotateBone(name,x,y,z){
 /* ------------------------------------------------ */
 
 function highlightBone(bone){
+
+    if(selectedGizmo){
+        selectedGizmo.material.color.set(0x00ffff)
+    }
+
+    selectedGizmo = jointGizmos.find(g => g.userData.bone === bone)
+
+    if(selectedGizmo){
+        selectedGizmo.material.color.set(0xff8800)
+    }
 
     selectedBone = bone
 
