@@ -21,20 +21,49 @@ const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
 
 export function inspectBones() {
+
     if (!model) return
+
     bones = {}
+
     model.traverse((obj) => {
-        if (obj.isBone) {
-            const name = obj.name.toLowerCase()
-            
-            if (name.includes("head")) bones.head = obj
-            if (name.includes("neck")) bones.neck = obj
-            if (name.includes("leftarm")) bones.leftArm = obj
-            if (name.includes("rightarm")) bones.rightArm = obj
-            if (name.includes("leftforearm")) bones.leftForeArm = obj
-            if (name.includes("rightforearm")) bones.rightForeArm = obj
-        }
+
+        if (!obj.isBone) return
+
+        const name = obj.name.toLowerCase()
+
+        if (name.includes("head")) bones.head = obj
+        else if (name.includes("neck")) bones.neck = obj
+
+        else if (name.includes("spine")) bones.spine = obj
+        else if (name.includes("chest")) bones.chest = obj
+        else if (name.includes("hips")) bones.hips = obj
+
+        else if (name.includes("leftshoulder")) bones.leftShoulder = obj
+        else if (name.includes("rightshoulder")) bones.rightShoulder = obj
+
+        else if (name.includes("leftarm")) bones.leftArm = obj
+        else if (name.includes("rightarm")) bones.rightArm = obj
+
+        else if (name.includes("leftforearm")) bones.leftForeArm = obj
+        else if (name.includes("rightforearm")) bones.rightForeArm = obj
+
+        else if (name.includes("lefthand")) bones.leftHand = obj
+        else if (name.includes("righthand")) bones.rightHand = obj
+
+        else if (name.includes("leftupleg")) bones.leftUpLeg = obj
+        else if (name.includes("rightupleg")) bones.rightUpLeg = obj
+
+        else if (name.includes("leftleg")) bones.leftLeg = obj
+        else if (name.includes("rightleg")) bones.rightLeg = obj
+
+        else if (name.includes("leftfoot")) bones.leftFoot = obj
+        else if (name.includes("rightfoot")) bones.rightFoot = obj
+
     })
+
+    console.log("Bones detectados:", bones)
+
 }
 
 export function rotateBone(name, x, y, z) {
