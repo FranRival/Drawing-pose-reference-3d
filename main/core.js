@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { inspectBones, initRaycasting, updateBoneHelper} from './viewer.js'
+import { inspectBones, initRaycasting, updateBoneHelper, createJointGizmos, updateJointGizmos} from './viewer.js'
 import { initUI } from './ui.js'
 import { SkeletonHelper } from 'three'
 
@@ -217,6 +217,7 @@ loader.load(
 
         /* inicializar lógica externa */
         inspectBones()
+        createJointGizmos()
         initUI()
         initRaycasting()
         const skeletonHelper = new THREE.SkeletonHelper(model)
@@ -335,7 +336,9 @@ sunElevation = THREE.MathUtils.clamp(elevation, -1.2, 1.2)
 /* RENDER LOOP */
 function animate() {
     requestAnimationFrame(animate)
+    createJointGizmos()
     updateBoneHelper()
+    updateJointGizmos()
     updateOrthoCameras()
     updateSun()
     renderer.render(scene, camera)
