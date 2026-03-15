@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { inspectBones, initRaycasting, updateBoneHelper} from './viewer.js'
 import { initUI } from './ui.js'
+import { SkeletonHelper } from 'three'
 
 export let scene
 export let camera
@@ -218,6 +219,8 @@ loader.load(
         inspectBones()
         initUI()
         initRaycasting()
+        const skeletonHelper = new THREE.SkeletonHelper(model)
+        scene.add(skeletonHelper)
 
         /* POSICIONAMIENTO CORRECTO SOBRE EL GRID */
         model.updateMatrixWorld(true);
