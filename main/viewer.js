@@ -24,6 +24,71 @@ let localSunElevation = 0
 const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
 
+
+const boneLimits = {
+
+neck: { x:[-0.8,0.8], y:[-0.8,0.8], z:[-0.4,0.4] },
+
+leftArm: { x:[-1.5,1.5] },
+rightArm: { x:[-1.5,1.5] },
+
+leftForeArm: { x:[0,2.2] },
+rightForeArm: { x:[0,2.2] },
+
+leftUpLeg: { x:[-1.2,1.2] },
+rightUpLeg: { x:[-1.2,1.2] },
+
+leftLeg: { x:[0,2.4] },
+rightLeg: { x:[0,2.4] }
+
+}
+///limites en los huesos
+
+function applyBoneConstraints(bone){
+
+    const entry = Object.entries(bones)
+        .find(([name,b]) => b === bone)
+
+    if(!entry) return
+
+    const name = entry[0]
+
+    const limits = boneLimits[name]
+
+    if(!limits) return
+
+    if(limits.x){
+
+        bone.rotation.x = THREE.MathUtils.clamp(
+            bone.rotation.x,
+            limits.x[0],
+            limits.x[1]
+        )
+
+    }
+
+    if(limits.y){
+
+        bone.rotation.y = THREE.MathUtils.clamp(
+            bone.rotation.y,
+            limits.y[0],
+            limits.y[1]
+        )
+
+    }
+
+    if(limits.z){
+
+        bone.rotation.z = THREE.MathUtils.clamp(
+            bone.rotation.z,
+            limits.z[0],
+            limits.z[1]
+        )
+
+    }
+
+}
+
 /* ------------------------------------------------ */
 /* BONE DETECTION */
 /* ------------------------------------------------ */
@@ -337,6 +402,8 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
         tempQuaternion,
         selectedBone.quaternion
     )
+
+    applyBoneConstraints(selectedBone)
 
 })
 
