@@ -336,7 +336,7 @@ sunElevation = THREE.MathUtils.clamp(elevation, -1.2, 1.2)
 /* RENDER LOOP */
 function animate() {
     requestAnimationFrame(animate)
-    createJointGizmos()
+    // 
     updateBoneHelper()
     updateJointGizmos()
     updateOrthoCameras()

@@ -80,6 +80,8 @@ export function inspectBones(){
 
 export function createJointGizmos(){
 
+    // Limpieza: eliminar gizmos antiguos de la escena
+    jointGizmos.forEach(g => scene.remove(g));
     jointGizmos = []
 
     Object.values(bones).forEach(bone=>{
