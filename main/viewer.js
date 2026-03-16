@@ -137,25 +137,33 @@ export function rotateBone(name,x,y,z){
 /* ------------------------------------------------ */
 /* HELPER VISUAL */
 /* ------------------------------------------------ */
-
 function highlightBone(bone){
 
+    // reset color anterior
     if(selectedGizmo){
         selectedGizmo.material.color.set(0x00ffff)
     }
 
-    selectedGizmo = jointGizmos.find(g => g.userData.bone === bone)
-
-    if(selectedGizmo){
-        selectedGizmo.material.color.set(0xff8800)
-    }
-
     selectedBone = bone
+    selectedGizmo = null
 
+    // buscar gizmo correcto
+    jointGizmos.forEach(gizmo => {
+
+        if(gizmo.userData.bone === bone){
+
+            gizmo.material.color.set(0xff8800)
+
+            selectedGizmo = gizmo
+
+        }
+
+    })
+
+    // helper visual
     if(boneHelper){
 
         scene.remove(boneHelper)
-        boneHelper = null
 
     }
 
@@ -167,6 +175,7 @@ function highlightBone(bone){
     scene.add(boneHelper)
 
 }
+
 
 export function updateBoneHelper(){
 
