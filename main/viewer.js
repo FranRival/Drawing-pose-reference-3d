@@ -42,6 +42,25 @@ leftLeg: { x:[0,2.4] },
 rightLeg: { x:[0,2.4] }
 
 }
+
+const boneAxes = {
+
+neck: ['x','y'],
+
+leftArm: ['x','y','z'],
+rightArm: ['x','y','z'],
+
+leftForeArm: ['x'],
+rightForeArm: ['x'],
+
+leftUpLeg: ['x','y'],
+rightUpLeg: ['x','y'],
+
+leftLeg: ['x'],
+rightLeg: ['x']
+
+}
+
 ///limites en los huesos
 
 function applyBoneConstraints(bone){
@@ -89,6 +108,17 @@ function applyBoneConstraints(bone){
 
 }
 
+
+
+
+function getBoneName(bone){
+
+    const entry = Object.entries(bones)
+        .find(([name,b]) => b === bone)
+
+    return entry ? entry[0] : null
+
+}
 /* ------------------------------------------------ */
 /* BONE DETECTION */
 /* ------------------------------------------------ */
@@ -379,29 +409,45 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
     const deltaX = event.movementX
     const deltaY = event.movementY
 
-    const rotSpeed = 0.01
+    const boneName = getBoneName(selectedBone)
 
-    /* vertical */
+if(!boneName) return
 
-    tempAxis.set(0,1,0)
+const allowedAxes = boneAxes[boneName] || ['x','y','z']
 
-    tempQuaternion.setFromAxisAngle(tempAxis,deltaX * rotSpeed)
+const rotSpeed = 0.01
 
-    selectedBone.quaternion.multiplyQuaternions(
-        tempQuaternion,
-        selectedBone.quaternion
-    )
+    /* eje Y */
 
-    /* horizontal */
+    if(allowedAxes.includes('y')){
 
-    tempAxis.set(1,0,0)
+        tempAxis.set(0,1,0)
 
-    tempQuaternion.setFromAxisAngle(tempAxis,deltaY * rotSpeed)
+        tempQuaternion.setFromAxisAngle(tempAxis,deltaX * rotSpeed)
 
-    selectedBone.quaternion.multiplyQuaternions(
-        tempQuaternion,
-        selectedBone.quaternion
-    )
+        selectedBone.quaternion.multiplyQuaternions(
+            tempQuaternion,
+            selectedBone.quaternion
+        )
+
+    }
+
+    /* eje X */
+
+    if(allowedAxes.includes('x')){
+
+        tempAxis.set(1,0,0)
+
+        tempQuaternion.setFromAxisAngle(tempAxis,deltaY * rotSpeed)
+
+        selectedBone.quaternion.multiplyQuaternions(
+            tempQuaternion,
+            selectedBone.quaternion
+        )
+
+    }
+
+    /* constraints */
 
     applyBoneConstraints(selectedBone)
 
