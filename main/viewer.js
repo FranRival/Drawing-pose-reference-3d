@@ -234,38 +234,58 @@ function createIKTarget(){
 
 function solveIK(){
 
-        if(!selectedBone) return
+    if(!selectedBone || !ikTarget) return
 
-        // identificar cadena
-        const hand = selectedBone
-        const foreArm = hand.parent
-        const arm = foreArm.parent
+    // cadena
+    const hand = selectedBone
+    const foreArm = hand.parent
+    const arm = foreArm?.parent
 
-        if(!arm || !foreArm) return
+    if(!arm || !foreArm) return
 
-        const targetPos = new THREE.Vector3()
-        ikTarget.getWorldPosition(targetPos)
+    // posiciones
+    const targetPos = new THREE.Vector3()
+    ikTarget.getWorldPosition(targetPos)
 
-        const armPos = new THREE.Vector3()
-        arm.getWorldPosition(armPos)
+    const armPos = new THREE.Vector3()
+    arm.getWorldPosition(armPos)
 
-        const forePos = new THREE.Vector3()
-        foreArm.getWorldPosition(forePos)
+    const forePos = new THREE.Vector3()
+    foreArm.getWorldPosition(forePos)
 
-        // dirección hacia target
-        const dir = new THREE.Vector3()
-        dir.subVectors(targetPos, armPos).normalize()
+    const handPos = new THREE.Vector3()
+    hand.getWorldPosition(handPos)
 
-        // rotar brazo hacia target
-        const quat = new THREE.Quaternion()
-        quat.setFromUnitVectors(
-            new THREE.Vector3(0,1,0),
-            dir
-        )
+    // longitudes
+    const upperLen = armPos.distanceTo(forePos)
+    const lowerLen = forePos.distanceTo(handPos)
+    const targetDist = armPos.distanceTo(targetPos)
 
-        arm.quaternion.slerp(quat,0.3)
+    // clamp distancia (evita romper el brazo)
+    const maxDist = upperLen + lowerLen - 0.001
+    const dist = Math.min(targetDist, maxDist)
 
-    }
+    // dirección hacia target
+    const dir = new THREE.Vector3()
+    dir.subVectors(targetPos, armPos).normalize()
+
+    // eje perpendicular (plano de doblado)
+    const axis = new THREE.Vector3(0,0,1)
+
+    // calcular ángulo del codo (ley de cosenos)
+    const cosAngle = (upperLen**2 + lowerLen**2 - dist**2) / (2 * upperLen * lowerLen)
+    const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle,-1,1))
+
+    // rotar hombro hacia target
+    const quat = new THREE.Quaternion()
+    quat.setFromUnitVectors(new THREE.Vector3(0,1,0), dir)
+
+    arm.quaternion.slerp(quat,0.5)
+
+    // doblar codo
+    foreArm.rotation.x = Math.PI - elbowAngle
+
+}
 
 /* ------------------------------------------------ */
 /* BONE ROTATION */
