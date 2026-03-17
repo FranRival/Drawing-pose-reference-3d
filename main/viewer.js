@@ -21,6 +21,9 @@ let selectedGizmo = null
 let localSunAzimuth = 0
 let localSunElevation = 0
 
+let ikTarget = null
+let ikActive = false
+
 const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
 
@@ -215,6 +218,55 @@ export function updateJointGizmos(){
 
 }
 
+
+
+function createIKTarget(){
+
+    const geometry = new THREE.SphereGeometry(0.08,16,16)
+    const material = new THREE.MeshBasicMaterial({color:0xff00ff})
+
+    ikTarget = new THREE.Mesh(geometry,material)
+
+    scene.add(ikTarget)
+
+}
+
+
+function solveIK(){
+
+        if(!selectedBone) return
+
+        // identificar cadena
+        const hand = selectedBone
+        const foreArm = hand.parent
+        const arm = foreArm.parent
+
+        if(!arm || !foreArm) return
+
+        const targetPos = new THREE.Vector3()
+        ikTarget.getWorldPosition(targetPos)
+
+        const armPos = new THREE.Vector3()
+        arm.getWorldPosition(armPos)
+
+        const forePos = new THREE.Vector3()
+        foreArm.getWorldPosition(forePos)
+
+        // dirección hacia target
+        const dir = new THREE.Vector3()
+        dir.subVectors(targetPos, armPos).normalize()
+
+        // rotar brazo hacia target
+        const quat = new THREE.Quaternion()
+        quat.setFromUnitVectors(
+            new THREE.Vector3(0,1,0),
+            dir
+        )
+
+        arm.quaternion.slerp(quat,0.3)
+
+    }
+
 /* ------------------------------------------------ */
 /* BONE ROTATION */
 /* ------------------------------------------------ */
@@ -343,6 +395,36 @@ export function initRaycasting(){
 
             }
 
+            if(bone){
+
+                highlightBone(bone)
+
+                selectedBone = bone
+                isDragging = true
+
+                // activar IK si es mano
+                const boneName = getBoneName(bone)
+
+                if(boneName === "leftHand" || boneName === "rightHand"){
+
+                    if(!ikTarget) createIKTarget()
+
+                    const pos = new THREE.Vector3()
+                    bone.getWorldPosition(pos)
+
+                    ikTarget.position.copy(pos)
+
+                    ikActive = true
+
+                } else {
+
+                    ikActive = false
+
+                }
+
+                return
+            }
+
         }
 
         /* MODEL SELECTION */
@@ -406,16 +488,35 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
 
     if(!isDragging || !selectedBone) return
 
+    /* ========================= */
+    /* IK CONTROL (AQUI VA) */
+    /* ========================= */
+
+    if(ikActive && ikTarget){
+
+        const speed = 0.01
+
+        ikTarget.position.x += event.movementX * speed
+        ikTarget.position.y -= event.movementY * speed
+
+        solveIK()
+
+        return
+    }
+
+    /* ========================= */
+    /* ROTACION NORMAL */
+    /* ========================= */
+
     const deltaX = event.movementX
     const deltaY = event.movementY
 
     const boneName = getBoneName(selectedBone)
+    if(!boneName) return
 
-if(!boneName) return
+    const allowedAxes = boneAxes[boneName] || ['x','y','z']
 
-const allowedAxes = boneAxes[boneName] || ['x','y','z']
-
-const rotSpeed = 0.01
+    const rotSpeed = 0.01
 
     /* eje Y */
 
