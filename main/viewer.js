@@ -12,6 +12,9 @@ let selectedBone = null
 
 let boneHelper = null
 
+let poleTarget = null
+let poleActive = false
+
 let isDragging = false
 let lastMouseX = 0
 let lastMouseY = 0
@@ -234,18 +237,19 @@ function createIKTarget(){
 
 function solveIK(){
 
-    if(!selectedBone || !ikTarget) return
+    if(!selectedBone || !ikTarget || !poleTarget) return
 
-    // cadena
     const hand = selectedBone
     const foreArm = hand.parent
     const arm = foreArm?.parent
 
     if(!arm || !foreArm) return
 
-    // posiciones
     const targetPos = new THREE.Vector3()
     ikTarget.getWorldPosition(targetPos)
+
+    const polePos = new THREE.Vector3()
+    poleTarget.getWorldPosition(polePos)
 
     const armPos = new THREE.Vector3()
     arm.getWorldPosition(armPos)
@@ -259,31 +263,38 @@ function solveIK(){
     // longitudes
     const upperLen = armPos.distanceTo(forePos)
     const lowerLen = forePos.distanceTo(handPos)
-    const targetDist = armPos.distanceTo(targetPos)
 
-    // clamp distancia (evita romper el brazo)
+    const targetDist = armPos.distanceTo(targetPos)
     const maxDist = upperLen + lowerLen - 0.001
     const dist = Math.min(targetDist, maxDist)
 
-    // dirección hacia target
+    // dirección principal
     const dir = new THREE.Vector3()
     dir.subVectors(targetPos, armPos).normalize()
 
-    // eje perpendicular (plano de doblado)
-    const axis = new THREE.Vector3(0,0,1)
+    // dirección del pole
+    const poleDir = new THREE.Vector3()
+    poleDir.subVectors(polePos, armPos).normalize()
 
-    // calcular ángulo del codo (ley de cosenos)
+    // plano de rotación
+    const axis = new THREE.Vector3()
+    axis.crossVectors(dir, poleDir).normalize()
+
+    // ángulo del codo
     const cosAngle = (upperLen**2 + lowerLen**2 - dist**2) / (2 * upperLen * lowerLen)
     const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle,-1,1))
 
-    // rotar hombro hacia target
+    // rotar hombro
     const quat = new THREE.Quaternion()
     quat.setFromUnitVectors(new THREE.Vector3(0,1,0), dir)
 
     arm.quaternion.slerp(quat,0.5)
 
-    // doblar codo
+    // rotar codo usando pole
     foreArm.rotation.x = Math.PI - elbowAngle
+
+    // orientar plano hacia pole
+    foreArm.rotateOnWorldAxis(axis,0.5)
 
 }
 
@@ -298,6 +309,24 @@ export function rotateBone(name,x,y,z){
     bones[name].rotation.x = x
     bones[name].rotation.y = y
     bones[name].rotation.z = z
+
+}
+
+
+
+
+
+/* ------------------------------------------------ */
+/* POLE VECTOR */
+/* ------------------------------------------------ */
+function createPoleTarget(){
+
+    const geometry = new THREE.SphereGeometry(0.07,16,16)
+    const material = new THREE.MeshBasicMaterial({color:0x00ff00})
+
+    poleTarget = new THREE.Mesh(geometry,material)
+
+    scene.add(poleTarget)
 
 }
 
@@ -356,6 +385,8 @@ export function updateBoneHelper(){
 
 }
 
+
+
 /* ------------------------------------------------ */
 /* RAYCASTING */
 /* ------------------------------------------------ */
@@ -363,6 +394,8 @@ export function updateBoneHelper(){
 export function initRaycasting(){
 
     console.log("Raycasting activado")
+
+    //POINTER DOWN
 
     renderer.domElement.addEventListener("pointerdown",(event)=>{
 
@@ -374,6 +407,20 @@ export function initRaycasting(){
         raycaster.setFromCamera(mouse,camera)
 
         model.updateMatrixWorld(true)
+
+
+        /*POLE SELECION*/
+
+        const poleHit = poleTarget ? raycaster.intersectObject(poleTarget) : []
+
+        if(poleHit.length > 0){
+
+            poleActive = true
+            isDragging = false
+
+            return
+        }
+
 
         /* SUN SELECTION */
 
@@ -398,54 +445,46 @@ export function initRaycasting(){
 
         if(gizmoHits.length > 0){
 
-            const gizmo = gizmoHits[0].object
-            const bone = gizmo.userData.bone
+        const gizmo = gizmoHits[0].object
+        const bone = gizmo.userData.bone
 
-            if(bone){
+        if(bone){
 
-                highlightBone(bone)
+            highlightBone(bone)
 
-                selectedBone = bone
-                isDragging = true
+            selectedBone = bone
+            isDragging = true
 
-                lastMouseX = event.clientX
-                lastMouseY = event.clientY
+            lastMouseX = event.clientX
+            lastMouseY = event.clientY
 
-                return
+            const boneName = getBoneName(bone)
+
+            // IK ACTIVATION
+            if(boneName === "leftHand" || boneName === "rightHand"){
+
+                if(!ikTarget) createIKTarget()
+                if(!poleTarget) createPoleTarget()
+
+                const pos = new THREE.Vector3()
+                bone.getWorldPosition(pos)
+
+                ikTarget.position.copy(pos)
+
+                // posición inicial del pole
+                poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
+
+                ikActive = true
+
+            } else {
+
+                ikActive = false
 
             }
 
-            if(bone){
-
-                highlightBone(bone)
-
-                selectedBone = bone
-                isDragging = true
-
-                // activar IK si es mano
-                const boneName = getBoneName(bone)
-
-                if(boneName === "leftHand" || boneName === "rightHand"){
-
-                    if(!ikTarget) createIKTarget()
-
-                    const pos = new THREE.Vector3()
-                    bone.getWorldPosition(pos)
-
-                    ikTarget.position.copy(pos)
-
-                    ikActive = true
-
-                } else {
-
-                    ikActive = false
-
-                }
-
-                return
-            }
-
+            return
         }
+    }
 
         /* MODEL SELECTION */
 
@@ -506,8 +545,23 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
 
     }
 
-    if(!isDragging || !selectedBone) return
+    // mover pole con click derecho (o puedes cambiar lógica)
+    if(poleActive && poleTarget){
 
+        const speed = 0.01
+
+        poleTarget.position.x += event.movementX * speed
+        poleTarget.position.y -= event.movementY * speed
+
+        solveIK()
+
+        return
+    }
+
+
+    
+
+        
     /* ========================= */
     /* IK CONTROL (AQUI VA) */
     /* ========================= */
@@ -523,6 +577,11 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
 
         return
     }
+
+
+
+    //rotacion
+    if(!selectedBone) return
 
     /* ========================= */
     /* ROTACION NORMAL */
@@ -577,12 +636,13 @@ renderer.domElement.addEventListener("pointermove",(event)=>{
 /* ------------------------------------------------ */
 /* POINTER UP */
 /* ------------------------------------------------ */
-
 renderer.domElement.addEventListener("pointerup",()=>{
 
     isDragging = false
     selectedSun = false
+    poleActive = false
 
 })
+
 
 }
