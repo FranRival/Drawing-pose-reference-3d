@@ -82,42 +82,38 @@ function applyBoneConstraints(bone){
     if(!entry) return
 
     const name = entry[0]
-
     const limits = boneLimits[name]
 
     if(!limits) return
 
+    // 🔥 convertir a espacio LOCAL (Euler desde quaternion)
+    const euler = new THREE.Euler().setFromQuaternion(
+        bone.quaternion,
+        'XYZ'
+    )
+
+    // 🔥 aplicar límites reales
     if(limits.x){
-
-        bone.rotation.x = THREE.MathUtils.clamp(
-            bone.rotation.x,
-            limits.x[0],
-            limits.x[1]
-        )
-
+        euler.x = THREE.MathUtils.clamp(euler.x, limits.x[0], limits.x[1])
     }
 
     if(limits.y){
-
-        bone.rotation.y = THREE.MathUtils.clamp(
-            bone.rotation.y,
-            limits.y[0],
-            limits.y[1]
-        )
-
+        euler.y = THREE.MathUtils.clamp(euler.y, limits.y[0], limits.y[1])
     }
 
     if(limits.z){
-
-        bone.rotation.z = THREE.MathUtils.clamp(
-            bone.rotation.z,
-            limits.z[0],
-            limits.z[1]
-        )
-
+        euler.z = THREE.MathUtils.clamp(euler.z, limits.z[0], limits.z[1])
     }
 
+    // 🔥 volver a quaternion
+    const targetQuat = new THREE.Quaternion().setFromEuler(euler)
+
+    bone.quaternion.slerp(targetQuat, 0.5)
+
 }
+
+
+
 
 
 
