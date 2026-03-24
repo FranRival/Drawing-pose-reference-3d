@@ -12,6 +12,8 @@ let ikState = {
     initialized: false
 }
 
+let controls = {}
+
 let selectedSun = false
 let selectedBone = null
 
@@ -419,12 +421,13 @@ export function updateBoneHelper(){
 /* ------------------------------------------------ */
 /* RAYCASTING */
 /* ------------------------------------------------ */
-
 export function initRaycasting(){
 
     console.log("Raycasting activado")
 
-    //POINTER DOWN
+    /* ========================= */
+    /* POINTER DOWN (SELECCIÓN) */
+    /* ========================= */
 
     renderer.domElement.addEventListener("pointerdown",(event)=>{
 
@@ -435,87 +438,80 @@ export function initRaycasting(){
 
         raycaster.setFromCamera(mouse,camera)
 
-        model.updateMatrixWorld(true)
+        if(model) model.updateMatrixWorld(true)
 
+        /* --- RESET ESTADOS --- */
+        selectedSun = false
+        poleActive = false
+        ikActive = false
 
-        /*POLE SELECION*/
-
-        const poleHit = poleTarget ? raycaster.intersectObject(poleTarget) : []
-
-        if(poleHit.length > 0){
-
-            poleActive = true
-            isDragging = false
-
-            return
-        }
-
-
-        /* SUN SELECTION */
+        /* ========================= */
+        /* SUN */
+        /* ========================= */
 
         const sunHit = raycaster.intersectObject(sunGizmo)
 
         if(sunHit.length > 0){
 
             selectedSun = true
-            isDragging = false
             selectedBone = null
-
-            localSunAzimuth = sunAzimuth
-            localSunElevation = sunElevation
-
             return
-
         }
 
-        /* GIZMO SELECTION */
+        /* ========================= */
+        /* POLE TARGET */
+        /* ========================= */
+
+        if(poleTarget){
+
+            const poleHit = raycaster.intersectObject(poleTarget)
+
+            if(poleHit.length > 0){
+
+                poleActive = true
+                return
+            }
+        }
+
+        /* ========================= */
+        /* GIZMOS */
+        /* ========================= */
 
         const gizmoHits = raycaster.intersectObjects(jointGizmos)
 
         if(gizmoHits.length > 0){
 
-        const gizmo = gizmoHits[0].object
-        const bone = gizmo.userData.bone
+            const bone = gizmoHits[0].object.userData.bone
 
-        if(bone){
+            if(bone){
 
-            highlightBone(bone)
+                highlightBone(bone)
+                selectedBone = bone
 
-            selectedBone = bone
-            isDragging = true
+                const boneName = getBoneName(bone)
 
-            lastMouseX = event.clientX
-            lastMouseY = event.clientY
+                /* --- ACTIVAR IK --- */
+                if(boneName === "leftHand" || boneName === "rightHand"){
 
-            const boneName = getBoneName(bone)
+                    if(!ikTarget) createIKTarget()
+                    if(!poleTarget) createPoleTarget()
 
-            // IK ACTIVATION
-            if(boneName === "leftHand" || boneName === "rightHand"){
+                    const pos = new THREE.Vector3()
+                    bone.getWorldPosition(pos)
 
-                if(!ikTarget) createIKTarget()
-                if(!poleTarget) createPoleTarget()
+                    ikTarget.position.copy(pos)
+                    poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
 
-                const pos = new THREE.Vector3()
-                bone.getWorldPosition(pos)
+                    ikActive = true
+                }
 
-                ikTarget.position.copy(pos)
-
-                // posición inicial del pole
-                poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
-
-                ikActive = true
-
-            } else {
-
-                ikActive = false
-
+                return
             }
-
-            return
         }
-    }
 
-        /* MODEL SELECTION */
+        /* ========================= */
+        /* MODEL CLICK (fallback) */
+        /* ========================= */
 
         const intersects = raycaster.intersectObject(model,true)
 
@@ -527,7 +523,6 @@ export function initRaycasting(){
 
                 const mesh = hit.object
                 const geometry = mesh.geometry
-
                 const skinIndex = geometry.attributes.skinIndex
 
                 if(skinIndex && hit.face){
@@ -538,140 +533,103 @@ export function initRaycasting(){
                     if(detectedBone){
 
                         highlightBone(detectedBone)
-
                         selectedBone = detectedBone
-                        isDragging = true
-
-                        lastMouseX = event.clientX
-                        lastMouseY = event.clientY
-
                     }
-
                 }
-
             }
-
         }
-
     })
 
-/* ------------------------------------------------ */
-/* POINTER MOVE */
-/* ------------------------------------------------ */
-
-renderer.domElement.addEventListener("pointermove",(event)=>{
-
-    /* SUN CONTROL */
-
-    if(selectedSun){
-
-        localSunAzimuth += event.movementX * 0.01
-        localSunElevation -= event.movementY * 0.01
-
-        setSunAngles(localSunAzimuth,localSunElevation)
-
-        return
-
-    }
-
-    // mover pole con click derecho (o puedes cambiar lógica)
-    if(poleActive && poleTarget){
-
-        const speed = 0.01
-
-        poleTarget.position.x += event.movementX * speed
-        poleTarget.position.y -= event.movementY * speed
-
-        solveIK()
-
-        return
-    }
-
-
-    
-
-        
-    /* ========================= */
-    /* IK CONTROL (AQUI VA) */
-    /* ========================= */
-
-    if(ikActive && ikTarget){
-
-        const speed = 0.01
-
-        ikTarget.position.x += event.movementX * speed
-        ikTarget.position.y -= event.movementY * speed
-
-        solveIK()
-
-        return
-    }
-
-
-
-    //rotacion
-    if(!selectedBone) return
 
     /* ========================= */
-    /* ROTACION NORMAL */
+    /* POINTER MOVE (CONTROL) */
     /* ========================= */
 
-    const deltaX = event.movementX
-    const deltaY = event.movementY
+    renderer.domElement.addEventListener("pointermove",(event)=>{
 
-    const boneName = getBoneName(selectedBone)
-    if(!boneName) return
+        /* --- SUN --- */
+        if(selectedSun){
 
-    const allowedAxes = boneAxes[boneName] || ['x','y','z']
+            localSunAzimuth += event.movementX * 0.01
+            localSunElevation -= event.movementY * 0.01
 
-    const rotSpeed = 0.01
+            setSunAngles(localSunAzimuth,localSunElevation)
+            return
+        }
 
-    /* eje Y */
+        /* --- POLE --- */
+        if(poleActive && poleTarget){
 
-    if(allowedAxes.includes('y')){
+            const speed = 0.01
 
-        tempAxis.set(0,1,0)
+            poleTarget.position.x += event.movementX * speed
+            poleTarget.position.y -= event.movementY * speed
 
-        tempQuaternion.setFromAxisAngle(tempAxis,deltaX * rotSpeed)
+            solveIK()
+            return
+        }
 
-        selectedBone.quaternion.multiplyQuaternions(
-            tempQuaternion,
-            selectedBone.quaternion
-        )
+        /* --- IK --- */
+        if(ikActive && ikTarget){
 
-    }
+            const speed = 0.01
 
-    /* eje X */
+            ikTarget.position.x += event.movementX * speed
+            ikTarget.position.y -= event.movementY * speed
 
-    if(allowedAxes.includes('x')){
+            solveIK()
+            return
+        }
 
-        tempAxis.set(1,0,0)
+        /* --- ROTACIÓN NORMAL --- */
+        if(!selectedBone) return
 
-        tempQuaternion.setFromAxisAngle(tempAxis,deltaY * rotSpeed)
+        const deltaX = event.movementX
+        const deltaY = event.movementY
 
-        selectedBone.quaternion.multiplyQuaternions(
-            tempQuaternion,
-            selectedBone.quaternion
-        )
+        const boneName = getBoneName(selectedBone)
+        if(!boneName) return
 
-    }
+        const allowedAxes = boneAxes[boneName] || ['x','y','z']
 
-    /* constraints */
+        const rotSpeed = 0.01
 
-    applyBoneConstraints(selectedBone)
+        if(allowedAxes.includes('y')){
 
-})
+            tempAxis.set(0,1,0)
 
-/* ------------------------------------------------ */
-/* POINTER UP */
-/* ------------------------------------------------ */
-renderer.domElement.addEventListener("pointerup",()=>{
+            tempQuaternion.setFromAxisAngle(tempAxis,deltaX * rotSpeed)
 
-    isDragging = false
-    selectedSun = false
-    poleActive = false
+            selectedBone.quaternion.multiplyQuaternions(
+                tempQuaternion,
+                selectedBone.quaternion
+            )
+        }
 
-})
+        if(allowedAxes.includes('x')){
+
+            tempAxis.set(1,0,0)
+
+            tempQuaternion.setFromAxisAngle(tempAxis,deltaY * rotSpeed)
+
+            selectedBone.quaternion.multiplyQuaternions(
+                tempQuaternion,
+                selectedBone.quaternion
+            )
+        }
+
+        applyBoneConstraints(selectedBone)
+    })
 
 
+    /* ========================= */
+    /* POINTER UP (RESET) */
+    /* ========================= */
+
+    renderer.domElement.addEventListener("pointerup",()=>{
+
+        selectedSun = false
+        poleActive = false
+        ikActive = false
+    })
 }
