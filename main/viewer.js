@@ -7,6 +7,11 @@ const mouse = new THREE.Vector2()
 export let bones = {}
 export let jointGizmos = []
 
+let ikState = {
+    lastAxis: new THREE.Vector3(),
+    initialized: false
+}
+
 let selectedSun = false
 let selectedBone = null
 
@@ -235,6 +240,10 @@ function createIKTarget(){
 }
 
 
+
+
+
+
 function solveIK(){
 
     if(!selectedBone || !ikTarget || !poleTarget) return
@@ -276,27 +285,51 @@ function solveIK(){
     const poleDir = new THREE.Vector3()
     poleDir.subVectors(polePos, armPos).normalize()
 
-    // plano de rotación
+    // 🔥 EJE DEL PLANO (ESTABILIZADO)
     const axis = new THREE.Vector3()
     axis.crossVectors(dir, poleDir).normalize()
+
+    // inicialización
+    if(!ikState.initialized){
+        ikState.lastAxis.copy(axis)
+        ikState.initialized = true
+    }
+
+    // 🔥 suavizado del eje (ANTI-FLIP)
+    axis.lerp(ikState.lastAxis, 0.7).normalize()
+    ikState.lastAxis.copy(axis)
 
     // ángulo del codo
     const cosAngle = (upperLen**2 + lowerLen**2 - dist**2) / (2 * upperLen * lowerLen)
     const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle,-1,1))
 
-    // rotar hombro
+    // 🔥 ROTACIÓN SUAVE DEL HOMBRO
     const quat = new THREE.Quaternion()
     quat.setFromUnitVectors(new THREE.Vector3(0,1,0), dir)
 
-    arm.quaternion.slerp(quat,0.5)
+    arm.quaternion.slerp(quat, 0.15)
 
-    // rotar codo usando pole
-    foreArm.rotation.x = Math.PI - elbowAngle
+    // 🔥 ROTACIÓN CONTROLADA DEL CODO
+    const targetRot = Math.PI - elbowAngle
 
-    // orientar plano hacia pole
-    foreArm.rotateOnWorldAxis(axis,0.5)
+    foreArm.rotation.x = THREE.MathUtils.lerp(
+        foreArm.rotation.x,
+        targetRot,
+        0.2
+    )
+
+    // 🔥 orientación hacia pole (SUAVE)
+    const poleQuat = new THREE.Quaternion()
+    poleQuat.setFromAxisAngle(axis, 0.2)
+
+    foreArm.quaternion.slerp(poleQuat, 0.15)
 
 }
+
+
+
+
+
 
 /* ------------------------------------------------ */
 /* BONE ROTATION */
