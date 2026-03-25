@@ -240,27 +240,19 @@ function createIKTarget(){
 
 
 
+function solveIKChain(arm, foreArm, hand, target, pole){
 
+    if(!arm || !foreArm || !hand) return
 
-function solveIK(){
-
-    if(!selectedBone || !ikTarget || !poleTarget) return
-
-    const hand = selectedBone
-    const foreArm = hand.parent
-    const arm = foreArm?.parent
-
-    if(!arm || !foreArm) return
-
-    // posiciones
     const targetPos = new THREE.Vector3()
     const polePos = new THREE.Vector3()
     const armPos = new THREE.Vector3()
     const forePos = new THREE.Vector3()
     const handPos = new THREE.Vector3()
 
-    ikTarget.getWorldPosition(targetPos)
-    poleTarget.getWorldPosition(polePos)
+    target.getWorldPosition(targetPos)
+    pole.getWorldPosition(polePos)
+
     arm.getWorldPosition(armPos)
     foreArm.getWorldPosition(forePos)
     hand.getWorldPosition(handPos)
@@ -269,28 +261,25 @@ function solveIK(){
     const upperLen = armPos.distanceTo(forePos)
     const lowerLen = forePos.distanceTo(handPos)
 
-    // dirección al target
+    // dirección target
     const dir = new THREE.Vector3()
     dir.subVectors(targetPos, armPos)
 
     const dist = Math.min(dir.length(), upperLen + lowerLen - 0.001)
     dir.normalize()
 
-    // DIRECCIÓN POLE (plano)
+    // pole
     const poleDir = new THREE.Vector3()
     poleDir.subVectors(polePos, armPos).normalize()
 
-    // construir plano ortogonal
+    // plano
     const side = new THREE.Vector3()
     side.crossVectors(dir, poleDir).normalize()
 
     const up = new THREE.Vector3()
     up.crossVectors(side, dir).normalize()
 
-    // =========================
-    // ROTAR HOMBRO
-    // =========================
-
+    // rotación hombro
     const m = new THREE.Matrix4()
     m.lookAt(armPos, targetPos, up)
 
@@ -298,30 +287,38 @@ function solveIK(){
 
     arm.quaternion.slerp(targetQuat, 0.4)
 
-    // =========================
-    // ÁNGULO DEL CODO
-    // =========================
-
+    // ángulo codo
     const cosAngle = (upperLen**2 + lowerLen**2 - dist**2) / (2 * upperLen * lowerLen)
-
     const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle, -1, 1))
 
-    // IMPORTANTE: usar SOLO eje X local
     foreArm.rotation.x = Math.PI - elbowAngle
 
-    // =========================
-    // ORIENTAR MANO
-    // =========================
-
+    // orientación mano (simple)
     const handDir = new THREE.Vector3()
     handDir.subVectors(targetPos, handPos).normalize()
 
     const handQuat = new THREE.Quaternion()
     handQuat.setFromUnitVectors(new THREE.Vector3(0,1,0), handDir)
 
-    hand.quaternion.slerp(handQuat, 0.5)
+    hand.quaternion.slerp(handQuat, 0.4)
+}
+
+
+
+
+
+export function updateIK(){
+
+    if(!ikActive || !ikTarget || !poleTarget || !selectedBone) return
+
+    const hand = selectedBone
+    const foreArm = hand.parent
+    const arm = foreArm?.parent
+
+    solveIKChain(arm, foreArm, hand, ikTarget, poleTarget)
 
 }
+
 
 
 // ==============esfera morada ======= objetivo de pocision - quiero que la mano llegue aqui.
@@ -566,7 +563,7 @@ export function initRaycasting(){
             poleTarget.position.x += event.movementX * speed
             poleTarget.position.y -= event.movementY * speed
 
-            solveIK()
+            
             return
         }
 
@@ -578,7 +575,7 @@ export function initRaycasting(){
             ikTarget.position.x += event.movementX * speed
             ikTarget.position.y -= event.movementY * speed
 
-            solveIK()
+            
             return
         }
 
