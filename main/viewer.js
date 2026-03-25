@@ -324,6 +324,8 @@ function solveIK(){
 }
 
 
+// ==============esfera morada ======= objetivo de pocision - quiero que la mano llegue aqui.
+// =================esfera verde ====== es el control de direccion del codo - hacia donde debe apuntar el codo,
 
 
 
