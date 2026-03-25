@@ -252,75 +252,74 @@ function solveIK(){
 
     if(!arm || !foreArm) return
 
+    // posiciones
     const targetPos = new THREE.Vector3()
-    ikTarget.getWorldPosition(targetPos)
-
     const polePos = new THREE.Vector3()
-    poleTarget.getWorldPosition(polePos)
-
     const armPos = new THREE.Vector3()
-    arm.getWorldPosition(armPos)
-
     const forePos = new THREE.Vector3()
-    foreArm.getWorldPosition(forePos)
-
     const handPos = new THREE.Vector3()
+
+    ikTarget.getWorldPosition(targetPos)
+    poleTarget.getWorldPosition(polePos)
+    arm.getWorldPosition(armPos)
+    foreArm.getWorldPosition(forePos)
     hand.getWorldPosition(handPos)
 
     // longitudes
     const upperLen = armPos.distanceTo(forePos)
     const lowerLen = forePos.distanceTo(handPos)
 
-    const targetDist = armPos.distanceTo(targetPos)
-    const maxDist = upperLen + lowerLen - 0.001
-    const dist = Math.min(targetDist, maxDist)
-
-    // dirección principal
+    // dirección al target
     const dir = new THREE.Vector3()
-    dir.subVectors(targetPos, armPos).normalize()
+    dir.subVectors(targetPos, armPos)
 
-    // dirección del pole
+    const dist = Math.min(dir.length(), upperLen + lowerLen - 0.001)
+    dir.normalize()
+
+    // DIRECCIÓN POLE (plano)
     const poleDir = new THREE.Vector3()
     poleDir.subVectors(polePos, armPos).normalize()
 
-    // 🔥 EJE DEL PLANO (ESTABILIZADO)
-    const axis = new THREE.Vector3()
-    axis.crossVectors(dir, poleDir).normalize()
+    // construir plano ortogonal
+    const side = new THREE.Vector3()
+    side.crossVectors(dir, poleDir).normalize()
 
-    // inicialización
-    if(!ikState.initialized){
-        ikState.lastAxis.copy(axis)
-        ikState.initialized = true
-    }
+    const up = new THREE.Vector3()
+    up.crossVectors(side, dir).normalize()
 
-    // 🔥 suavizado del eje (ANTI-FLIP)
-    axis.lerp(ikState.lastAxis, 0.7).normalize()
-    ikState.lastAxis.copy(axis)
+    // =========================
+    // ROTAR HOMBRO
+    // =========================
 
-    // ángulo del codo
+    const m = new THREE.Matrix4()
+    m.lookAt(armPos, targetPos, up)
+
+    const targetQuat = new THREE.Quaternion().setFromRotationMatrix(m)
+
+    arm.quaternion.slerp(targetQuat, 0.4)
+
+    // =========================
+    // ÁNGULO DEL CODO
+    // =========================
+
     const cosAngle = (upperLen**2 + lowerLen**2 - dist**2) / (2 * upperLen * lowerLen)
-    const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle,-1,1))
 
-    // 🔥 ROTACIÓN SUAVE DEL HOMBRO
-    const quat = new THREE.Quaternion()
-    quat.setFromUnitVectors(new THREE.Vector3(0,1,0), dir)
+    const elbowAngle = Math.acos(THREE.MathUtils.clamp(cosAngle, -1, 1))
 
-    arm.quaternion.slerp(quat, 0.15)
+    // IMPORTANTE: usar SOLO eje X local
+    foreArm.rotation.x = Math.PI - elbowAngle
 
-    // 🔥 ROTACIÓN CONTROLADA DEL CODO
-    const targetRot = Math.PI - elbowAngle
+    // =========================
+    // ORIENTAR MANO
+    // =========================
 
-    foreArm.rotation.x = THREE.MathUtils.lerp(
-        foreArm.rotation.x,
-        targetRot,
-        0.2
-    )
+    const handDir = new THREE.Vector3()
+    handDir.subVectors(targetPos, handPos).normalize()
 
-    // 🔥 orientación hacia pole (SUAVE)
-    const poleQuat = new THREE.Quaternion()
-    poleQuat.setFromAxisAngle(axis, 0.2)
+    const handQuat = new THREE.Quaternion()
+    handQuat.setFromUnitVectors(new THREE.Vector3(0,1,0), handDir)
 
-    foreArm.quaternion.slerp(poleQuat, 0.15)
+    hand.quaternion.slerp(handQuat, 0.5)
 
 }
 
@@ -560,7 +559,7 @@ export function initRaycasting(){
         /* --- POLE --- */
         if(poleActive && poleTarget){
 
-            const speed = 0.01
+            const speed = 0.005
 
             poleTarget.position.x += event.movementX * speed
             poleTarget.position.y -= event.movementY * speed
