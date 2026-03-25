@@ -315,7 +315,11 @@ export function updateIK(){
     const foreArm = hand.parent
     const arm = foreArm?.parent
 
-    solveIKChain(arm, foreArm, hand, ikTarget, poleTarget)
+    if(!arm || !foreArm) return
+
+    const chain = [arm, foreArm, hand]
+
+    solveIK_CCD(chain, ikTarget, 8)
 
 }
 
@@ -412,6 +416,51 @@ export function updateBoneHelper(){
 
     boneHelper.position.copy(pos)
 
+}
+
+
+
+
+
+function solveIK_CCD(chain, target, iterations = 10){
+
+    const targetPos = new THREE.Vector3()
+    target.getWorldPosition(targetPos)
+
+    for(let i = 0; i < iterations; i++){
+
+        for(let j = chain.length - 1; j >= 0; j--){
+
+            const bone = chain[j]
+
+            const bonePos = new THREE.Vector3()
+            bone.getWorldPosition(bonePos)
+
+            const endEffector = chain[chain.length - 1]
+            const endPos = new THREE.Vector3()
+            endEffector.getWorldPosition(endPos)
+
+            const toEnd = new THREE.Vector3().subVectors(endPos, bonePos).normalize()
+            const toTarget = new THREE.Vector3().subVectors(targetPos, bonePos).normalize()
+
+            const axis = new THREE.Vector3().crossVectors(toEnd, toTarget)
+
+            if(axis.lengthSq() < 0.000001) continue
+
+            axis.normalize()
+
+            const angle = Math.acos(
+                THREE.MathUtils.clamp(toEnd.dot(toTarget), -1, 1)
+            )
+
+            const quat = new THREE.Quaternion()
+            quat.setFromAxisAngle(axis, angle)
+
+            bone.quaternion.multiplyQuaternions(quat, bone.quaternion)
+
+            applyBoneConstraints(bone)
+        }
+    }
 }
 
 
