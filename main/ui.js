@@ -5,80 +5,82 @@ import { setSunAngle } from './core.js'
 
 export function initUI(){
 
-/* SUN CONTROL */
+    /* ========================= */
+    /* SUN CONTROL */
+    /* ========================= */
 
-const sunSlider = document.getElementById("sunAngle")
+    const sunSlider = document.getElementById("sunAngle")
 
-if(sunSlider){
+    if(sunSlider){
+        sunSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setSunAngle(value)
+        })
+    }
 
-sunSlider.addEventListener("input",(e)=>{
+    /* ========================= */
+    /* CABEZA */
+    /* ========================= */
 
-const value = parseFloat(e.target.value)
+    const headSlider = document.getElementById("headX")
 
-setSunAngle(value)
+    if(headSlider){
+        headSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            rotateBone("neck", value, 0, 0)
+        })
+    }
 
-})
+    /* ========================= */
+    /* BRAZO IZQUIERDO */
+    /* ========================= */
 
-}
+    const leftArmSlider = document.getElementById("leftArmX")
 
-/* CABEZA */
+    if(leftArmSlider){
+        leftArmSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            rotateBone("leftArm", value, 0, 0)
+        })
+    }
 
-const headSlider = document.getElementById("headX")
+    /* ========================= */
+    /* BRAZO DERECHO */
+    /* ========================= */
 
-headSlider.addEventListener("input",(e)=>{
+    const rightArmSlider = document.getElementById("rightArmX")
 
-const value = parseFloat(e.target.value)
+    if(rightArmSlider){
+        rightArmSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            rotateBone("rightArm", value, 0, 0)
+        })
+    }
 
-rotateBone("neck", value, 0, 0)
+    /* ========================= */
+    /* ANTEBRAZO IZQUIERDO */
+    /* ========================= */
 
-})
+    const leftForeArmSlider = document.getElementById("leftForeArmX")
 
-/* BRAZO IZQUIERDO */
+    if(leftForeArmSlider){
+        leftForeArmSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            rotateBone("leftForeArm", value, 0, 0)
+        })
+    }
 
-const leftArmSlider = document.getElementById("leftArmX")
+    /* ========================= */
+    /* ANTEBRAZO DERECHO */
+    /* ========================= */
 
-leftArmSlider.addEventListener("input",(e)=>{
+    const rightForeArmSlider = document.getElementById("rightForeArmX")
 
-const value = parseFloat(e.target.value)
-
-rotateBone("leftArm", value, 0, 0)
-
-})
-
-/* BRAZO DERECHO */
-
-const rightArmSlider = document.getElementById("rightArmX")
-
-rightArmSlider.addEventListener("input",(e)=>{
-
-const value = parseFloat(e.target.value)
-
-rotateBone("rightArm", value, 0, 0)
-
-})
-
-/* ANTEBRAZO IZQUIERDO */
-
-const leftForeArmSlider = document.getElementById("leftForeArmX")
-
-leftForeArmSlider.addEventListener("input",(e)=>{
-
-const value = parseFloat(e.target.value)
-
-rotateBone("leftForeArm", value, 0, 0)
-
-})
-
-/* ANTEBRAZO DERECHO */
-
-const rightForeArmSlider = document.getElementById("rightForeArmX")
-
-rightForeArmSlider.addEventListener("input",(e)=>{
-
-const value = parseFloat(e.target.value)
-
-rotateBone("rightForeArm", value, 0, 0)
-
-})
+    if(rightForeArmSlider){
+        rightForeArmSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            rotateBone("rightForeArm", value, 0, 0)
+        })
+    }
 
 }
