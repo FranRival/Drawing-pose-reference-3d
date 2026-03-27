@@ -378,19 +378,25 @@ const views = []
 //paneles de vistas
 function createView(camera){
 
-const viewRenderer = new THREE.WebGLRenderer({antialias:true})
+    const viewRenderer = new THREE.WebGLRenderer({antialias:true})
+    viewRenderer.setSize(200,200)
 
-viewRenderer.setSize(200,200)
+    // ✅ FIX: evitar crash si el contenedor no existe
+    if(viewsContainer){
+        viewsContainer.appendChild(viewRenderer.domElement)
+    } else {
+        console.warn("⚠️ #views no existe en el HTML")
+    }
 
-viewsContainer.appendChild(viewRenderer.domElement)
-
-return {camera, renderer:viewRenderer}
+    return {camera, renderer:viewRenderer}
 
 }
 
+
 export function setSunAngle(v){
 
-sunAngle = v
+    // Usamos azimuth como control principal del slider
+    sunAzimuth = v
 
 }
 
