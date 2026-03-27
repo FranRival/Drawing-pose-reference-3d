@@ -317,9 +317,8 @@ export function updateIK(){
 
     if(!arm || !foreArm) return
 
-    const chain = [arm, foreArm, hand]
-
-    solveIK_CCD(chain, ikTarget, 8)
+    // 🔥 usamos solver con pole real
+    solveIKChain(arm, foreArm, hand, ikTarget, poleTarget)
 
 }
 
@@ -471,10 +470,31 @@ function solveIK_CCD(chain, target, iterations = 10){
 export function initRaycasting(){
 
     console.log("Raycasting activado")
+    
+    
+    /* ========================= */
+	/* IK TARGET */
+	/* ========================= */
+
+	if(ikTarget){
+
+    	const ikHit = raycaster.intersectObject(ikTarget)
+
+    	if(ikHit.length > 0){
+
+        	ikActive = true
+        	poleActive = false
+        	selectedBone = null
+
+        	return
+    	}
+	}
 
     /* ========================= */
     /* POINTER DOWN (SELECCIÓN) */
     /* ========================= */
+
+
 
     renderer.domElement.addEventListener("pointerdown",(event)=>{
 
@@ -489,8 +509,9 @@ export function initRaycasting(){
 
         /* --- RESET ESTADOS --- */
         selectedSun = false
-        poleActive = false
-        ikActive = false
+		poleActive = false
+		ikActive = false
+		selectedBone = null
 
         /* ========================= */
         /* SUN */
@@ -607,26 +628,28 @@ export function initRaycasting(){
         /* --- POLE --- */
         if(poleActive && poleTarget){
 
-            const speed = 0.005
+    		const speed = 0.005
 
-            poleTarget.position.x += event.movementX * speed
-            poleTarget.position.y -= event.movementY * speed
+    		poleTarget.position.x += event.movementX * speed
+    		poleTarget.position.y -= event.movementY * speed
 
-            
-            return
-        }
+    		updateIK() // 🔥 clave
+
+    		return
+		}
 
         /* --- IK --- */
         if(ikActive && ikTarget){
 
-            const speed = 0.01
+    		const speed = 0.01
 
-            ikTarget.position.x += event.movementX * speed
-            ikTarget.position.y -= event.movementY * speed
+    		ikTarget.position.x += event.movementX * speed
+    		ikTarget.position.y -= event.movementY * speed
 
-            
-            return
-        }
+    		updateIK() // 🔥 clave
+
+    		return
+		}
 
         /* --- ROTACIÓN NORMAL --- */
         if(!selectedBone) return
