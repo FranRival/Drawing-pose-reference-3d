@@ -17,6 +17,9 @@ let controls = {}
 let selectedSun = false
 let selectedBone = null
 
+let dragPlane = new THREE.Plane()
+let dragPoint = new THREE.Vector3()
+
 let boneHelper = null
 
 let poleTarget = null
@@ -560,6 +563,12 @@ export function initRaycasting(){
 
                 /* --- ACTIVAR IK --- */
                 if(boneName === "leftHand" || boneName === "rightHand"){
+                    // 🔥 definir plano de arrastre (frente a cámara)
+					const normal = new THREE.Vector3()
+					camera.getWorldDirection(normal)
+
+					dragPlane.setFromNormalAndCoplanarPoint(normal, ikTarget.position)
+                    
 
                     if(!ikTarget) createIKTarget()
                     if(!poleTarget) createPoleTarget()
@@ -641,14 +650,21 @@ export function initRaycasting(){
         /* --- IK --- */
         if(ikActive && ikTarget){
 
-    		const speed = 0.01
+    		const rect = renderer.domElement.getBoundingClientRect()
 
-    		ikTarget.position.x += event.movementX * speed
-    		ikTarget.position.y -= event.movementY * speed
+    		mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1
+    		mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1
 
-    		updateIK() // 🔥 clave
+    		raycaster.setFromCamera(mouse, camera)
 
-    		return
+   			 // 🔥 intersectar con plano
+    		if(raycaster.ray.intersectPlane(dragPlane, dragPoint)){
+
+        		ikTarget.position.copy(dragPoint)
+        		updateIK()
+    		}
+
+    			return
 		}
 
         /* --- ROTACIÓN NORMAL --- */
