@@ -501,121 +501,106 @@ export function initRaycasting(){
 
     renderer.domElement.addEventListener("pointerdown",(event)=>{
 
-        const rect = renderer.domElement.getBoundingClientRect()
+    const rect = renderer.domElement.getBoundingClientRect()
 
-        mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1
-        mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1
+    mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1
+    mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1
 
-        raycaster.setFromCamera(mouse,camera)
+    raycaster.setFromCamera(mouse,camera)
 
-        if(model) model.updateMatrixWorld(true)
+    if(model) model.updateMatrixWorld(true)
 
-        /* --- RESET ESTADOS --- */
-        selectedSun = false
-		poleActive = false
-		ikActive = false
-		selectedBone = null
+    /* RESET */
+    selectedSun = false
+    poleActive = false
+    ikActive = false
+    selectedBone = null
 
-        /* ========================= */
-        /* SUN */
-        /* ========================= */
+    /* ========================= */
+    /* SUN */
+    /* ========================= */
 
-        const sunHit = raycaster.intersectObject(sunGizmo)
+    const sunHit = raycaster.intersectObject(sunGizmo)
 
-        if(sunHit.length > 0){
+    if(sunHit.length > 0){
 
-            selectedSun = true
-            selectedBone = null
+        selectedSun = true
+        return
+    }
+
+    /* ========================= */
+    /* GIZMOS (HUESOS) */
+    /* ========================= */
+
+    const gizmoHits = raycaster.intersectObjects(jointGizmos)
+
+    if(gizmoHits.length > 0){
+
+        const bone = gizmoHits[0].object.userData.bone
+
+        if(bone){
+
+            highlightBone(bone)
+            selectedBone = bone
+
+            const boneName = getBoneName(bone)
+
+            console.log("CLICK EN:", boneName) // 👈 DEBUG
+
+            /* ========================= */
+            /* IK ACTIVATION */
+            /* ========================= */
+
+            if(boneName === "leftHand" || boneName === "rightHand"){
+
+                console.log("CREANDO IK TARGETS") // 👈 DEBUG
+
+                if(!ikTarget) createIKTarget()
+                if(!poleTarget) createPoleTarget()
+
+                const pos = new THREE.Vector3()
+                bone.getWorldPosition(pos)
+
+                ikTarget.position.copy(pos)
+                poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
+
+                ikActive = true
+            }
+
             return
         }
+    }
 
-        /* ========================= */
-        /* POLE TARGET */
-        /* ========================= */
+    /* ========================= */
+    /* MODEL CLICK (fallback) */
+    /* ========================= */
 
-        if(poleTarget){
+    const intersects = raycaster.intersectObject(model,true)
 
-            const poleHit = raycaster.intersectObject(poleTarget)
+    if(intersects.length > 0){
 
-            if(poleHit.length > 0){
+        const hit = intersects.find(i=>i.object.isSkinnedMesh)
 
-                poleActive = true
-                return
-            }
-        }
+        if(hit){
 
-        /* ========================= */
-        /* GIZMOS */
-        /* ========================= */
+            const mesh = hit.object
+            const geometry = mesh.geometry
+            const skinIndex = geometry.attributes.skinIndex
 
-        const gizmoHits = raycaster.intersectObjects(jointGizmos)
+            if(skinIndex && hit.face){
 
-        if(gizmoHits.length > 0){
+                const boneIndex = skinIndex.getX(hit.face.a)
+                const detectedBone = mesh.skeleton.bones[boneIndex]
 
-            const bone = gizmoHits[0].object.userData.bone
+                if(detectedBone){
 
-            if(bone){
-
-                highlightBone(bone)
-                selectedBone = bone
-
-                const boneName = getBoneName(bone)
-
-                /* --- ACTIVAR IK --- */
-                if(boneName === "leftHand" || boneName === "rightHand"){
-                    // 🔥 definir plano de arrastre (frente a cámara)
-					const normal = new THREE.Vector3()
-					camera.getWorldDirection(normal)
-
-					dragPlane.setFromNormalAndCoplanarPoint(normal, ikTarget.position)
-                    
-
-                    if(!ikTarget) createIKTarget()
-                    if(!poleTarget) createPoleTarget()
-
-                    const pos = new THREE.Vector3()
-                    bone.getWorldPosition(pos)
-
-                    ikTarget.position.copy(pos)
-                    poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
-
-                    ikActive = true
-                }
-
-                return
-            }
-        }
-
-        /* ========================= */
-        /* MODEL CLICK (fallback) */
-        /* ========================= */
-
-        const intersects = raycaster.intersectObject(model,true)
-
-        if(intersects.length > 0){
-
-            const hit = intersects.find(i=>i.object.isSkinnedMesh)
-
-            if(hit){
-
-                const mesh = hit.object
-                const geometry = mesh.geometry
-                const skinIndex = geometry.attributes.skinIndex
-
-                if(skinIndex && hit.face){
-
-                    const boneIndex = skinIndex.getX(hit.face.a)
-                    const detectedBone = mesh.skeleton.bones[boneIndex]
-
-                    if(detectedBone){
-
-                        highlightBone(detectedBone)
-                        selectedBone = detectedBone
-                    }
+                    highlightBone(detectedBone)
+                    selectedBone = detectedBone
                 }
             }
         }
-    })
+    }
+})
 
 
     /* ========================= */
