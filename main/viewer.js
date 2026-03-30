@@ -557,6 +557,8 @@ export function initRaycasting(){
             /* ========================= */
 
             if(boneName === "leftHand" || boneName === "rightHand"){
+                
+                
 
                 console.log("CREANDO IK TARGETS") // 👈 DEBUG
 
@@ -568,6 +570,19 @@ export function initRaycasting(){
 
                 ikTarget.position.copy(pos)
                 poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.5,0.5))
+                
+                // 🔥 PLANO DE DRAG (perpendicular a cámara)
+				const normal = new THREE.Vector3()
+				camera.getWorldDirection(normal)
+
+				dragPlane.setFromNormalAndCoplanarPoint(normal, ikTarget.position)
+
+				// 🔥 OFFSET (evita salto)
+				const intersectPoint = new THREE.Vector3()
+
+				if(raycaster.ray.intersectPlane(dragPlane, intersectPoint)){
+    			dragOffset.subVectors(ikTarget.position, intersectPoint)
+				}
 
                 ikActive = true
             }
@@ -638,24 +653,31 @@ export function initRaycasting(){
 		}
 
         /* --- IK --- */
+       
         if(ikActive && ikTarget){
 
-    		const rect = renderer.domElement.getBoundingClientRect()
+    	const rect = renderer.domElement.getBoundingClientRect()
 
-    		mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1
-    		mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1
+    	mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1
+    	mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1
 
-    		raycaster.setFromCamera(mouse, camera)
+    	raycaster.setFromCamera(mouse, camera)
 
-   			 // 🔥 intersectar con plano
-    		if(raycaster.ray.intersectPlane(dragPlane, dragPoint)){
+    	const intersectPoint = new THREE.Vector3()
 
-        		ikTarget.position.copy(dragPoint)
-        		updateIK()
-    		}
+    	if(raycaster.ray.intersectPlane(dragPlane, intersectPoint)){
 
-    			return
-		}
+        	intersectPoint.add(dragOffset)
+
+        	ikTarget.position.copy(intersectPoint)
+
+        	updateIK()
+	    }
+
+    	return
+}
+
+
 
         /* --- ROTACIÓN NORMAL --- */
         if(!selectedBone) return
