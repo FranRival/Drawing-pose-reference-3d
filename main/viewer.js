@@ -41,6 +41,11 @@ const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
 
 
+//control de mano. 
+let dragPlane = new THREE.Plane()
+let dragOffset = new THREE.Vector3()
+
+
 const boneLimits = {
 
 neck: { x:[-0.8,0.8], y:[-0.8,0.8], z:[-0.4,0.4] },
