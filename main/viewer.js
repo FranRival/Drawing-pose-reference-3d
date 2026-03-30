@@ -17,9 +17,6 @@ let controls = {}
 let selectedSun = false
 let selectedBone = null
 
-let dragPlane = new THREE.Plane()
-let dragPoint = new THREE.Vector3()
-
 let boneHelper = null
 
 let poleTarget = null
@@ -484,19 +481,7 @@ export function initRaycasting(){
 	/* IK TARGET */
 	/* ========================= */
 
-	if(ikTarget){
 
-    	const ikHit = raycaster.intersectObject(ikTarget)
-
-    	if(ikHit.length > 0){
-
-        	ikActive = true
-        	poleActive = false
-        	selectedBone = null
-
-        	return
-    	}
-	}
 
     /* ========================= */
     /* POINTER DOWN (SELECCIÓN) */
