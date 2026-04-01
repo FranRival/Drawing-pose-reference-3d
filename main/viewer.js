@@ -326,6 +326,8 @@ export function updateIK(){
     const chain = [arm, foreArm, hand]
 
     solveIK_CCD(chain, ikTarget, 10)
+    
+    model.updateMatrixWorld(true) //esfera morada-verde
 }
 
 
