@@ -314,8 +314,8 @@ function solveIKChain(arm, foreArm, hand, target, pole){
 
 export function updateIK(){
 
-    if(!ikActive || !ikTarget || !poleTarget) return
-    if(!selectedBone) return   // 🔥 protección crítica
+    if(!ikActive || !ikTarget) return
+    if(!selectedBone) return
 
     const hand = selectedBone
     const foreArm = hand.parent
@@ -323,7 +323,9 @@ export function updateIK(){
 
     if(!arm || !foreArm) return
 
-    solveIKChain(arm, foreArm, hand, ikTarget, poleTarget)
+    const chain = [arm, foreArm, hand]
+
+    solveIK_CCD(chain, ikTarget, 10)
 }
 
 
