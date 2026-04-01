@@ -314,7 +314,7 @@ function solveIKChain(arm, foreArm, hand, target, pole){
 
 export function updateIK(){
 
-    if(!ikActive || !ikTarget || !poleTarget || !selectedBone) return
+    if(!ikActive || !ikTarget || !poleTarget) return
 
     const hand = selectedBone
     const foreArm = hand.parent
