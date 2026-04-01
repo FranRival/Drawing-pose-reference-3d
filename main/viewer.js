@@ -315,6 +315,7 @@ function solveIKChain(arm, foreArm, hand, target, pole){
 export function updateIK(){
 
     if(!ikActive || !ikTarget || !poleTarget) return
+    if(!selectedBone) return   // 🔥 protección crítica
 
     const hand = selectedBone
     const foreArm = hand.parent
@@ -322,9 +323,7 @@ export function updateIK(){
 
     if(!arm || !foreArm) return
 
-    // 🔥 usamos solver con pole real
     solveIKChain(arm, foreArm, hand, ikTarget, poleTarget)
-
 }
 
 
@@ -535,7 +534,7 @@ if(ikTarget){
 
         ikActive = true
         poleActive = false
-        selectedBone = null
+        
 
         // 🔥 preparar plano de drag
         const normal = new THREE.Vector3()
