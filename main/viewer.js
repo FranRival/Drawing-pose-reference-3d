@@ -553,6 +553,41 @@ if(ikTarget){
     }
 }
 
+
+/* ========================= */
+/* POLE TARGET SELECTION */
+/* ========================= */
+
+if(poleTarget){
+
+    const poleHit = raycaster.intersectObject(poleTarget)
+
+    if(poleHit.length > 0){
+
+        console.log("CLICK POLE TARGET")
+
+        poleActive = true
+        ikActive = false
+        selectedBone = null
+
+        // 🔥 preparar plano de drag
+        const normal = new THREE.Vector3()
+        camera.getWorldDirection(normal)
+
+        dragPlane.setFromNormalAndCoplanarPoint(normal, poleTarget.position)
+
+        const intersectPoint = new THREE.Vector3()
+
+        if(raycaster.ray.intersectPlane(dragPlane, intersectPoint)){
+            dragOffset.subVectors(poleTarget.position, intersectPoint)
+        }
+
+        return
+    }
+}
+
+
+
     /* ========================= */
     /* GIZMOS (HUESOS) */
     /* ========================= */
