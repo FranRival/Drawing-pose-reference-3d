@@ -326,8 +326,13 @@ export function updateIK(){
     const chain = [arm, foreArm, hand]
 
     solveIK_CCD(chain, ikTarget, 10)
-    
-    model.updateMatrixWorld(true) //esfera morada-verde
+
+    // 🔥 FORZAR UPDATE DEL SKELETON (LA CLAVE REAL)
+    if(window.skinnedMesh){
+        window.skinnedMesh.skeleton.update()
+    }
+
+    model.updateMatrixWorld(true)
 }
 
 
