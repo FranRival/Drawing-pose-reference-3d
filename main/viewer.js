@@ -517,6 +517,41 @@ export function initRaycasting(){
         selectedSun = true
         return
     }
+    
+    
+    
+    
+    /* ========================= */
+/* IK TARGET SELECTION */
+/* ========================= */
+
+if(ikTarget){
+
+    const ikHit = raycaster.intersectObject(ikTarget)
+
+    if(ikHit.length > 0){
+
+        console.log("CLICK IK TARGET")
+
+        ikActive = true
+        poleActive = false
+        selectedBone = null
+
+        // 🔥 preparar plano de drag
+        const normal = new THREE.Vector3()
+        camera.getWorldDirection(normal)
+
+        dragPlane.setFromNormalAndCoplanarPoint(normal, ikTarget.position)
+
+        const intersectPoint = new THREE.Vector3()
+
+        if(raycaster.ray.intersectPlane(dragPlane, intersectPoint)){
+            dragOffset.subVectors(ikTarget.position, intersectPoint)
+        }
+
+        return
+    }
+}
 
     /* ========================= */
     /* GIZMOS (HUESOS) */
