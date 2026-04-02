@@ -214,18 +214,17 @@ loader.load(
                 }
             }
         })
+
         
-        // 🔥 OBTENER REFERENCIA AL SKINNED MESH
-let skinnedMesh = null
+        window.skinnedMeshes = []
 
 model.traverse((obj) => {
     if (obj.isSkinnedMesh) {
-        skinnedMesh = obj
+        window.skinnedMeshes.push(obj)
     }
 })
 
-// 🔥 GUARDARLO GLOBALMENTE
-window.skinnedMesh = skinnedMesh
+console.log("SkinnedMeshes:", window.skinnedMeshes)
 
 console.log("SkinnedMesh detectado:", skinnedMesh)
 
