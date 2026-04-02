@@ -160,67 +160,123 @@ function createPoleTarget(){
 /* ------------------------------------------------ */
 /* CCD IK SOLVER                                     */
 /* ------------------------------------------------ */
-function solveIK_CCD(chain, target, iterations = 15){
+/* ------------------------------------------------ */
+/* SOLVER ANALÍTICO 2 HUESOS CON POLE VECTOR         */
+/* ------------------------------------------------ */
+function solveIK_TwoBone(chain, target, pole){
 
-    const targetPos = new THREE.Vector3()
-    target.getWorldPosition(targetPos)
+    const [arm, foreArm, hand] = chain
 
-    for(let iter = 0; iter < iterations; iter++){
+    // posiciones mundiales
+    const pA = new THREE.Vector3(); arm.getWorldPosition(pA)        // hombro
+    const pB = new THREE.Vector3(); foreArm.getWorldPosition(pB)    // codo
+    const pC = new THREE.Vector3(); hand.getWorldPosition(pC)       // mano
+    const pT = new THREE.Vector3(); target.getWorldPosition(pT)     // target (morado)
+    const pP = new THREE.Vector3()                                   // pole (verde)
+    if(pole) pole.getWorldPosition(pP)
+    else pP.copy(pB) // si no hay pole, usar posición actual del codo
 
-        // Iterar desde el penúltimo hueso hacia la raíz
-        // (el último es el end-effector, no lo rotamos)
-        for(let j = chain.length - 2; j >= 0; j--){
+    // longitudes de los segmentos
+    const lenA = pA.distanceTo(pB) // hombro → codo
+    const lenB = pB.distanceTo(pC) // codo → mano
 
-            const bone = chain[j]
+    // distancia al target (clampeada para no exceder el reach)
+    const dirToTarget = new THREE.Vector3().subVectors(pT, pA)
+    const dist = Math.min(dirToTarget.length(), lenA + lenB - 0.001)
+    dirToTarget.normalize()
 
-            // posición mundial del hueso actual
-            const bonePos = new THREE.Vector3()
-            bone.getWorldPosition(bonePos)
+    // ángulo en el hombro (ley del coseno)
+    const cosAngleA = THREE.MathUtils.clamp(
+        (lenA*lenA + dist*dist - lenB*lenB) / (2 * lenA * dist),
+        -1, 1
+    )
+    const angleA = Math.acos(cosAngleA)
 
-            // posición mundial del end-effector (mano)
-            const endPos = new THREE.Vector3()
-            chain[chain.length - 1].getWorldPosition(endPos)
+    // ángulo en el codo (ley del coseno)
+    const cosAngleB = THREE.MathUtils.clamp(
+        (lenA*lenA + lenB*lenB - dist*dist) / (2 * lenA * lenB),
+        -1, 1
+    )
+    const angleB = Math.PI - Math.acos(cosAngleB)
 
-            const toEnd    = new THREE.Vector3().subVectors(endPos,    bonePos).normalize()
-            const toTarget = new THREE.Vector3().subVectors(targetPos, bonePos).normalize()
+    /* --- plano IK usando el pole --- */
+    // el pole define hacia dónde "dobla" el codo
+    const poleDir = new THREE.Vector3().subVectors(pP, pA)
 
-            const dot = THREE.MathUtils.clamp(toEnd.dot(toTarget), -1, 1)
+    // componente del pole perpendicular a la dirección al target
+    const polePerp = poleDir.clone()
+        .addScaledVector(dirToTarget, -poleDir.dot(dirToTarget))
 
-            // ya apunta al target, saltar
-            if(dot > 0.9999) continue
+    // si el pole es paralelo al target usamos el "up" como fallback
+    if(polePerp.lengthSq() < 0.0001){
+        polePerp.set(0, 1, 0)
+            .addScaledVector(dirToTarget, -dirToTarget.y)
+    }
+    polePerp.normalize()
 
-            // eje de rotación en espacio MUNDIAL
-            const worldAxis = new THREE.Vector3().crossVectors(toEnd, toTarget)
-            if(worldAxis.lengthSq() < 1e-10) continue
-            worldAxis.normalize()
+    // eje perpendicular al plano (para construir la rotación del codo)
+    const perpAxis = new THREE.Vector3().crossVectors(dirToTarget, polePerp).normalize()
 
-            const angle = Math.acos(dot)
+    /* --- posición del codo en el plano IK --- */
+    const elbowDir = new THREE.Vector3()
+        .addScaledVector(dirToTarget, Math.cos(angleA))
+        .addScaledVector(polePerp,    Math.sin(angleA))
+    elbowDir.normalize()
 
-            // ⚠️ CLAVE: convertir eje al espacio LOCAL del hueso
-            // Necesitamos la inversa de la rotación mundial del hueso
-            const boneWorldQuat = new THREE.Quaternion()
-            bone.getWorldQuaternion(boneWorldQuat)
-            const boneWorldQuatInv = boneWorldQuat.clone().invert()
+    const newElbowPos = new THREE.Vector3()
+        .copy(pA)
+        .addScaledVector(elbowDir, lenA)
 
-            const localAxis = worldAxis.clone().applyQuaternion(boneWorldQuatInv)
-            localAxis.normalize()
+    /* --- rotar el hombro (arm) --- */
+    // dirección actual del hombro al codo en espacio mundial
+    const currentArmDir = new THREE.Vector3().subVectors(pB, pA).normalize()
+    // dirección deseada del hombro al codo
+    const desiredArmDir = elbowDir.clone()
 
-            // aplicar rotación en espacio local
-            const deltaQuat = new THREE.Quaternion().setFromAxisAngle(localAxis, angle)
-            bone.quaternion.multiplyQuaternions(deltaQuat, bone.quaternion)
-            bone.quaternion.normalize()
+    const armRotAxis = new THREE.Vector3().crossVectors(currentArmDir, desiredArmDir)
+    if(armRotAxis.lengthSq() > 0.0001){
+        armRotAxis.normalize()
+        const armAngle = Math.acos(THREE.MathUtils.clamp(currentArmDir.dot(desiredArmDir), -1, 1))
 
-            // aplicar límites
-            applyBoneConstraints(bone)
+        // convertir al espacio local del hombro
+        const armWorldQuat = new THREE.Quaternion()
+        arm.getWorldQuaternion(armWorldQuat)
+        const localAxis = armRotAxis.clone().applyQuaternion(armWorldQuat.clone().invert())
 
-            // actualizar matrices para la siguiente iteración
-            bone.updateMatrixWorld(true)
-        }
+        const deltaQuat = new THREE.Quaternion().setFromAxisAngle(localAxis, armAngle)
+        arm.quaternion.multiplyQuaternions(deltaQuat, arm.quaternion)
+        arm.quaternion.normalize()
+        applyBoneConstraints(arm)
+        arm.updateMatrixWorld(true)
+    }
+
+    /* --- rotar el codo (foreArm) --- */
+    // recalcular posición del codo tras mover el hombro
+    const newPB = new THREE.Vector3(); foreArm.getWorldPosition(newPB)
+    const newPC = new THREE.Vector3(); hand.getWorldPosition(newPC)
+
+    const currentForeDir = new THREE.Vector3().subVectors(newPC, newPB).normalize()
+    const desiredForeDir = new THREE.Vector3().subVectors(pT, newElbowPos).normalize()
+
+    const foreRotAxis = new THREE.Vector3().crossVectors(currentForeDir, desiredForeDir)
+    if(foreRotAxis.lengthSq() > 0.0001){
+        foreRotAxis.normalize()
+        const foreAngle = Math.acos(THREE.MathUtils.clamp(currentForeDir.dot(desiredForeDir), -1, 1))
+
+        const foreWorldQuat = new THREE.Quaternion()
+        foreArm.getWorldQuaternion(foreWorldQuat)
+        const localAxis = foreRotAxis.clone().applyQuaternion(foreWorldQuat.clone().invert())
+
+        const deltaQuat = new THREE.Quaternion().setFromAxisAngle(localAxis, foreAngle)
+        foreArm.quaternion.multiplyQuaternions(deltaQuat, foreArm.quaternion)
+        foreArm.quaternion.normalize()
+        applyBoneConstraints(foreArm)
+        foreArm.updateMatrixWorld(true)
     }
 }
 
 /* ------------------------------------------------ */
-/* UPDATE IK (llamado desde el loop)                 */
+/* UPDATE IK                                         */
 /* ------------------------------------------------ */
 export function updateIK(){
 
@@ -231,7 +287,6 @@ export function updateIK(){
     if(!boneName) return
 
     let chain = []
-
     if(boneName === "leftHand"){
         chain = [bones.leftArm, bones.leftForeArm, bones.leftHand]
     } else if(boneName === "rightHand"){
@@ -243,12 +298,11 @@ export function updateIK(){
         return
     }
 
-    // actualizar matrices de toda la cadena antes de calcular
     chain.forEach(b => b.updateMatrixWorld(true))
 
-    solveIK_CCD(chain, ikTarget, 15)
+    // 🔥 pasar poleTarget al solver
+    solveIK_TwoBone(chain, ikTarget, poleTarget)
 
-    // forzar update del skeleton
     if(window.skinnedMeshes){
         window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
     }
