@@ -328,11 +328,10 @@ export function updateIK(){
     solveIK_CCD(chain, ikTarget, 10)
 
     // 🔥 FORZAR UPDATE DEL SKELETON (LA CLAVE REAL)
-    if(window.skinnedMesh){
-        window.skinnedMesh.skeleton.update()
-    }
-
-    model.updateMatrixWorld(true)
+if(window.skinnedMeshes){
+    window.skinnedMeshes.forEach(mesh=>{
+        mesh.skeleton.update()
+    })
 }
 
 
