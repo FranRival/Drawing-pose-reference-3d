@@ -226,7 +226,7 @@ model.traverse((obj) => {
 
 console.log("SkinnedMeshes:", window.skinnedMeshes)
 
-console.log("SkinnedMesh detectado:", skinnedMesh)
+console.log("SkinnedMesh detectado:", window.skinnedMeshes)
 
 
 

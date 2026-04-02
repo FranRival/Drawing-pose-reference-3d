@@ -333,7 +333,7 @@ if(window.skinnedMeshes){
         mesh.skeleton.update()
     })
 }
-
+}
 
 
 // ==============esfera morada ======= objetivo de pocision - quiero que la mano llegue aqui.
