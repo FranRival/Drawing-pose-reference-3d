@@ -504,4 +504,71 @@ switch(hit.type){
         return
     }
 }
-}
+}) // cierra pointerdown
+
+    /* ---- POINTER MOVE ---- */
+    renderer.domElement.addEventListener("pointermove",(event)=>{
+
+        if(selectedSun){
+            localSunAzimuth   += event.movementX * 0.01
+            localSunElevation -= event.movementY * 0.01
+            setSunAngles(localSunAzimuth, localSunElevation)
+            return
+        }
+
+        if(poleActive && poleTarget){
+            const rect = renderer.domElement.getBoundingClientRect()
+            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+            raycaster.setFromCamera(mouse, camera)
+            updateDragPlane(poleTarget.position)
+            const pt = new THREE.Vector3()
+            if(raycaster.ray.intersectPlane(dragPlane, pt)){
+                poleTarget.position.copy(pt)
+            }
+            return
+        }
+
+        if(ikDragging && ikTarget){
+            const rect = renderer.domElement.getBoundingClientRect()
+            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+            raycaster.setFromCamera(mouse, camera)
+            updateDragPlane(ikTarget.position)
+            const pt = new THREE.Vector3()
+            if(raycaster.ray.intersectPlane(dragPlane, pt)){
+                ikTarget.position.copy(pt)
+            }
+            return
+        }
+
+        if(!selectedBone || ikActive) return
+
+        const boneName    = getBoneName(selectedBone)
+        if(!boneName) return
+
+        const allowedAxes = boneAxes[boneName] || ['x','y','z']
+        const rotSpeed    = 0.01
+
+        if(allowedAxes.includes('y')){
+            tempAxis.set(0,1,0)
+            tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
+            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+        }
+        if(allowedAxes.includes('x')){
+            tempAxis.set(1,0,0)
+            tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
+            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+        }
+
+        applyBoneConstraints(selectedBone)
+    }) // cierra pointermove
+
+    /* ---- POINTER UP ---- */
+    renderer.domElement.addEventListener("pointerup",()=>{
+        selectedSun = false
+        poleActive  = false
+        ikDragging  = false
+    }) // cierra pointerup
+
+} // cierra initRaycasting
