@@ -13,6 +13,8 @@ let boneHelper = null
 let poleTarget = null
 let poleActive = false
 let selectedGizmo = null
+let hoveredGizmo = null
+let hoveredType = null
 let localSunAzimuth = 0
 let localSunElevation = 0
 let ikTarget = null
@@ -357,6 +359,76 @@ function updateDragPlane(position){
     dragPlane.setFromNormalAndCoplanarPoint(normal, position)
 }
 
+
+
+
+
+
+
+
+function updateHover(){
+
+    raycaster.setFromCamera(mouse, camera)
+
+    const hits = []
+
+    if(ikTarget){
+        const h = raycaster.intersectObject(ikTarget)
+        if(h.length) hits.push({ type:"ik", object:ikTarget, dist:h[0].distance })
+    }
+
+    if(poleTarget){
+        const h = raycaster.intersectObject(poleTarget)
+        if(h.length) hits.push({ type:"pole", object:poleTarget, dist:h[0].distance })
+    }
+
+    const gizmoHits = raycaster.intersectObjects(jointGizmos)
+    gizmoHits.forEach(h=>{
+        hits.push({ type:"gizmo", object:h.object, dist:h.distance })
+    })
+
+    const priority = {
+        ik:1,
+        pole:2,
+        gizmo:3
+    }
+
+    hits.sort((a,b)=>{
+        if(priority[a.type] !== priority[b.type]){
+            return priority[a.type] - priority[b.type]
+        }
+        return a.dist - b.dist
+    })
+
+    const hit = hits[0]
+
+    // RESET anterior
+    if(hoveredGizmo){
+        hoveredGizmo.material.color.set(0x00ffff)
+        hoveredGizmo = null
+        hoveredType = null
+    }
+
+    if(!hit) return
+
+    hoveredType = hit.type
+
+    if(hit.type === "gizmo"){
+        hoveredGizmo = hit.object
+        hoveredGizmo.material.color.set(0xffff00) // amarillo hover
+    }
+
+    if(hit.type === "ik"){
+        ikTarget.material.color.set(0xffaa00)
+    }
+
+    if(hit.type === "pole"){
+        poleTarget.material.color.set(0x00ffaa)
+    }
+}
+
+
+
 /* ------------------------------------------------ */
 /* RAYCASTING                                        */
 /* ------------------------------------------------ */
@@ -505,6 +577,15 @@ switch(hit.type){
     }
 }
 }) // cierra pointerdown
+
+
+const rect = renderer.domElement.getBoundingClientRect()
+mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+
+updateHover()
+if(ikDragging || poleActive) return
+
 
     /* ---- POINTER MOVE ---- */
     renderer.domElement.addEventListener("pointermove",(event)=>{
