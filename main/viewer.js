@@ -579,16 +579,19 @@ switch(hit.type){
 }) // cierra pointerdown
 
 
-const rect = renderer.domElement.getBoundingClientRect()
-mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
 
-updateHover()
-if(ikDragging || poleActive) return
 
 
     /* ---- POINTER MOVE ---- */
     renderer.domElement.addEventListener("pointermove",(event)=>{
+
+
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+        mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+
+        updateHover()
+        if(ikDragging || poleActive) return
 
         if(selectedSun){
             localSunAzimuth   += event.movementX * 0.01
