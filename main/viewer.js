@@ -379,169 +379,129 @@ export function initRaycasting(){
         poleActive   = false
         ikDragging   = false
 
-        /* ---- SUN ---- */
-        if(raycaster.intersectObject(sunGizmo).length > 0){
-            selectedSun = true
-            return
-        }
+        /* ========================= */
+/* PRIORITY SYSTEM */
+/* ========================= */
 
-        /* ---- IK TARGET (esfera morada) ---- */
-        if(ikTarget){
-            const hit = raycaster.intersectObject(ikTarget)
-            if(hit.length > 0){
-                console.log("DRAG IK TARGET")
-                ikDragging = true
-                updateDragPlane(ikTarget.position)
-                return
-            }
-        }
+const hits = []
 
-        /* ---- POLE TARGET (esfera verde) ---- */
-        if(poleTarget){
-            const hit = raycaster.intersectObject(poleTarget)
-            if(hit.length > 0){
-                console.log("DRAG POLE TARGET")
-                poleActive = true
-                updateDragPlane(poleTarget.position)
-                return
-            }
-        }
+if(sunGizmo){
+    const h = raycaster.intersectObject(sunGizmo)
+    if(h.length) hits.push({ type:"sun", object:sunGizmo, dist:h[0].distance })
+}
 
-        /* ---- GIZMOS (selección de hueso) ---- */
-        const gizmoHits = raycaster.intersectObjects(jointGizmos)
-        if(gizmoHits.length > 0){
-            const bone = gizmoHits[0].object.userData.bone
-            if(bone){
-                highlightBone(bone)
-                selectedBone = bone
+if(ikTarget){
+    const h = raycaster.intersectObject(ikTarget)
+    if(h.length) hits.push({ type:"ik", object:ikTarget, dist:h[0].distance })
+}
 
-                const boneName = getBoneName(bone)
-                console.log("BONE SELECCIONADO:", boneName)
+if(poleTarget){
+    const h = raycaster.intersectObject(poleTarget)
+    if(h.length) hits.push({ type:"pole", object:poleTarget, dist:h[0].distance })
+}
 
-                // Activar IK si es una mano
-                if(boneName === "leftHand" || boneName === "rightHand"){
+const gizmoHits = raycaster.intersectObjects(jointGizmos)
+gizmoHits.forEach(h=>{
+    hits.push({ type:"gizmo", object:h.object, dist:h.distance })
+})
 
-                    if(!ikTarget)   createIKTarget()
-                    if(!poleTarget) createPoleTarget()
+let meshHits = []
 
-                    // colocar targets en la posición actual de la mano
-                    const pos = new THREE.Vector3()
-                    bone.getWorldPosition(pos)
-                    ikTarget.position.copy(pos)
-                    poleTarget.position.copy(pos).add(new THREE.Vector3(0, 0.4, 0.3))
+if(!ikDragging && !poleActive){
+    meshHits = raycaster.intersectObject(model, true)
+}
 
-                    ikActive   = true
-                    ikDragging = true  // empieza a arrastrar inmediatamente
+meshHits.forEach(h=>{
+    if(h.object.isSkinnedMesh){
+        hits.push({ type:"mesh", object:h.object, hit:h, dist:h.distance })
+    }
+})
 
-                    updateDragPlane(ikTarget.position)
+const priority = {
+    ik: 1,
+    pole: 2,
+    gizmo: 3,
+    mesh: 4,
+    sun: 5
+}
 
-                    console.log("IK ACTIVADO para:", boneName)
-                    console.log("ikTarget en:", ikTarget.position)
-                } else {
-                    // si seleccionamos otro hueso, desactivar IK
-                    ikActive   = false
-                    ikDragging = false
-                }
-                return
-            }
-        }
+hits.sort((a,b)=>{
+    if(priority[a.type] !== priority[b.type]){
+        return priority[a.type] - priority[b.type]
+    }
+    return a.dist - b.dist
+})
 
-        /* ---- MODEL FALLBACK ---- */
-        const intersects = raycaster.intersectObject(model, true)
-        if(intersects.length > 0){
-            const hit = intersects.find(i => i.object.isSkinnedMesh)
-            if(hit){
-                const mesh      = hit.object
-                const skinIndex = mesh.geometry.attributes.skinIndex
-                if(skinIndex && hit.face){
-                    const boneIndex    = skinIndex.getX(hit.face.a)
-                    const detectedBone = mesh.skeleton.bones[boneIndex]
-                    if(detectedBone){
-                        highlightBone(detectedBone)
-                        selectedBone = detectedBone
-                        ikActive   = false
-                        ikDragging = false
-                    }
-                }
-            }
-        }
-    })
+const hit = hits[0]
+if(!hit) return
 
-    /* ---- POINTER MOVE ---- */
-    renderer.domElement.addEventListener("pointermove",(event)=>{
+/* ========================= */
+/* RESOLVE */
+/* ========================= */
 
-        /* SUN */
-        if(selectedSun){
-            localSunAzimuth   += event.movementX * 0.01
-            localSunElevation -= event.movementY * 0.01
-            setSunAngles(localSunAzimuth, localSunElevation)
-            return
-        }
+switch(hit.type){
 
-        /* POLE (esfera verde) */
-        if(poleActive && poleTarget){
-            const rect = renderer.domElement.getBoundingClientRect()
-            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+    case "sun":
+        selectedSun = true
+        return
 
-            raycaster.setFromCamera(mouse, camera)
-            updateDragPlane(poleTarget.position)
+    case "ik":
+        ikDragging = true
+        updateDragPlane(ikTarget.position)
+        return
 
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt)){
-                poleTarget.position.copy(pt)
-                // el pole no ejecuta IK por sí solo; updateIK() lo llama el loop
-            }
-            return
-        }
+    case "pole":
+        poleActive = true
+        updateDragPlane(poleTarget.position)
+        return
 
-        /* IK (esfera morada) */
-        if(ikDragging && ikTarget){
-            const rect = renderer.domElement.getBoundingClientRect()
-            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+    case "gizmo":{
+        const bone = hit.object.userData.bone
+        if(!bone) return
 
-            raycaster.setFromCamera(mouse, camera)
+        highlightBone(bone)
+        selectedBone = bone
 
-            // recalcular plano con posición actual del target
+        const boneName = getBoneName(bone)
+
+        if(boneName === "leftHand" || boneName === "rightHand"){
+
+            if(!ikTarget) createIKTarget()
+            if(!poleTarget) createPoleTarget()
+
+            const pos = new THREE.Vector3()
+            bone.getWorldPosition(pos)
+
+            ikTarget.position.copy(pos)
+            poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.4,0.3))
+
+            ikActive = true
+            ikDragging = true
+
             updateDragPlane(ikTarget.position)
+        } else {
+            ikActive = false
+        }
 
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt)){
-                ikTarget.position.copy(pt)
+        return
+    }
+
+    case "mesh":{
+        const h = hit.object
+        const mesh = h.object
+        const skinIndex = mesh.geometry.attributes.skinIndex
+
+        if(skinIndex && h.face){
+            const boneIndex = skinIndex.getX(h.face.a)
+            const detectedBone = mesh.skeleton.bones[boneIndex]
+
+            if(detectedBone){
+                highlightBone(detectedBone)
+                selectedBone = detectedBone
+                ikActive = false
             }
-            return
         }
-
-        /* ROTACIÓN MANUAL de hueso */
-        if(!selectedBone || ikActive) return
-
-        const boneName    = getBoneName(selectedBone)
-        if(!boneName) return
-
-        const allowedAxes = boneAxes[boneName] || ['x','y','z']
-        const rotSpeed    = 0.01
-
-        if(allowedAxes.includes('y')){
-            tempAxis.set(0,1,0)
-            tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
-            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
-        }
-        if(allowedAxes.includes('x')){
-            tempAxis.set(1,0,0)
-            tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
-            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
-        }
-
-        applyBoneConstraints(selectedBone)
-    })
-
-    /* ---- POINTER UP ---- */
-    renderer.domElement.addEventListener("pointerup",()=>{
-        selectedSun = false
-        poleActive  = false
-        ikDragging  = false
-        // ⚠️ NO resetear ikActive — el IK debe seguir activo
-        // hasta que el usuario seleccione otro hueso
-    })
+        return
+    }
+}
 }
