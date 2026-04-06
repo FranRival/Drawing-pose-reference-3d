@@ -21,6 +21,17 @@ let ikTarget = null
 let ikActive = false     // IK está "enganchado" a un hueso
 let ikDragging = false   // usuario está arrastrando AHORA
 
+const COLORS = {
+    gizmo: 0x00ffff,
+    hover: 0xffff00,
+    selected: 0xff8800,
+    ikActive: 0xff0000,
+    ikTarget: 0xff00ff,
+    ikTargetActive: 0xff5500,
+    pole: 0x00ff00,
+    poleActive: 0x00ffaa
+}
+
 const tempQuaternion = new THREE.Quaternion()
 const tempAxis = new THREE.Vector3()
 
@@ -324,14 +335,14 @@ export function rotateBone(name,x,y,z){
 /* BONE HELPER                                       */
 /* ------------------------------------------------ */
 function highlightBone(bone){
-    if(selectedGizmo) selectedGizmo.material.color.set(0x00ffff)
+    selectedGizmo.material.color.set(COLORS.gizmo)
 
     selectedBone = bone
     selectedGizmo = null
 
     jointGizmos.forEach(gizmo => {
         if(gizmo.userData.bone === bone){
-            gizmo.material.color.set(0xff8800)
+            gizmo.material.color.set(COLORS.selected)
             selectedGizmo = gizmo
         }
     })
