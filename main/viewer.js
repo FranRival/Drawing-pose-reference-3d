@@ -12,6 +12,28 @@ let ikRestPose = {}  // guarda quaternions iniciales de la cadena
 let ikMode = true // true = IK activo, false = FK (rotación normal)
 let axisLock = ['x','y','z'] // ejes activos
 
+const mirrorMap = {
+
+    leftArm: "rightArm",
+    rightArm: "leftArm",
+
+    leftForeArm: "rightForeArm",
+    rightForeArm: "leftForeArm",
+
+    leftHand: "rightHand",
+    rightHand: "leftHand",
+
+    leftUpLeg: "rightUpLeg",
+    rightUpLeg: "leftUpLeg",
+
+    leftLeg: "rightLeg",
+    rightLeg: "leftLeg",
+
+    leftFoot: "rightFoot",
+    rightFoot: "leftFoot"
+
+}
+
 let selectedSun = false
 let selectedBone = null
 let boneHelper = null
@@ -593,6 +615,44 @@ export function loadPoseFromFile(file){
 
 
 
+//funcion MIRROR
+export function mirrorPose(direction = "LtoR"){
+
+    Object.entries(mirrorMap).forEach(([a, b]) => {
+
+        let from = a
+        let to   = b
+
+        if(direction === "RtoL"){
+            from = b
+            to   = a
+        }
+
+        const boneA = bones[from]
+        const boneB = bones[to]
+
+        if(!boneA || !boneB) return
+
+        const q = boneA.quaternion
+
+        const mirrored = new THREE.Quaternion(
+            -q.x,
+             q.y,
+             q.z,
+            -q.w
+        )
+
+        boneB.quaternion.copy(mirrored)
+        boneB.updateMatrixWorld(true)
+
+    })
+
+    if(window.skinnedMeshes){
+        window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
+    }
+}
+
+
 
 
 /* ------------------------------------------------ */
@@ -618,11 +678,13 @@ export function initRaycasting(){
 
         if(key === "r") resetPose()  // ✅ aquí, una sola vez
         if(key === "r") savePose()
+        if(key === "m") mirrorPose("LtoR")
+        if(key === "n") mirrorPose("RtoR")
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
         }
-
+        
 
         if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
         if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
