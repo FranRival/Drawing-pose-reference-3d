@@ -129,6 +129,13 @@ export function inspectBones(){
     console.log("rightArm:", bones.rightArm?.name)
     console.log("rightForeArm:", bones.rightForeArm?.name)
     console.log("rightHand:", bones.rightHand?.name)
+    
+    Object.values(bones).forEach(bone => {
+
+    bone.userData.initialQuaternion = bone.quaternion.clone()
+    bone.userData.initialPosition   = bone.position.clone()
+
+})
 }
 
 /* ------------------------------------------------ */
@@ -293,6 +300,42 @@ function solveIK_TwoBone(chain, target, pole){
     }
 }
 
+
+
+//
+export function resetPose(){
+
+    Object.values(bones).forEach(bone => {
+
+        if(bone.userData.initialQuaternion){
+            bone.quaternion.copy(bone.userData.initialQuaternion)
+        }
+
+        if(bone.userData.initialPosition){
+            bone.position.copy(bone.userData.initialPosition)
+        }
+
+        bone.updateMatrixWorld(true)
+    })
+
+    // reset IK
+    ikActive = false
+    ikDragging = false
+    selectedBone = null
+
+    // opcional: esconder targets
+    if(ikTarget) ikTarget.visible = false
+    if(poleTarget) poleTarget.visible = false
+
+    console.log("POSE RESET")
+    
+    if(window.skinnedMeshes){
+    window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
+}
+}
+
+
+
 /* ------------------------------------------------ */
 /* UPDATE IK                                         */
 /* ------------------------------------------------ */
@@ -328,6 +371,14 @@ export function updateIK(){
     if(window.skinnedMeshes){
         window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
     }
+    
+    window.addEventListener("keydown",(e)=>{
+
+    if(e.key === "r" || e.key === "R"){
+        resetPose()
+    }
+
+})
 }
 
 /* ------------------------------------------------ */
