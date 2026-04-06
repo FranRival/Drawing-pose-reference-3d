@@ -426,7 +426,10 @@ function updateHover(){
 
     if(hit.type === "gizmo"){
         hoveredGizmo = hit.object
-        hoveredGizmo.material.color.set(0xffff00) // amarillo hover
+        
+        if(hoveredGizmo !== selectedGizmo){
+    	hoveredGizmo.material.color.set(COLORS.hover)
+		}
     }
 
     if(hit.type === "ik"){
@@ -449,6 +452,9 @@ export function initRaycasting(){
 
     /* ---- POINTER DOWN ---- */
     renderer.domElement.addEventListener("pointerdown",(event)=>{
+        
+        if(ikTarget) ikTarget.material.color.set(COLORS.ikTarget)
+		if(poleTarget) poleTarget.material.color.set(COLORS.pole)
 
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
