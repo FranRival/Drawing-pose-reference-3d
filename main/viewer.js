@@ -7,6 +7,8 @@ const mouse = new THREE.Vector2()
 export let bones = {}
 export let jointGizmos = []
 
+let ikMode = true // true = IK activo, false = FK (rotación normal)
+
 let selectedSun = false
 let selectedBone = null
 let boneHelper = null
@@ -293,7 +295,7 @@ function solveIK_TwoBone(chain, target, pole){
 /* ------------------------------------------------ */
 export function updateIK(){
 
-    if(!ikActive || !ikTarget) return
+    if(!ikMode || !ikActive || !ikTarget) return
     if(!selectedBone) return
 
     const boneName = getBoneName(selectedBone)
@@ -335,7 +337,7 @@ export function rotateBone(name,x,y,z){
 /* BONE HELPER                                       */
 /* ------------------------------------------------ */
 function highlightBone(bone){
-    if(selectedGizmo) selectedGizmo.material.color.set(COLORS.gizmo)
+    selectedGizmo.material.color.set(COLORS.gizmo)
 
     selectedBone = bone
     selectedGizmo = null
@@ -467,10 +469,37 @@ export function initRaycasting(){
         selectedSun  = false
         poleActive   = false
         ikDragging   = false
+        
+        
+        
+        
+        
+        
+
+window.addEventListener("keydown",(e)=>{
+
+    if(e.key.toLowerCase() === "i"){
+
+        ikMode = !ikMode
+
+        console.log("IK MODE:", ikMode ? "ON" : "OFF")
+
+        // 🔥 reset visual si apagamos IK
+        if(!ikMode){
+            ikActive = false
+            ikDragging = false
+            poleActive = false
+        }
+    }
+
+})
 
         /* ========================= */
 /* PRIORITY SYSTEM */
 /* ========================= */
+
+
+
 
 const hits = []
 
@@ -553,7 +582,7 @@ switch(hit.type){
 
         const boneName = getBoneName(bone)
 
-        if(boneName === "leftHand" || boneName === "rightHand"){
+        if(ikMode && (boneName === "leftHand" || boneName === "rightHand")){
 
             if(!ikTarget) createIKTarget()
             if(!poleTarget) createPoleTarget()
@@ -596,18 +625,32 @@ switch(hit.type){
 }) // cierra pointerdown
 
 
+
+
+
     /* ---- POINTER MOVE ---- */
     renderer.domElement.addEventListener("pointermove",(event)=>{
+
 
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
         mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
 
-        raycaster.setFromCamera(mouse, camera)
         updateHover()
+        if(ikDragging || poleActive) return
 
-        /* POLE drag */
+        if(selectedSun){
+            localSunAzimuth   += event.movementX * 0.01
+            localSunElevation -= event.movementY * 0.01
+            setSunAngles(localSunAzimuth, localSunElevation)
+            return
+        }
+
         if(poleActive && poleTarget){
+            const rect = renderer.domElement.getBoundingClientRect()
+            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+            raycaster.setFromCamera(mouse, camera)
             updateDragPlane(poleTarget.position)
             const pt = new THREE.Vector3()
             if(raycaster.ray.intersectPlane(dragPlane, pt)){
@@ -616,8 +659,11 @@ switch(hit.type){
             return
         }
 
-        /* IK drag */
         if(ikDragging && ikTarget){
+            const rect = renderer.domElement.getBoundingClientRect()
+            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+            raycaster.setFromCamera(mouse, camera)
             updateDragPlane(ikTarget.position)
             const pt = new THREE.Vector3()
             if(raycaster.ray.intersectPlane(dragPlane, pt)){
@@ -626,22 +672,15 @@ switch(hit.type){
             return
         }
 
-        /* SUN */
-        if(selectedSun){
-            localSunAzimuth   += event.movementX * 0.01
-            localSunElevation -= event.movementY * 0.01
-            setSunAngles(localSunAzimuth, localSunElevation)
-            return
-        }
+        if(!selectedBone) return
 
-        /* rotación manual de hueso */
-        if(!selectedBone || ikActive) return
+		if(ikMode && ikActive) return
 
-        const boneName = getBoneName(selectedBone)
+        const boneName    = getBoneName(selectedBone)
         if(!boneName) return
 
         const allowedAxes = boneAxes[boneName] || ['x','y','z']
-        const rotSpeed = 0.01
+        const rotSpeed    = 0.01
 
         if(allowedAxes.includes('y')){
             tempAxis.set(0,1,0)
@@ -655,9 +694,7 @@ switch(hit.type){
         }
 
         applyBoneConstraints(selectedBone)
-    })
-    
-    // cierra pointermove
+    }) // cierra pointermove
 
     /* ---- POINTER UP ---- */
     renderer.domElement.addEventListener("pointerup",()=>{
