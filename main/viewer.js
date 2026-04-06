@@ -337,7 +337,7 @@ export function rotateBone(name,x,y,z){
 /* BONE HELPER                                       */
 /* ------------------------------------------------ */
 function highlightBone(bone){
-    selectedGizmo.material.color.set(COLORS.gizmo)
+    if(selectedGizmo) selectedGizmo.material.color.set(COLORS.gizmo)
 
     selectedBone = bone
     selectedGizmo = null
@@ -452,11 +452,24 @@ export function initRaycasting(){
 
     console.log("Raycasting activado")
 
+    // ✅ keydown AQUÍ, una sola vez, fuera del pointerdown
+    window.addEventListener("keydown",(e)=>{
+        if(e.key.toLowerCase() === "i"){
+            ikMode = !ikMode
+            console.log("IK MODE:", ikMode ? "ON" : "OFF")
+            if(!ikMode){
+                ikActive   = false
+                ikDragging = false
+                poleActive = false
+            }
+        }
+    })
+
     /* ---- POINTER DOWN ---- */
     renderer.domElement.addEventListener("pointerdown",(event)=>{
-        
-        if(ikTarget) ikTarget.material.color.set(COLORS.ikTarget)
-		if(poleTarget) poleTarget.material.color.set(COLORS.pole)
+
+        if(ikTarget)   ikTarget.material.color.set(COLORS.ikTarget)
+        if(poleTarget) poleTarget.material.color.set(COLORS.pole)
 
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
@@ -465,179 +478,143 @@ export function initRaycasting(){
         raycaster.setFromCamera(mouse, camera)
         if(model) model.updateMatrixWorld(true)
 
-        /* RESET de flags de drag — NO tocar ikActive aquí */
         selectedSun  = false
         poleActive   = false
         ikDragging   = false
-        
-        
-        
-        
-        
-        
 
-window.addEventListener("keydown",(e)=>{
+        const hits = []
 
-    if(e.key.toLowerCase() === "i"){
-
-        ikMode = !ikMode
-
-        console.log("IK MODE:", ikMode ? "ON" : "OFF")
-
-        // 🔥 reset visual si apagamos IK
-        if(!ikMode){
-            ikActive = false
-            ikDragging = false
-            poleActive = false
-        }
-    }
-
-})
-
-        /* ========================= */
-/* PRIORITY SYSTEM */
-/* ========================= */
-
-
-
-
-const hits = []
-
-if(sunGizmo){
-    const h = raycaster.intersectObject(sunGizmo)
-    if(h.length) hits.push({ type:"sun", object:sunGizmo, dist:h[0].distance })
-}
-
-if(ikTarget){
-    const h = raycaster.intersectObject(ikTarget)
-    if(h.length) hits.push({ type:"ik", object:ikTarget, dist:h[0].distance })
-}
-
-if(poleTarget){
-    const h = raycaster.intersectObject(poleTarget)
-    if(h.length) hits.push({ type:"pole", object:poleTarget, dist:h[0].distance })
-}
-
-const gizmoHits = raycaster.intersectObjects(jointGizmos)
-gizmoHits.forEach(h=>{
-    hits.push({ type:"gizmo", object:h.object, dist:h.distance })
-})
-
-let meshHits = []
-
-if(!ikDragging && !poleActive){
-    meshHits = raycaster.intersectObject(model, true)
-}
-
-meshHits.forEach(h=>{
-    if(h.object.isSkinnedMesh){
-        hits.push({ type:"mesh", object:h.object, hit:h, dist:h.distance })
-    }
-})
-
-const priority = {
-    ik: 1,
-    pole: 2,
-    gizmo: 3,
-    mesh: 4,
-    sun: 5
-}
-
-hits.sort((a,b)=>{
-    if(priority[a.type] !== priority[b.type]){
-        return priority[a.type] - priority[b.type]
-    }
-    return a.dist - b.dist
-})
-
-const hit = hits[0]
-if(!hit) return
-
-/* ========================= */
-/* RESOLVE */
-/* ========================= */
-
-switch(hit.type){
-
-    case "sun":
-        selectedSun = true
-        return
-
-    case "ik":
-        ikDragging = true
-        updateDragPlane(ikTarget.position)
-        return
-
-    case "pole":
-        poleActive = true
-        updateDragPlane(poleTarget.position)
-        return
-
-    case "gizmo":{
-        const bone = hit.object.userData.bone
-        if(!bone) return
-
-        highlightBone(bone)
-        selectedBone = bone
-
-        const boneName = getBoneName(bone)
-
-        if(ikMode && (boneName === "leftHand" || boneName === "rightHand")){
-
-            if(!ikTarget) createIKTarget()
-            if(!poleTarget) createPoleTarget()
-
-            const pos = new THREE.Vector3()
-            bone.getWorldPosition(pos)
-
-            ikTarget.position.copy(pos)
-            poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.4,0.3))
-
-            ikActive = true
-            ikDragging = true
-
-            updateDragPlane(ikTarget.position)
-        } else {
-            ikActive = false
+        if(sunGizmo){
+            const h = raycaster.intersectObject(sunGizmo)
+            if(h.length) hits.push({ type:"sun", object:sunGizmo, dist:h[0].distance })
         }
 
-        return
-    }
+        if(ikTarget){
+            const h = raycaster.intersectObject(ikTarget)
+            if(h.length) hits.push({ type:"ik", object:ikTarget, dist:h[0].distance })
+        }
 
-    case "mesh":{
-        const h = hit.object
-        const mesh = h.object
-        const skinIndex = mesh.geometry.attributes.skinIndex
+        if(poleTarget){
+            const h = raycaster.intersectObject(poleTarget)
+            if(h.length) hits.push({ type:"pole", object:poleTarget, dist:h[0].distance })
+        }
 
-        if(skinIndex && h.face){
-            const boneIndex = skinIndex.getX(h.face.a)
-            const detectedBone = mesh.skeleton.bones[boneIndex]
+        const gizmoHits = raycaster.intersectObjects(jointGizmos)
+        gizmoHits.forEach(h=>{
+            hits.push({ type:"gizmo", object:h.object, dist:h.distance })
+        })
 
-            if(detectedBone){
-                highlightBone(detectedBone)
-                selectedBone = detectedBone
-                ikActive = false
+        const meshHits = raycaster.intersectObject(model, true)
+        meshHits.forEach(h=>{
+            if(h.object.isSkinnedMesh){
+                hits.push({ type:"mesh", object:h.object, hit:h, dist:h.distance })
+            }
+        })
+
+        const priority = { ik:1, pole:2, gizmo:3, mesh:4, sun:5 }
+
+        hits.sort((a,b)=>{
+            if(priority[a.type] !== priority[b.type])
+                return priority[a.type] - priority[b.type]
+            return a.dist - b.dist
+        })
+
+        const hit = hits[0]
+        if(!hit) return
+
+        switch(hit.type){
+
+            case "sun":
+                selectedSun = true
+                return
+
+            case "ik":
+                ikDragging = true
+                updateDragPlane(ikTarget.position)
+                return
+
+            case "pole":
+                poleActive = true
+                updateDragPlane(poleTarget.position)
+                return
+
+            case "gizmo":{
+                const bone = hit.object.userData.bone
+                if(!bone) return
+
+                highlightBone(bone)
+                selectedBone = bone
+
+                const boneName = getBoneName(bone)
+
+                if(ikMode && (boneName === "leftHand" || boneName === "rightHand")){
+
+                    if(!ikTarget)   createIKTarget()
+                    if(!poleTarget) createPoleTarget()
+
+                    const pos = new THREE.Vector3()
+                    bone.getWorldPosition(pos)
+
+                    ikTarget.position.copy(pos)
+                    poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.4,0.3))
+
+                    ikActive   = true
+                    ikDragging = true
+
+                    updateDragPlane(ikTarget.position)
+
+                } else {
+                    ikActive = false
+                }
+                return
+            }
+
+            case "mesh":{
+                const meshHit = hit.hit
+                const mesh      = hit.object
+                const skinIndex = mesh.geometry.attributes.skinIndex
+
+                if(skinIndex && meshHit.face){
+                    const boneIndex    = skinIndex.getX(meshHit.face.a)
+                    const detectedBone = mesh.skeleton.bones[boneIndex]
+
+                    if(detectedBone){
+                        highlightBone(detectedBone)
+                        selectedBone = detectedBone
+                        ikActive = false
+                    }
+                }
+                return
             }
         }
-        return
-    }
-}
-}) // cierra pointerdown
-
-
-
-
+    }) // cierra pointerdown
 
     /* ---- POINTER MOVE ---- */
     renderer.domElement.addEventListener("pointermove",(event)=>{
-
 
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
         mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
 
+        raycaster.setFromCamera(mouse, camera)
         updateHover()
-        if(ikDragging || poleActive) return
+
+        // drags primero, return al final de cada uno
+        if(poleActive && poleTarget){
+            updateDragPlane(poleTarget.position)
+            const pt = new THREE.Vector3()
+            if(raycaster.ray.intersectPlane(dragPlane, pt))
+                poleTarget.position.copy(pt)
+            return
+        }
+
+        if(ikDragging && ikTarget){
+            updateDragPlane(ikTarget.position)
+            const pt = new THREE.Vector3()
+            if(raycaster.ray.intersectPlane(dragPlane, pt))
+                ikTarget.position.copy(pt)
+            return
+        }
 
         if(selectedSun){
             localSunAzimuth   += event.movementX * 0.01
@@ -646,37 +623,9 @@ switch(hit.type){
             return
         }
 
-        if(poleActive && poleTarget){
-            const rect = renderer.domElement.getBoundingClientRect()
-            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
-            raycaster.setFromCamera(mouse, camera)
-            updateDragPlane(poleTarget.position)
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt)){
-                poleTarget.position.copy(pt)
-            }
-            return
-        }
+        if(!selectedBone || (ikMode && ikActive)) return
 
-        if(ikDragging && ikTarget){
-            const rect = renderer.domElement.getBoundingClientRect()
-            mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-            mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
-            raycaster.setFromCamera(mouse, camera)
-            updateDragPlane(ikTarget.position)
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt)){
-                ikTarget.position.copy(pt)
-            }
-            return
-        }
-
-        if(!selectedBone) return
-
-		if(ikMode && ikActive) return
-
-        const boneName    = getBoneName(selectedBone)
+        const boneName = getBoneName(selectedBone)
         if(!boneName) return
 
         const allowedAxes = boneAxes[boneName] || ['x','y','z']
