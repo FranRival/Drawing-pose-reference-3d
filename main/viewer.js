@@ -615,17 +615,14 @@ export function initRaycasting(){
                 poleActive = false
             }
         }
-        if(e.key === "s"){
-        savePose()
-    }
-
-    if(e.key === "l"){
-        const json = prompt("Pega tu JSON")
-        if(json) loadPose(json)
-    }
-
 
         if(key === "r") resetPose()  // ✅ aquí, una sola vez
+        if(key === "r") savePose()
+        if(key === "l") {
+            const json = prompt("Pega tu JSON")
+            if(json) loadPose(json)
+        }
+
 
         if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
         if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
