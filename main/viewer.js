@@ -8,6 +8,7 @@ export let bones = {}
 export let jointGizmos = []
 
 let ikMode = true // true = IK activo, false = FK (rotación normal)
+let axisLock = ['x','y','z'] // ejes activos
 
 let selectedSun = false
 let selectedBone = null
@@ -464,6 +465,32 @@ export function initRaycasting(){
             }
         }
     })
+    
+    window.addEventListener("keydown",(e)=>{
+
+    const key = e.key.toLowerCase()
+
+    if(key === "x"){
+        axisLock = ['x']
+        console.log("Axis: X")
+    }
+
+    if(key === "y"){
+        axisLock = ['y']
+        console.log("Axis: Y")
+    }
+
+    if(key === "z"){
+        axisLock = ['z']
+        console.log("Axis: Z")
+    }
+
+    if(key === "a"){
+        axisLock = ['x','y','z']
+        console.log("Axis: ALL")
+    }
+
+})
 
     /* ---- POINTER DOWN ---- */
     renderer.domElement.addEventListener("pointerdown",(event)=>{
@@ -631,12 +658,12 @@ export function initRaycasting(){
         const allowedAxes = boneAxes[boneName] || ['x','y','z']
         const rotSpeed    = 0.01
 
-        if(allowedAxes.includes('y')){
+        if(allowedAxes.includes('y') && axisLock.includes('y')){
             tempAxis.set(0,1,0)
             tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
             selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
         }
-        if(allowedAxes.includes('x')){
+        if(allowedAxes.includes('x') && axisLock.includes('x')){
             tempAxis.set(1,0,0)
             tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
             selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
