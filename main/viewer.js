@@ -677,9 +677,9 @@ export function initRaycasting(){
         }
 
         if(key === "r") resetPose()  // ✅ aquí, una sola vez
-        if(key === "r") savePose()
+        if(key === "s") savePose()
         if(key === "m") mirrorPose("LtoR")
-        if(key === "n") mirrorPose("RtoR")
+        if(key === "n") mirrorPose("RtoL")
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
