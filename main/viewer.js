@@ -306,32 +306,27 @@ function solveIK_TwoBone(chain, target, pole){
 export function resetPose(){
 
     Object.values(bones).forEach(bone => {
-
-        if(bone.userData.initialQuaternion){
+        if(bone.userData.initialQuaternion)
             bone.quaternion.copy(bone.userData.initialQuaternion)
-        }
-
-        if(bone.userData.initialPosition){
+        if(bone.userData.initialPosition)
             bone.position.copy(bone.userData.initialPosition)
-        }
-
         bone.updateMatrixWorld(true)
     })
 
-    // reset IK
-    ikActive = false
+    ikActive   = false
     ikDragging = false
+    poleActive = false
     selectedBone = null
+    ikRestPose = {}  // ✅ limpiar rest pose
 
-    // opcional: esconder targets
-    if(ikTarget) ikTarget.visible = false
+    if(ikTarget)   ikTarget.visible = false
     if(poleTarget) poleTarget.visible = false
 
-    console.log("POSE RESET")
-    
     if(window.skinnedMeshes){
-    window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
-}
+        window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
+    }
+
+    console.log("POSE RESET")
 }
 
 
@@ -357,11 +352,8 @@ export function updateIK(){
 
     if(chain.length === 0 || chain.some(b => !b)) return
 
-    // 🔥 RESTAURAR POSE DE REPOSO antes de cada solve
     chain.forEach(b => {
-        if(ikRestPose[b.uuid]){
-            b.quaternion.copy(ikRestPose[b.uuid])
-        }
+        if(ikRestPose[b.uuid]) b.quaternion.copy(ikRestPose[b.uuid])
     })
 
     chain.forEach(b => b.updateMatrixWorld(true))
@@ -371,14 +363,6 @@ export function updateIK(){
     if(window.skinnedMeshes){
         window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
     }
-    
-    window.addEventListener("keydown",(e)=>{
-
-    if(e.key === "r" || e.key === "R"){
-        resetPose()
-    }
-
-})
 }
 
 /* ------------------------------------------------ */
@@ -512,25 +496,25 @@ export function initRaycasting(){
 
     // ✅ keydown AQUÍ, una sola vez, fuera del pointerdown
     window.addEventListener("keydown",(e)=>{
-    const key = e.key.toLowerCase()
+        const key = e.key.toLowerCase()
 
-    // IK toggle
-    if(key === "i"){
-        ikMode = !ikMode
-        console.log("IK MODE:", ikMode ? "ON" : "OFF")
-        if(!ikMode){
-            ikActive   = false
-            ikDragging = false
-            poleActive = false
+        if(key === "i"){
+            ikMode = !ikMode
+            console.log("IK MODE:", ikMode ? "ON" : "OFF")
+            if(!ikMode){
+                ikActive   = false
+                ikDragging = false
+                poleActive = false
+            }
         }
-    }
 
-    // Axis lock
-    if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
-    if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
-    if(key === "z"){ axisLock = ['z']; console.log("Axis: Z") }
-    if(key === "a"){ axisLock = ['x','y','z']; console.log("Axis: ALL") }
-})
+        if(key === "r") resetPose()  // ✅ aquí, una sola vez
+
+        if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
+        if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
+        if(key === "z"){ axisLock = ['z']; console.log("Axis: Z") }
+        if(key === "a"){ axisLock = ['x','y','z']; console.log("Axis: ALL") }
+    })
 
     /* ---- POINTER DOWN ---- */
     renderer.domElement.addEventListener("pointerdown",(event)=>{
