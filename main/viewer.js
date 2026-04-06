@@ -487,6 +487,114 @@ function updateHover(){
 
 
 
+//gurdar pose
+export function savePose(){
+
+    const pose = {}
+
+    Object.entries(bones).forEach(([name, bone]) => {
+
+        pose[name] = {
+            q: [
+                bone.quaternion.x,
+                bone.quaternion.y,
+                bone.quaternion.z,
+                bone.quaternion.w
+            ],
+            p: [
+                bone.position.x,
+                bone.position.y,
+                bone.position.z
+            ]
+        }
+
+    })
+
+    const json = JSON.stringify(pose, null, 2)
+
+    console.log("POSE:", json)
+
+    return json
+}
+
+
+export function loadPose(json){
+
+    let pose = null
+
+    try{
+        pose = typeof json === "string" ? JSON.parse(json) : json
+    }catch(e){
+        console.error("JSON inválido")
+        return
+    }
+
+    Object.entries(pose).forEach(([name, data]) => {
+
+        const bone = bones[name]
+        if(!bone) return
+
+        if(data.q){
+            bone.quaternion.set(
+                data.q[0],
+                data.q[1],
+                data.q[2],
+                data.q[3]
+            )
+        }
+
+        if(data.p){
+            bone.position.set(
+                data.p[0],
+                data.p[1],
+                data.p[2]
+            )
+        }
+
+        bone.updateMatrixWorld(true)
+
+    })
+
+    if(window.skinnedMeshes){
+        window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
+    }
+
+    console.log("POSE LOADED")
+}
+
+
+export function downloadPose(){
+
+    const json = savePose()
+
+    const blob = new Blob([json], { type:"application/json" })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "pose.json"
+    a.click()
+
+    URL.revokeObjectURL(url)
+}
+
+
+export function loadPoseFromFile(file){
+
+    const reader = new FileReader()
+
+    reader.onload = (e)=>{
+        loadPose(e.target.result)
+    }
+
+    reader.readAsText(file)
+}
+
+
+
+
+
+
 /* ------------------------------------------------ */
 /* RAYCASTING                                        */
 /* ------------------------------------------------ */
@@ -507,6 +615,15 @@ export function initRaycasting(){
                 poleActive = false
             }
         }
+        if(e.key === "s"){
+        savePose()
+    }
+
+    if(e.key === "l"){
+        const json = prompt("Pega tu JSON")
+        if(json) loadPose(json)
+    }
+
 
         if(key === "r") resetPose()  // ✅ aquí, una sola vez
 
