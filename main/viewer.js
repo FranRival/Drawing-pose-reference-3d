@@ -455,41 +455,24 @@ export function initRaycasting(){
 
     // ✅ keydown AQUÍ, una sola vez, fuera del pointerdown
     window.addEventListener("keydown",(e)=>{
-        if(e.key.toLowerCase() === "i"){
-            ikMode = !ikMode
-            console.log("IK MODE:", ikMode ? "ON" : "OFF")
-            if(!ikMode){
-                ikActive   = false
-                ikDragging = false
-                poleActive = false
-            }
-        }
-    })
-    
-    window.addEventListener("keydown",(e)=>{
-
     const key = e.key.toLowerCase()
 
-    if(key === "x"){
-        axisLock = ['x']
-        console.log("Axis: X")
+    // IK toggle
+    if(key === "i"){
+        ikMode = !ikMode
+        console.log("IK MODE:", ikMode ? "ON" : "OFF")
+        if(!ikMode){
+            ikActive   = false
+            ikDragging = false
+            poleActive = false
+        }
     }
 
-    if(key === "y"){
-        axisLock = ['y']
-        console.log("Axis: Y")
-    }
-
-    if(key === "z"){
-        axisLock = ['z']
-        console.log("Axis: Z")
-    }
-
-    if(key === "a"){
-        axisLock = ['x','y','z']
-        console.log("Axis: ALL")
-    }
-
+    // Axis lock
+    if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
+    if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
+    if(key === "z"){ axisLock = ['z']; console.log("Axis: Z") }
+    if(key === "a"){ axisLock = ['x','y','z']; console.log("Axis: ALL") }
 })
 
     /* ---- POINTER DOWN ---- */
@@ -656,16 +639,26 @@ export function initRaycasting(){
         if(!boneName) return
 
         const allowedAxes = boneAxes[boneName] || ['x','y','z']
-        const rotSpeed    = 0.01
+        const rotSpeed = 0.01
 
+        // eje Y — mouse horizontal
         if(allowedAxes.includes('y') && axisLock.includes('y')){
             tempAxis.set(0,1,0)
             tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
             selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
         }
+
+        // eje X — mouse vertical
         if(allowedAxes.includes('x') && axisLock.includes('x')){
             tempAxis.set(1,0,0)
             tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
+            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+        }
+
+        // eje Z — mouse horizontal (roll)
+        if(allowedAxes.includes('z') && axisLock.includes('z')){
+            tempAxis.set(0,0,1)
+            tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
             selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
         }
 
