@@ -7,6 +7,8 @@ const mouse = new THREE.Vector2()
 export let bones = {}
 export let jointGizmos = []
 
+let ikRestPose = {}  // guarda quaternions iniciales de la cadena
+
 let ikMode = true // true = IK activo, false = FK (rotación normal)
 let axisLock = ['x','y','z'] // ejes activos
 
@@ -294,6 +296,7 @@ function solveIK_TwoBone(chain, target, pole){
 /* ------------------------------------------------ */
 /* UPDATE IK                                         */
 /* ------------------------------------------------ */
+// En updateIK(), ANTES de llamar al solver:
 export function updateIK(){
 
     if(!ikMode || !ikActive || !ikTarget) return
@@ -309,14 +312,17 @@ export function updateIK(){
         chain = [bones.rightArm, bones.rightForeArm, bones.rightHand]
     }
 
-    if(chain.length === 0 || chain.some(b => !b)){
-        console.warn("Cadena IK incompleta:", chain)
-        return
-    }
+    if(chain.length === 0 || chain.some(b => !b)) return
+
+    // 🔥 RESTAURAR POSE DE REPOSO antes de cada solve
+    chain.forEach(b => {
+        if(ikRestPose[b.uuid]){
+            b.quaternion.copy(ikRestPose[b.uuid])
+        }
+    })
 
     chain.forEach(b => b.updateMatrixWorld(true))
 
-    // 🔥 pasar poleTarget al solver
     solveIK_TwoBone(chain, ikTarget, poleTarget)
 
     if(window.skinnedMeshes){
@@ -567,6 +573,17 @@ export function initRaycasting(){
 
                     ikTarget.position.copy(pos)
                     poleTarget.position.copy(pos).add(new THREE.Vector3(0,0.4,0.3))
+
+
+                     // 🔥 GUARDAR POSE DE REPOSO
+                    const chainBones = boneName === "leftHand"
+                        ? [bones.leftArm, bones.leftForeArm, bones.leftHand]
+                        : [bones.rightArm, bones.rightForeArm, bones.rightHand]
+
+                    ikRestPose = {}
+                    chainBones.forEach(b => {
+                        if(b) ikRestPose[b.uuid] = b.quaternion.clone()
+                    })
 
                     ikActive   = true
                     ikDragging = true
