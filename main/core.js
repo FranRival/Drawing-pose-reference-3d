@@ -353,6 +353,10 @@ function animate() {
     requestAnimationFrame(animate)
 
     updateIK()
+    
+    const delta = 0.016 // luego lo mejoramos
+	updateAnimation(delta)
+
     // 
     updateBoneHelper()
     updateJointGizmos()
