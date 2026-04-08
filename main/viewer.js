@@ -438,6 +438,39 @@ function updateDragPlane(position){
 
 
 
+//base de.animacion keyframe
+export function addKeyframe(){
+
+    const pose = JSON.parse(savePose())
+
+    keyframes.push({
+        time: currentTime,
+        pose: pose
+    })
+
+    console.log("KEYFRAME AÑADIDO:", currentTime)
+    console.log(keyframes)
+}
+
+export function goToKeyframe(index){
+
+    const kf = keyframes[index]
+    if(!kf) return
+
+    loadPose(kf.pose)
+
+    currentTime = kf.time
+
+    console.log("JUMP TO KEYFRAME:", index)
+}
+
+export function setTime(t){
+    currentTime = t
+}
+
+
+
+
 
 
 
@@ -680,6 +713,9 @@ export function initRaycasting(){
         if(key === "s") savePose()
         if(key === "m") mirrorPose("LtoR")
         if(key === "n") mirrorPose("RtoL")
+        if(key === "k") addKeyframe()
+        if(key === "1") goToKeyframe(0)
+        if(key === "2") goToKeyframe(1)
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
