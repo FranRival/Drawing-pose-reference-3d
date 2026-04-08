@@ -14,6 +14,9 @@ let isPlaying = false
 let playTime = 0
 let duration = 2 // segundos entre keyframes
 
+let timelineElement = null
+let isScrubbing = false
+
 let ikMode = true // true = IK activo, false = FK (rotación normal)
 let axisLock = ['x','y','z'] // ejes activos
 
@@ -449,13 +452,18 @@ export function addKeyframe(){
     const pose = JSON.parse(savePose())
 
     keyframes.push({
-        time: currentTime,
+        time: keyframes.length, // 0,1,2,3...
         pose: pose
     })
 
-    console.log("KEYFRAME AÑADIDO:", currentTime)
-    console.log(keyframes)
+    keyframes.sort((a,b)=>a.time - b.time)
+    
+    if(timelineElement){
+    timelineElement.max = keyframes[keyframes.length - 1].time
 }
+}
+
+
 
 export function goToKeyframe(index){
 
@@ -522,14 +530,69 @@ export function updateAnimation(delta){
 
     playTime += delta
 
-    const total = duration
-    const t = (playTime % total) / total
+const duration = keyframes[keyframes.length - 1].time
+const time = playTime % duration
 
-    const kfA = keyframes[0]
-    const kfB = keyframes[1]
+// 🔥 sincronizar UI
+if(timelineElement && !isScrubbing){
+    timelineElement.value = time
+}
+
+
+    const duration = keyframes[keyframes.length - 1].time
+
+    // loop
+    const time = playTime % duration
+
+    let kfA = null
+    let kfB = null
+
+    for(let i = 0; i < keyframes.length - 1; i++){
+
+        if(time >= keyframes[i].time && time <= keyframes[i+1].time){
+
+            kfA = keyframes[i]
+            kfB = keyframes[i+1]
+            break
+        }
+    }
+
+    if(!kfA || !kfB) return
+
+    const segmentDuration = kfB.time - kfA.time
+
+    const t = (time - kfA.time) / segmentDuration
 
     interpolatePoses(kfA.pose, kfB.pose, t)
 }
+
+
+//
+export function updateAnimationAtTime(time){
+
+    if(keyframes.length < 2) return
+
+    let kfA = null
+    let kfB = null
+
+    for(let i = 0; i < keyframes.length - 1; i++){
+
+        if(time >= keyframes[i].time && time <= keyframes[i+1].time){
+
+            kfA = keyframes[i]
+            kfB = keyframes[i+1]
+            break
+        }
+    }
+
+    if(!kfA || !kfB) return
+
+    const segmentDuration = kfB.time - kfA.time
+    const t = (time - kfA.time) / segmentDuration
+
+    interpolatePoses(kfA.pose, kfB.pose, t)
+}
+
 
 
 
@@ -849,6 +912,31 @@ export function initRaycasting(){
                 return priority[a.type] - priority[b.type]
             return a.dist - b.dist
         })
+        
+        
+        
+        //codigo que no va aqui
+
+timelineElement = document.getElementById("timeline")
+
+if(timelineElement){
+
+    timelineElement.addEventListener("input",(e)=>{
+
+        const t = parseFloat(e.target.value)
+
+        isScrubbing = true
+        updateAnimationAtTime(t)
+
+    })
+
+    timelineElement.addEventListener("change",()=>{
+        isScrubbing = false
+    })
+
+}
+
+
 
         const hit = hits[0]
         if(!hit) return
