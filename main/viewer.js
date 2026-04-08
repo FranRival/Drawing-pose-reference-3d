@@ -784,6 +784,10 @@ export function initRaycasting(){
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
         }
+        if(e.key === "p"){
+        	isPlaying = !isPlaying
+        	console.log("PLAY:", isPlaying)
+        }
         
 
         if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
