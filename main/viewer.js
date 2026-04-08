@@ -9,6 +9,11 @@ export let jointGizmos = []
 
 let ikRestPose = {}  // guarda quaternions iniciales de la cadena
 
+//animacion 
+let isPlaying = false
+let playTime = 0
+let duration = 2 // segundos entre keyframes
+
 let ikMode = true // true = IK activo, false = FK (rotación normal)
 let axisLock = ['x','y','z'] // ejes activos
 
@@ -467,6 +472,65 @@ export function goToKeyframe(index){
 export function setTime(t){
     currentTime = t
 }
+
+
+//int3rpolacion - animqcion suqve 
+export function interpolatePoses(poseA, poseB, t){
+
+    Object.keys(poseA).forEach(name => {
+
+        const bone = bones[name]
+        if(!bone || !poseB[name]) return
+
+        const qa = new THREE.Quaternion(
+            ...poseA[name].q
+        )
+
+        const qb = new THREE.Quaternion(
+            ...poseB[name].q
+        )
+
+        const qm = new THREE.Quaternion()
+
+        // 🔥 interpolación real
+        qm.slerpQuaternions(qa, qb, t)
+
+        bone.quaternion.copy(qm)
+
+        // posición opcional
+        if(poseA[name].p && poseB[name].p){
+            const pa = new THREE.Vector3(...poseA[name].p)
+            const pb = new THREE.Vector3(...poseB[name].p)
+
+            const pm = new THREE.Vector3().lerpVectors(pa, pb, t)
+            bone.position.copy(pm)
+        }
+
+        bone.updateMatrixWorld(true)
+    })
+
+    if(window.skinnedMeshes){
+        window.skinnedMeshes.forEach(mesh => mesh.skeleton.update())
+    }
+}
+
+
+export function updateAnimation(delta){
+
+    if(!isPlaying) return
+    if(keyframes.length < 2) return
+
+    playTime += delta
+
+    const total = duration
+    const t = (playTime % total) / total
+
+    const kfA = keyframes[0]
+    const kfB = keyframes[1]
+
+    interpolatePoses(kfA.pose, kfB.pose, t)
+}
+
 
 
 
