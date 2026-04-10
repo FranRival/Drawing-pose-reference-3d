@@ -7,6 +7,9 @@ const mouse = new THREE.Vector2()
 export let bones = {}
 export let jointGizmos = []
 
+let keyframes = []
+let currentTime = 0
+
 let ikRestPose = {}  // guarda quaternions iniciales de la cadena
 
 //animacion 
@@ -14,7 +17,13 @@ let isPlaying = false
 let playTime = 0
 let duration = 2 // segundos entre keyframes
 
-export let needsUpdate = true
+let _needsUpdate = true
+export function markNeedsUpdate(){ _needsUpdate = true }
+export function consumeNeedsUpdate(){ 
+    const v = _needsUpdate
+    _needsUpdate = false
+    return v
+}
 
 let timelineElement = null
 let isScrubbing = false
@@ -533,19 +542,16 @@ export function updateAnimation(delta){
 
     playTime += delta
 
-const duration = keyframes[keyframes.length - 1].time
-const time = playTime % duration
+    const duration = keyframes[keyframes.length - 1].time
+    // loop
+    const time = playTime % duration
+
 
 // 🔥 sincronizar UI
 if(timelineElement && !isScrubbing){
     timelineElement.value = time
 }
 
-
-    const duration = keyframes[keyframes.length - 1].time
-
-    // loop
-    const time = playTime % duration
 
     let kfA = null
     let kfB = null
@@ -859,6 +865,24 @@ export function mirrorPose(direction = "LtoR"){
 export function initRaycasting(){
 
     console.log("Raycasting activado")
+    timelineElement = document.getElementById("timeline")
+    if(timelineElement){
+
+        timelineElement.addEventListener("input",(e)=>{
+
+            const t = parseFloat(e.target.value)
+
+            isScrubbing = true
+            updateAnimationAtTime(t)
+
+        })
+
+        timelineElement.addEventListener("change",()=>{
+            isScrubbing = false
+        })
+
+    }
+
 
     // ✅ keydown AQUÍ, una sola vez, fuera del pointerdown
     window.addEventListener("keydown",(e)=>{
@@ -881,9 +905,8 @@ export function initRaycasting(){
         if(key === "k") addKeyframe()
         if(key === "1") goToKeyframe(0)
         if(key === "2") goToKeyframe(1)
-        if(e.key === "e"){
-    		exportAnimation()
-		}
+        if(key === "e") exportAnimation()
+		
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
@@ -958,24 +981,7 @@ export function initRaycasting(){
         
         //codigo que no va aqui
 
-timelineElement = document.getElementById("timeline")
 
-if(timelineElement){
-
-    timelineElement.addEventListener("input",(e)=>{
-
-        const t = parseFloat(e.target.value)
-
-        isScrubbing = true
-        updateAnimationAtTime(t)
-
-    })
-
-    timelineElement.addEventListener("change",()=>{
-        isScrubbing = false
-    })
-
-}
 
 
 

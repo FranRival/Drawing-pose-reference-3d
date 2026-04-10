@@ -3,7 +3,9 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { inspectBones, initRaycasting, updateBoneHelper, createJointGizmos, updateJointGizmos, updateIK, needsUpdate  } from './viewer.js'
+import { inspectBones, initRaycasting, updateBoneHelper, 
+         createJointGizmos, updateJointGizmos, updateIK, 
+         updateAnimation, consumeNeedsUpdate } from './viewer.js'
 import { initUI } from './ui.js'
 import { SkeletonHelper } from 'three'
 
@@ -223,7 +225,6 @@ model.traverse((obj) => {
     }
 })
 
-console.log("SkinnedMeshes:", window.skinnedMeshes)
 
 console.log("SkinnedMesh detectado:", window.skinnedMeshes)
 
@@ -351,45 +352,23 @@ sunElevation = THREE.MathUtils.clamp(elevation, -1.2, 1.2)
 function animate() {
     requestAnimationFrame(animate)
 
-    
-    
-    const delta = 0.016 // luego lo mejoramos
-	updateAnimation(delta)
+    const delta = 0.016
+    updateAnimation(delta)
 
-    // 
+    if(consumeNeedsUpdate()){
+        updateIK()
+        updateBoneHelper()
+        updateJointGizmos()
+    }
 
-
-    if(needsUpdate){
-
-    	updateIK()
-    	updateBoneHelper()
-    	updateJointGizmos()
-
-    	needsUpdate = false
-	}
-    
     updateOrthoCameras()
     updateSun()
     renderer.render(scene, camera)
 
-    /* render secondary views */
-
     views.forEach(view=>{
-
-    /* ocultar helpers */
-
-    referenceObjects.forEach(obj=>{
-    obj.visible = false
-    })
-
-    view.renderer.render(scene, view.camera)
-
-    /* volver a mostrar */
-
-    referenceObjects.forEach(obj=>{
-    obj.visible = true
-    })
-
+        referenceObjects.forEach(obj=>{ obj.visible = false })
+        view.renderer.render(scene, view.camera)
+        referenceObjects.forEach(obj=>{ obj.visible = true })
     })
 }
 
