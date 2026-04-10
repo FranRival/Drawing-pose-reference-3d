@@ -17,6 +17,7 @@ let duration = 2 // segundos entre keyframes
 let timelineElement = null
 let isScrubbing = false
 
+
 let ikMode = true // true = IK activo, false = FK (rotación normal)
 let axisLock = ['x','y','z'] // ejes activos
 
@@ -593,6 +594,38 @@ export function updateAnimationAtTime(time){
     interpolatePoses(kfA.pose, kfB.pose, t)
 }
 
+export function exportAnimation(){
+
+    const data = {
+        keyframes: keyframes
+    }
+
+    const json = JSON.stringify(data, null, 2)
+
+    const blob = new Blob([json], { type:"application/json" })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "animation.json"
+    a.click()
+
+    URL.revokeObjectURL(url)
+}
+
+export function loadAnimation(json){
+
+    try{
+        const data = typeof json === "string" ? JSON.parse(json) : json
+
+        keyframes = data.keyframes || []
+
+        console.log("ANIMACIÓN CARGADA:", keyframes)
+
+    }catch(e){
+        console.error("Error cargando animación")
+    }
+}
 
 
 
@@ -815,6 +848,9 @@ export function mirrorPose(direction = "LtoR"){
 
 
 
+//
+
+
 /* ------------------------------------------------ */
 /* RAYCASTING                                        */
 /* ------------------------------------------------ */
@@ -843,6 +879,9 @@ export function initRaycasting(){
         if(key === "k") addKeyframe()
         if(key === "1") goToKeyframe(0)
         if(key === "2") goToKeyframe(1)
+        if(e.key === "e"){
+    		exportAnimation()
+		}
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
