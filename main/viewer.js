@@ -14,6 +14,8 @@ let isPlaying = false
 let playTime = 0
 let duration = 2 // segundos entre keyframes
 
+export let needsUpdate = true
+
 let timelineElement = null
 let isScrubbing = false
 
