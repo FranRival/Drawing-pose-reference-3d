@@ -1069,68 +1069,68 @@ export function initRaycasting(){
     /* ---- POINTER MOVE ---- */
     renderer.domElement.addEventListener("pointermove",(event)=>{
 
-        const rect = renderer.domElement.getBoundingClientRect()
-        mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
-        mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
+    const rect = renderer.domElement.getBoundingClientRect()
+    mouse.x = ((event.clientX - rect.left) / rect.width)  * 2 - 1
+    mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1
 
-        raycaster.setFromCamera(mouse, camera)
-        updateHover()
+    raycaster.setFromCamera(mouse, camera)
+    updateHover()
 
-        // drags primero, return al final de cada uno
-        if(poleActive && poleTarget){
-            updateDragPlane(poleTarget.position)
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt))
-                poleTarget.position.copy(pt)
-            return
-        }
+    if(poleActive && poleTarget){
+        updateDragPlane(poleTarget.position)
+        const pt = new THREE.Vector3()
+        if(raycaster.ray.intersectPlane(dragPlane, pt))
+            poleTarget.position.copy(pt)
+        markNeedsUpdate()  // ← dentro del bloque, antes del return
+        return
+    }
 
-        if(ikDragging && ikTarget){
-            updateDragPlane(ikTarget.position)
-            const pt = new THREE.Vector3()
-            if(raycaster.ray.intersectPlane(dragPlane, pt))
-                ikTarget.position.copy(pt)
-            return
-        }
+    if(ikDragging && ikTarget){
+        updateDragPlane(ikTarget.position)
+        const pt = new THREE.Vector3()
+        if(raycaster.ray.intersectPlane(dragPlane, pt))
+            ikTarget.position.copy(pt)
+        markNeedsUpdate()  // ← dentro del bloque, antes del return
+        return
+    }
 
-        if(selectedSun){
-            localSunAzimuth   += event.movementX * 0.01
-            localSunElevation -= event.movementY * 0.01
-            setSunAngles(localSunAzimuth, localSunElevation)
-            return
-        }
+    if(selectedSun){
+        localSunAzimuth   += event.movementX * 0.01
+        localSunElevation -= event.movementY * 0.01
+        setSunAngles(localSunAzimuth, localSunElevation)
+        return
+    }
 
-        if(!selectedBone || (ikMode && ikActive)) return
+    if(!selectedBone || (ikMode && ikActive)) return
 
-        const boneName = getBoneName(selectedBone)
-        if(!boneName) return
+    const boneName = getBoneName(selectedBone)
+    if(!boneName) return
 
-        const allowedAxes = boneAxes[boneName] || ['x','y','z']
-        const rotSpeed = 0.01
+    const allowedAxes = boneAxes[boneName] || ['x','y','z']
+    const rotSpeed = 0.01
 
-        // eje Y — mouse horizontal
-        if(allowedAxes.includes('y') && axisLock.includes('y')){
-            tempAxis.set(0,1,0)
-            tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
-            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
-        }
+    if(allowedAxes.includes('y') && axisLock.includes('y')){
+        tempAxis.set(0,1,0)
+        tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
+        selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+    }
 
-        // eje X — mouse vertical
-        if(allowedAxes.includes('x') && axisLock.includes('x')){
-            tempAxis.set(1,0,0)
-            tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
-            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
-        }
+    if(allowedAxes.includes('x') && axisLock.includes('x')){
+        tempAxis.set(1,0,0)
+        tempQuaternion.setFromAxisAngle(tempAxis, event.movementY * rotSpeed)
+        selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+    }
 
-        // eje Z — mouse horizontal (roll)
-        if(allowedAxes.includes('z') && axisLock.includes('z')){
-            tempAxis.set(0,0,1)
-            tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
-            selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
-        }
+    if(allowedAxes.includes('z') && axisLock.includes('z')){
+        tempAxis.set(0,0,1)
+        tempQuaternion.setFromAxisAngle(tempAxis, event.movementX * rotSpeed)
+        selectedBone.quaternion.multiplyQuaternions(tempQuaternion, selectedBone.quaternion)
+    }
 
-        applyBoneConstraints(selectedBone)
-    }) // cierra pointermove
+    applyBoneConstraints(selectedBone)
+    markNeedsUpdate()  // ← al final de la rotación FK
+
+}) // cierra pointermove
 
     /* ---- POINTER UP ---- */
     renderer.domElement.addEventListener("pointerup",()=>{
