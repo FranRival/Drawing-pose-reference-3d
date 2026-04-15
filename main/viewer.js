@@ -23,7 +23,7 @@ export function consumeNeedsUpdate(){
     const v = _needsUpdate
     _needsUpdate = false
     return v
-}
+} 
 
 let timelineElement = null
 let isScrubbing = false
