@@ -911,7 +911,7 @@ export function initRaycasting(){
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
         }
-        if(e.key === "p"){
+        if(key === "p"){
         	isPlaying = !isPlaying
         	console.log("PLAY:", isPlaying)
         }
