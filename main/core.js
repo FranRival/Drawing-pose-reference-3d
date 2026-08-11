@@ -3,9 +3,9 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { inspectBones, initRaycasting, updateBoneHelper, 
-         createJointGizmos, updateJointGizmos, updateIK, 
-         updateAnimation, consumeNeedsUpdate } from './viewer.js'
+import { inspectBones, initRaycasting, updateBoneHelper,
+         createJointGizmos, updateJointGizmos, updateIK,
+         updateAnimation, consumeNeedsUpdate, setGizmosVisible } from './viewer.js'
 import { initUI } from './ui.js'
 import { SkeletonHelper } from 'three'
 
@@ -19,10 +19,22 @@ export let cameraSide
 export let cameraTop
 
 const orthoSize = 2
-const referenceObjects = []
+export const referenceObjects = []
 
 export let sunLight
 export let sunGizmo
+export let sunArc
+export let skeletonHelper
+
+// ✅ NUEVO: oculta/muestra grid, ejes, piso, gizmos del sol y esqueleto
+// (usado antes de capturar frames para exportar imágenes "limpias")
+export function setHelpersVisible(visible){
+    referenceObjects.forEach(obj => { obj.visible = visible })
+    if(sunGizmo) sunGizmo.visible = visible
+    if(sunArc) sunArc.visible = visible
+    if(skeletonHelper) skeletonHelper.visible = visible
+    setGizmosVisible(visible)
+}
 
 
 
@@ -108,7 +120,7 @@ transparent:true,
 opacity:0.4
 })
 
-const sunArc = new THREE.Line(arcGeometry, arcMaterial)
+sunArc = new THREE.Line(arcGeometry, arcMaterial)
 
 scene.add(sunArc)
 
@@ -130,7 +142,7 @@ camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 1.5, 3)
 
 /* RENDERER */
-renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
 renderer.setSize(viewer.clientWidth, viewer.clientHeight)
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
@@ -208,7 +220,7 @@ loader.load(
                 obj.geometry.computeBoundingSphere()
                 obj.castShadow = true
                 obj.receiveShadow = true
-                
+
                 // Aseguramos que cada mesh use el raycast de SkinnedMesh
                 if (obj.isSkinnedMesh) {
                     obj.raycast = THREE.SkinnedMesh.prototype.raycast;
@@ -216,7 +228,7 @@ loader.load(
             }
         })
 
-        
+
         window.skinnedMeshes = []
 
 model.traverse((obj) => {
@@ -235,7 +247,7 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
         createJointGizmos()
         initUI()
         initRaycasting()
-        const skeletonHelper = new THREE.SkeletonHelper(model)
+        skeletonHelper = new THREE.SkeletonHelper(model)
         scene.add(skeletonHelper)
 
         /* POSICIONAMIENTO CORRECTO SOBRE EL GRID */
@@ -247,7 +259,7 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
         // Centramos en X y Z, pero en Y usamos el valor mínimo para que pise el suelo (0)
         model.position.x = -center.x;
         model.position.z = -center.z;
-        model.position.y = -box.min.y; 
+        model.position.y = -box.min.y;
 
         // Actualizamos matrices después del movimiento para el Raycasting
         model.updateMatrixWorld(true);
@@ -255,10 +267,10 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
         /* Ajuste de Cámara y Controles */
         const maxDim = Math.max(size.x, size.y, size.z);
         camera.position.set(0, size.y * 0.8, size.y * 2);
-        
+
         controls.target.set(0, size.y * 0.5, 0); // Apunta al centro del cuerpo
         controls.update();
-        
+
         updateOrthoCameras()
 
         console.log("Modelo posicionado correctamente sobre el grid.");
@@ -380,7 +392,7 @@ window.addEventListener("resize", () => {
 })
 
 
-const views = []    
+const views = []
 //paneles de vistas
 function createView(camera){
 
