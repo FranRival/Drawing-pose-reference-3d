@@ -1,4 +1,4 @@
-import { model, camera, renderer, scene, sunGizmo, setSunAngles } from './core.js'
+import { model, camera, renderer, scene, sunGizmo, setSunAngles, setHelpersVisible } from './core.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -12,21 +12,25 @@ let currentTime = 0
 
 let ikRestPose = {}  // guarda quaternions iniciales de la cadena
 
-//animacion 
+//animacion
 let isPlaying = false
 let playTime = 0
 let duration = 2 // segundos entre keyframes
 
 let _needsUpdate = true
 export function markNeedsUpdate(){ _needsUpdate = true }
-export function consumeNeedsUpdate(){ 
+export function consumeNeedsUpdate(){
     const v = _needsUpdate
     _needsUpdate = false
     return v
-} 
+}
 
 let timelineElement = null
 let isScrubbing = false
+
+// ✅ NUEVO: callback opcional para refrescar la UI cuando cambian los keyframes
+export let onKeyframesChange = null
+export function setOnKeyframesChange(fn){ onKeyframesChange = fn }
 
 
 let ikMode = true // true = IK activo, false = FK (rotación normal)
@@ -171,7 +175,7 @@ export function inspectBones(){
     console.log("rightArm:", bones.rightArm?.name)
     console.log("rightForeArm:", bones.rightForeArm?.name)
     console.log("rightHand:", bones.rightHand?.name)
-    
+
     Object.values(bones).forEach(bone => {
 
     bone.userData.initialQuaternion = bone.quaternion.clone()
@@ -205,6 +209,14 @@ export function updateJointGizmos(){
         bone.getWorldPosition(pos)
         gizmo.position.copy(pos)
     })
+}
+
+// ✅ NUEVO: ocultar/mostrar las esferas de control (para exportar frames limpios)
+export function setGizmosVisible(visible){
+    jointGizmos.forEach(g => { g.visible = visible })
+    if(boneHelper) boneHelper.visible = visible
+    if(ikTarget) ikTarget.visible = visible
+    if(poleTarget) poleTarget.visible = visible
 }
 
 /* ------------------------------------------------ */
@@ -469,10 +481,29 @@ export function addKeyframe(){
     })
 
     keyframes.sort((a,b)=>a.time - b.time)
-    
+
     if(timelineElement){
     timelineElement.max = keyframes[keyframes.length - 1].time
 }
+
+    if(onKeyframesChange) onKeyframesChange()
+}
+
+// ✅ NUEVO: borrar todos los keyframes grabados
+export function clearKeyframes(){
+    keyframes = []
+    currentTime = 0
+    playTime = 0
+    if(timelineElement){
+        timelineElement.max = 1
+        timelineElement.value = 0
+    }
+    if(onKeyframesChange) onKeyframesChange()
+    console.log("KEYFRAMES BORRADOS")
+}
+
+export function getKeyframeCount(){
+    return keyframes.length
 }
 
 
@@ -493,8 +524,19 @@ export function setTime(t){
     currentTime = t
 }
 
+// ✅ NUEVO: play / pausa expuesto para la UI (además del atajo de teclado "p")
+export function togglePlay(){
+    isPlaying = !isPlaying
+    if(isPlaying) playTime = currentTime
+    return isPlaying
+}
 
-//int3rpolacion - animqcion suqve 
+export function getIsPlaying(){
+    return isPlaying
+}
+
+
+//int3rpolacion - animqcion suqve
 export function interpolatePoses(poseA, poseB, t){
 
     Object.keys(poseA).forEach(name => {
@@ -628,6 +670,8 @@ export function loadAnimation(json){
 
         keyframes = data.keyframes || []
 
+        if(onKeyframesChange) onKeyframesChange()
+
         console.log("ANIMACIÓN CARGADA:", keyframes)
 
     }catch(e){
@@ -636,10 +680,110 @@ export function loadAnimation(json){
 }
 
 
+/* ------------------------------------------------ */
+/* EXPORTACIÓN DE IMÁGENES (FOLIOSCOPIO)             */
+/* ------------------------------------------------ */
 
+function captureFrameBlob(mime){
+    return new Promise(resolve => {
+        renderer.domElement.toBlob(resolve, mime, 0.92)
+    })
+}
 
+async function downloadZip(zip, filename){
+    const content = await zip.generateAsync({ type: "blob" })
+    const url = URL.createObjectURL(content)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+}
 
+// ✅ Exporta una secuencia interpolada completa (ej. 12 o 24 frames) entre
+// el primer y el último keyframe, ideal para animar en folioscopio.
+export async function exportFrameSequence(frameCount = 24, format = 'png'){
 
+    if(keyframes.length < 2){
+        alert("Necesitas al menos 2 keyframes grabados para exportar una secuencia.")
+        return
+    }
+    if(typeof JSZip === 'undefined'){
+        alert("No se pudo cargar JSZip (revisa tu conexión).")
+        return
+    }
+
+    const wasPlaying = isPlaying
+    isPlaying = false
+    const savedPoseJson = savePose()
+    const savedTime = currentTime
+
+    setHelpersVisible(false)
+    setGizmosVisible(false)
+
+    const zip = new JSZip()
+    const totalDuration = keyframes[keyframes.length - 1].time
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+
+    for(let i = 0; i < frameCount; i++){
+        const t = frameCount === 1 ? 0 : (i / (frameCount - 1)) * totalDuration
+        updateAnimationAtTime(t)
+        renderer.render(scene, camera)
+
+        const blob = await captureFrameBlob(mime)
+        zip.file(`frame_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+    }
+
+    setHelpersVisible(true)
+    setGizmosVisible(true)
+    loadPose(savedPoseJson)
+    currentTime = savedTime
+    isPlaying = wasPlaying
+    renderer.render(scene, camera)
+
+    await downloadZip(zip, `secuencia_${frameCount}frames.zip`)
+}
+
+// ✅ Exporta solo los keyframes grabados (una imagen por cada uno)
+export async function exportKeyframesOnly(format = 'png'){
+
+    if(keyframes.length === 0){
+        alert("No hay keyframes grabados todavía.")
+        return
+    }
+    if(typeof JSZip === 'undefined'){
+        alert("No se pudo cargar JSZip (revisa tu conexión).")
+        return
+    }
+
+    const wasPlaying = isPlaying
+    isPlaying = false
+    const savedPoseJson = savePose()
+    const savedTime = currentTime
+
+    setHelpersVisible(false)
+    setGizmosVisible(false)
+
+    const zip = new JSZip()
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+
+    for(let i = 0; i < keyframes.length; i++){
+        loadPose(JSON.stringify(keyframes[i].pose))
+        renderer.render(scene, camera)
+
+        const blob = await captureFrameBlob(mime)
+        zip.file(`keyframe_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+    }
+
+    setHelpersVisible(true)
+    setGizmosVisible(true)
+    loadPose(savedPoseJson)
+    currentTime = savedTime
+    isPlaying = wasPlaying
+    renderer.render(scene, camera)
+
+    await downloadZip(zip, "keyframes.zip")
+}
 
 
 
@@ -693,7 +837,7 @@ function updateHover(){
 
     if(hit.type === "gizmo"){
         hoveredGizmo = hit.object
-        
+
         if(hoveredGizmo !== selectedGizmo){
     	hoveredGizmo.material.color.set(COLORS.hover)
 		}
@@ -906,16 +1050,16 @@ export function initRaycasting(){
         if(key === "1") goToKeyframe(0)
         if(key === "2") goToKeyframe(1)
         if(key === "e") exportAnimation()
-		
+
         if(key === "l") {
             const json = prompt("Pega tu JSON")
             if(json) loadPose(json)
         }
         if(key === "p"){
-        	isPlaying = !isPlaying
+        	togglePlay()
         	console.log("PLAY:", isPlaying)
         }
-        
+
 
         if(key === "x"){ axisLock = ['x']; console.log("Axis: X") }
         if(key === "y"){ axisLock = ['y']; console.log("Axis: Y") }
@@ -976,9 +1120,9 @@ export function initRaycasting(){
                 return priority[a.type] - priority[b.type]
             return a.dist - b.dist
         })
-        
-        
-        
+
+
+
         //codigo que no va aqui
 
 
