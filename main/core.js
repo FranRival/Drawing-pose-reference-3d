@@ -26,6 +26,70 @@ export let sunGizmo
 export let sunArc
 export let skeletonHelper
 
+// ✅ NUEVO: encuadres de cámara preestablecidos, calculados desde la caja
+// delimitadora del modelo (Box3). Un solo encuadre para toda la secuencia.
+export const SHOT_LABELS = {
+    general:       "Plano general",
+    medio:         "Plano medio",
+    primerPlano:   "Primer plano",
+    cenital:       "Cenital",
+    contrapicado:  "Contrapicado",
+    picado:        "Picado"
+}
+
+const SHOTS = {
+    general: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 0.8, center.z + size.y * 2.0),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.5, center.z)
+    }),
+    medio: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 0.75, center.z + size.y * 1.1),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.65, center.z)
+    }),
+    primerPlano: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 0.92, center.z + size.y * 0.55),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.9, center.z)
+    }),
+    cenital: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 2.4, center.z + size.y * 0.05),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.5, center.z)
+    }),
+    contrapicado: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 0.08, center.z + size.y * 1.0),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.95, center.z)
+    }),
+    picado: (center, size, groundY) => ({
+        position: new THREE.Vector3(center.x, groundY + size.y * 1.8, center.z + size.y * 1.2),
+        target:   new THREE.Vector3(center.x, groundY + size.y * 0.35, center.z)
+    })
+}
+
+function getModelBox(){
+    if(!model) return null
+    model.updateMatrixWorld(true)
+    return new THREE.Box3().setFromObject(model)
+}
+
+// Salta la cámara (y su target de OrbitControls) al encuadre elegido.
+// Después de esto, el usuario puede seguir orbitando/haciendo zoom libremente.
+export function applyCameraShot(shotKey){
+    if(!model || !controls) return
+
+    const box = getModelBox()
+    if(!box) return
+
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    const groundY = box.min.y
+
+    const preset = SHOTS[shotKey] || SHOTS.general
+    const { position, target } = preset(center, size, groundY)
+
+    camera.position.copy(position)
+    controls.target.copy(target)
+    controls.update()
+}
+
 // ✅ NUEVO: oculta/muestra grid, ejes, piso, gizmos del sol y esqueleto
 // (usado antes de capturar frames para exportar imágenes "limpias")
 export function setHelpersVisible(visible){
@@ -154,7 +218,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace
 viewer.appendChild(renderer.domElement)
 
 /* CONTROLS */
-const controls = new OrbitControls(camera, renderer.domElement)
+export const controls = new OrbitControls(camera, renderer.domElement)
 
 /* LIGHTS */
 sunLight = new THREE.DirectionalLight(0xffffff, 1.2)
@@ -264,12 +328,8 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
         // Actualizamos matrices después del movimiento para el Raycasting
         model.updateMatrixWorld(true);
 
-        /* Ajuste de Cámara y Controles */
-        const maxDim = Math.max(size.x, size.y, size.z);
-        camera.position.set(0, size.y * 0.8, size.y * 2);
-
-        controls.target.set(0, size.y * 0.5, 0); // Apunta al centro del cuerpo
-        controls.update();
+        /* Ajuste de Cámara y Controles: encuadre por defecto = plano general */
+        applyCameraShot('general')
 
         updateOrthoCameras()
 
