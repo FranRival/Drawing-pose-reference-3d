@@ -1,9 +1,21 @@
 import { rotateBone, addKeyframe, clearKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly,
          setOnKeyframesChange } from './viewer.js'
-import { setSunAngle } from './core.js'
+import { setSunAngle, applyCameraShot } from './core.js'
 
 export function initUI(){
+
+    /* ========================= */
+    /* ENCUADRE (CAMERA SHOT) */
+    /* ========================= */
+
+    const cameraShotSelect = document.getElementById("cameraShot")
+
+    if(cameraShotSelect){
+        cameraShotSelect.addEventListener("change",(e)=>{
+            applyCameraShot(e.target.value)
+        })
+    }
 
     /* ========================= */
     /* SUN CONTROL */
