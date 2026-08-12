@@ -43,6 +43,98 @@ const POSE_CONTROLS = [
     ]}
 ]
 
+// ✅ NUEVO: poses preestablecidas, sin categorizar (todo en una sola barra).
+// Cada preset es {hueso: {eje: valor}}. Se aplica siempre partiendo de la
+// pose neutra (T-pose) via resetPose(), así no se mezcla con la pose anterior.
+// ⚠️ Valores de partida sin probar visualmente — hay que afinarlos a ojo
+// una vez que se vean en el visor real.
+const POSE_PRESETS = {
+    carrera: {
+        neck:        { x: 0.1,  y: 0.15 },
+        leftArm:     { x: -0.9, z: 0.3 },
+        rightArm:    { x: 0.9,  z: -0.3 },
+        leftForeArm: { x: 1.4 },
+        rightForeArm:{ x: 1.2 },
+        leftUpLeg:   { x: -0.6 },
+        rightUpLeg:  { x: 0.7 },
+        leftLeg:     { x: 1.0 },
+        rightLeg:    { x: 0.3 }
+    },
+    guardia: {
+        neck:        { x: 0.05 },
+        leftArm:     { x: -0.3, z: 0.2 },
+        rightArm:    { x: -0.4, z: -0.2 },
+        leftForeArm: { x: 1.8 },
+        rightForeArm:{ x: 1.9 },
+        leftUpLeg:   { x: -0.15 },
+        rightUpLeg:  { x: 0.15 },
+        leftLeg:     { x: 0.3 },
+        rightLeg:    { x: 0.2 }
+    },
+    jab: {
+        neck:        { x: 0.05, y: -0.1 },
+        leftArm:     { x: -0.4, z: 0.3 },
+        rightArm:    { x: 0.1, y: 0.2, z: -1.3 },
+        leftForeArm: { x: 1.7 },
+        rightForeArm:{ x: 0.2 },
+        leftUpLeg:   { x: -0.15 },
+        rightUpLeg:  { x: 0.15 },
+        leftLeg:     { x: 0.3 },
+        rightLeg:    { x: 0.2 }
+    },
+    patada: {
+        neck:        { x: 0.05 },
+        leftArm:     { x: -0.5, z: 0.4 },
+        rightArm:    { x: -0.6, z: -0.4 },
+        rightUpLeg:  { x: -1.1 },
+        rightLeg:    { x: 0.2 },
+        leftUpLeg:   { x: 0.1 },
+        leftLeg:     { x: 0.3 }
+    },
+    bloqueo: {
+        neck:        { x: -0.1 },
+        leftArm:     { x: 0.4, y: 0.3, z: 0.6 },
+        rightArm:    { x: 0.4, y: -0.3, z: -0.6 },
+        leftForeArm: { x: 2.0 },
+        rightForeArm:{ x: 2.0 }
+    },
+    grito: {
+        neck:        { x: -0.3 },
+        leftArm:     { x: 1.3, z: 0.3 },
+        rightArm:    { x: 1.3, z: -0.3 },
+        leftForeArm: { x: 0.3 },
+        rightForeArm:{ x: 0.3 },
+        leftUpLeg:   { x: -0.2 },
+        rightUpLeg:  { x: 0.2 }
+    },
+    agachado: {
+        neck:        { x: 0.1 },
+        leftArm:     { x: -0.3, z: 0.4 },
+        rightArm:    { x: -0.3, z: -0.4 },
+        leftUpLeg:   { x: -0.7, y: 0.1 },
+        rightUpLeg:  { x: -0.7, y: -0.1 },
+        leftLeg:     { x: 1.0 },
+        rightLeg:    { x: 1.0 }
+    }
+}
+
+// ✅ NUEVO: aplica un preset completo, partiendo siempre de la pose neutra
+function applyPosePreset(presetKey){
+    const preset = POSE_PRESETS[presetKey]
+    if(!preset) return
+
+    resetPose()
+
+    Object.entries(preset).forEach(([boneName, axes])=>{
+        if(!bones[boneName]) return // el hueso no existe en este modelo
+        Object.entries(axes).forEach(([axis, value])=>{
+            setBoneAxis(boneName, axis, value)
+        })
+    })
+
+    buildPoseControls() // refresca los sliders para que reflejen la nueva pose
+}
+
 // ✅ NUEVO: construye todos los sliders de pose disponibles según los
 // huesos que sí detectó inspectBones() en el modelo actual.
 function buildPoseControls(){
@@ -70,7 +162,7 @@ function buildPoseControls(){
             input.min = axisDef.min
             input.max = axisDef.max
             input.step = 0.01
-            input.value = 0
+            input.value = bones[group.bone].rotation[axisDef.axis] || 0
 
             input.addEventListener("input",(e)=>{
                 setBoneAxis(group.bone, axisDef.axis, parseFloat(e.target.value))
@@ -126,6 +218,16 @@ export function initUI(){
     /* ========================= */
 
     buildPoseControls()
+
+    /* ========================= */
+    /* POSES PREESTABLECIDAS */
+    /* ========================= */
+
+    document.querySelectorAll(".posePresetBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+            applyPosePreset(btn.dataset.preset)
+        })
+    })
 
     /* ========================= */
     /* KEYFRAMES / ANIMACIÓN / EXPORT */
