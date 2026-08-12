@@ -429,6 +429,14 @@ export function rotateBone(name,x,y,z){
     bones[name].rotation.z = z
 }
 
+// ✅ NUEVO: ajusta un solo eje de un hueso sin tocar los otros dos
+// (usado por los sliders de pose generados dinámicamente en ui.js)
+export function setBoneAxis(name, axis, value){
+    if(!bones[name]) return
+    bones[name].rotation[axis] = value
+    markNeedsUpdate()
+}
+
 /* ------------------------------------------------ */
 /* BONE HELPER                                       */
 /* ------------------------------------------------ */
