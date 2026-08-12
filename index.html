@@ -77,8 +77,24 @@
   </div>
 
   <!-- PANEL DERECHO -->
-  <div class="right-panel">
-    <div id="viewer"></div>
+  <div class="right-panel" style="position:relative;">
+    <div id="viewer" style="position:relative;"></div>
+
+    <!-- ✅ NUEVO: barra de poses preestablecidas, flotando sobre el visor -->
+    <div id="posePresetsBar" style="
+        position:absolute; top:0; left:0; right:0;
+        display:flex; gap:6px; padding:8px;
+        overflow-x:auto; white-space:nowrap;
+        background:rgba(0,0,0,0.45);
+        z-index:10;">
+      <button class="posePresetBtn" data-preset="carrera">Carrera</button>
+      <button class="posePresetBtn" data-preset="guardia">Guardia</button>
+      <button class="posePresetBtn" data-preset="jab">Golpe recto</button>
+      <button class="posePresetBtn" data-preset="patada">Patada frontal</button>
+      <button class="posePresetBtn" data-preset="bloqueo">Bloqueo</button>
+      <button class="posePresetBtn" data-preset="grito">Grito de poder</button>
+      <button class="posePresetBtn" data-preset="agachado">Agachado combate</button>
+    </div>
   </div>
 </div>
 
