@@ -1,4 +1,4 @@
-import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, getKeyframeCount,
+import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
@@ -241,11 +241,42 @@ export function initUI(){
     const imgFormatSelect   = document.getElementById("imgFormat")
     const btnExportSequence = document.getElementById("btnExportSequence")
     const btnExportKeyframes= document.getElementById("btnExportKeyframes")
+    const btnFooterSavePose = document.getElementById("btnFooterSavePose")
+    const cardsContainer    = document.getElementById("keyframeCardsContainer")
+
+    // ✅ NUEVO: dibuja las tarjetas "Pose 1", "Pose 2"... en el footer,
+    // cada una con su botón de borrado individual (×)
+    function renderKeyframeCards(){
+        if(!cardsContainer) return
+        cardsContainer.innerHTML = ""
+
+        const count = getKeyframeCount()
+        for(let i = 0; i < count; i++){
+            const card = document.createElement("div")
+            card.style.cssText = "display:flex; align-items:center; gap:4px; background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:13px;"
+
+            const label = document.createElement("span")
+            label.textContent = `Pose ${i + 1}`
+
+            const delBtn = document.createElement("button")
+            delBtn.textContent = "×"
+            delBtn.title = "Eliminar esta pose"
+            delBtn.style.cssText = "cursor:pointer; line-height:1;"
+            delBtn.addEventListener("click", ()=>{
+                deleteKeyframe(i)
+            })
+
+            card.appendChild(label)
+            card.appendChild(delBtn)
+            cardsContainer.appendChild(card)
+        }
+    }
 
     function refreshKeyframeCount(){
         if(keyframeCountEl){
             keyframeCountEl.textContent = `${getKeyframeCount()} keyframes`
         }
+        renderKeyframeCards()
     }
 
     setOnKeyframesChange(refreshKeyframeCount)
@@ -253,6 +284,12 @@ export function initUI(){
 
     if(btnAddKeyframe){
         btnAddKeyframe.addEventListener("click", ()=>{
+            addKeyframe()
+        })
+    }
+
+    if(btnFooterSavePose){
+        btnFooterSavePose.addEventListener("click", ()=>{
             addKeyframe()
         })
     }
