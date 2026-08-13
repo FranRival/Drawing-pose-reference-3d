@@ -219,6 +219,28 @@ export function setGizmosVisible(visible){
     if(poleTarget) poleTarget.visible = visible
 }
 
+// ✅ NUEVO: nivel de opacidad de las esferas de control (0 = casi invisibles,
+// 1 = totalmente sólidas). A diferencia de setGizmosVisible, esto no las
+// oculta para el raycasting — siguen siendo clicleables aunque estén tenues.
+export function setGizmoOpacity(value){
+    jointGizmos.forEach(g => {
+        g.material.transparent = true
+        g.material.opacity = value
+    })
+    if(boneHelper){
+        boneHelper.material.transparent = true
+        boneHelper.material.opacity = value
+    }
+    if(ikTarget){
+        ikTarget.material.transparent = true
+        ikTarget.material.opacity = value
+    }
+    if(poleTarget){
+        poleTarget.material.transparent = true
+        poleTarget.material.opacity = value
+    }
+}
+
 /* ------------------------------------------------ */
 /* IK / POLE TARGETS                                 */
 /* ------------------------------------------------ */
