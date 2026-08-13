@@ -1,5 +1,5 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, getKeyframeCount,
-         togglePlay, exportFrameSequence, exportKeyframesOnly,
+         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -216,6 +216,13 @@ export function initUI(){
     /* ========================= */
     /* CONTROLES DE POSE (todos los huesos/ejes disponibles) */
     /* ========================= */
+
+    const gizmoOpacitySlider = document.getElementById("gizmoOpacity")
+    if(gizmoOpacitySlider){
+        gizmoOpacitySlider.addEventListener("input",(e)=>{
+            setGizmoOpacity(parseFloat(e.target.value))
+        })
+    }
 
     buildPoseControls()
 
