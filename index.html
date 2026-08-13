@@ -95,6 +95,18 @@
       <button class="posePresetBtn" data-preset="grito">Grito de poder</button>
       <button class="posePresetBtn" data-preset="agachado">Agachado combate</button>
     </div>
+
+    <!-- ✅ NUEVO: footer con timeline de poses grabadas (tarjetas) -->
+    <div id="poseTimelineBar" style="
+        position:absolute; bottom:0; left:0; right:0;
+        display:flex; align-items:center; gap:8px; padding:8px;
+        background:rgba(0,0,0,0.45);
+        z-index:10;">
+      <button id="btnFooterSavePose">💾 Guardar pose</button>
+      <div id="keyframeCardsContainer" style="
+          display:flex; gap:6px; overflow-x:auto; white-space:nowrap; flex:1;">
+      </div>
+    </div>
   </div>
 </div>
 
