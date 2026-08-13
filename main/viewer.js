@@ -514,6 +514,25 @@ export function getKeyframeCount(){
     return keyframes.length
 }
 
+// ✅ NUEVO: borra un keyframe puntual (por índice) y re-secuencia los tiempos
+// de los que quedan para que sigan siendo 0,1,2...
+export function deleteKeyframe(index){
+    if(index < 0 || index >= keyframes.length) return
+
+    keyframes.splice(index, 1)
+    keyframes.forEach((kf, i) => { kf.time = i })
+
+    currentTime = 0
+    playTime = 0
+
+    if(timelineElement){
+        timelineElement.max = keyframes.length > 1 ? keyframes[keyframes.length - 1].time : 1
+        timelineElement.value = 0
+    }
+
+    if(onKeyframesChange) onKeyframesChange()
+}
+
 
 
 export function goToKeyframe(index){
