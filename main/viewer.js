@@ -555,6 +555,28 @@ export function deleteKeyframe(index){
     if(onKeyframesChange) onKeyframesChange()
 }
 
+// ✅ NUEVO: reordena un keyframe de una posición a otra (drag & drop de tarjetas)
+// y re-secuencia los tiempos para que la interpolación siga el nuevo orden.
+export function reorderKeyframes(fromIndex, toIndex){
+    if(fromIndex < 0 || fromIndex >= keyframes.length) return
+    if(toIndex < 0 || toIndex >= keyframes.length) return
+    if(fromIndex === toIndex) return
+
+    const [moved] = keyframes.splice(fromIndex, 1)
+    keyframes.splice(toIndex, 0, moved)
+    keyframes.forEach((kf, i) => { kf.time = i })
+
+    currentTime = 0
+    playTime = 0
+
+    if(timelineElement){
+        timelineElement.max = keyframes.length > 1 ? keyframes[keyframes.length - 1].time : 1
+        timelineElement.value = 0
+    }
+
+    if(onKeyframesChange) onKeyframesChange()
+}
+
 
 
 export function goToKeyframe(index){
