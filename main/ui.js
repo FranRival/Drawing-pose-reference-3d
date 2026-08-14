@@ -1,4 +1,4 @@
-import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, getKeyframeCount,
+import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
@@ -252,7 +252,10 @@ export function initUI(){
     const cardsContainer    = document.getElementById("keyframeCardsContainer")
 
     // ✅ NUEVO: dibuja las tarjetas "Pose 1", "Pose 2"... en el footer,
-    // cada una con su botón de borrado individual (×)
+    // cada una con su botón de borrado individual (×) y arrastrables
+    // (mouse o dedo) para reordenar la secuencia.
+    let dragState = null
+
     function renderKeyframeCards(){
         if(!cardsContainer) return
         cardsContainer.innerHTML = ""
@@ -260,7 +263,8 @@ export function initUI(){
         const count = getKeyframeCount()
         for(let i = 0; i < count; i++){
             const card = document.createElement("div")
-            card.style.cssText = "display:flex; align-items:center; gap:4px; background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:13px;"
+            card.dataset.originalIndex = i
+            card.style.cssText = "display:flex; align-items:center; gap:4px; background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:13px; touch-action:none; cursor:grab; user-select:none;"
 
             const label = document.createElement("span")
             label.textContent = `Pose ${i + 1}`
@@ -268,15 +272,78 @@ export function initUI(){
             const delBtn = document.createElement("button")
             delBtn.textContent = "×"
             delBtn.title = "Eliminar esta pose"
+            delBtn.className = "deleteBtn"
             delBtn.style.cssText = "cursor:pointer; line-height:1;"
-            delBtn.addEventListener("click", ()=>{
+            delBtn.addEventListener("click", (e)=>{
+                e.stopPropagation()
                 deleteKeyframe(i)
             })
 
             card.appendChild(label)
             card.appendChild(delBtn)
             cardsContainer.appendChild(card)
+
+            attachDragHandlers(card)
         }
+    }
+
+    // ✅ NUEVO: arrastrar una tarjeta reordena visualmente en vivo;
+    // al soltar, se confirma el nuevo orden en el arreglo de keyframes.
+    function attachDragHandlers(card){
+
+        card.addEventListener("pointerdown",(e)=>{
+            if(e.target.closest(".deleteBtn")) return
+
+            dragState = { card }
+            card.setPointerCapture(e.pointerId)
+            card.style.opacity = "0.5"
+            card.style.cursor = "grabbing"
+        })
+
+        card.addEventListener("pointermove",(e)=>{
+            if(!dragState || dragState.card !== card) return
+
+            const siblings = Array.from(cardsContainer.children)
+            const overCard = siblings.find(c => {
+                const rect = c.getBoundingClientRect()
+                return e.clientX >= rect.left && e.clientX <= rect.right
+            })
+
+            if(overCard && overCard !== card){
+                const overIndex = siblings.indexOf(overCard)
+                const cardIndex = siblings.indexOf(card)
+                if(overIndex < cardIndex){
+                    cardsContainer.insertBefore(card, overCard)
+                } else {
+                    cardsContainer.insertBefore(card, overCard.nextSibling)
+                }
+            }
+        })
+
+        card.addEventListener("pointerup",(e)=>{
+            if(!dragState || dragState.card !== card) return
+
+            card.style.opacity = "1"
+            card.style.cursor = "grab"
+
+            const finalIndex = Array.from(cardsContainer.children).indexOf(card)
+            const originalIndex = parseInt(card.dataset.originalIndex, 10)
+
+            dragState = null
+
+            if(finalIndex !== originalIndex){
+                reorderKeyframes(originalIndex, finalIndex)
+            }
+        })
+
+        card.addEventListener("pointercancel",()=>{
+            if(dragState && dragState.card === card){
+                card.style.opacity = "1"
+                card.style.cursor = "grab"
+                dragState = null
+                renderKeyframeCards() // por si quedó a medio mover, restaura el orden real
+            }
+        })
     }
 
     function refreshKeyframeCount(){
