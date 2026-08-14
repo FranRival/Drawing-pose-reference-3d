@@ -7,6 +7,56 @@ const mouse = new THREE.Vector2()
 export let bones = {}
 export let jointGizmos = []
 
+// ✅ NUEVO: overlay de malla (wireframe) — se genera una vez cargado el modelo
+let originalMeshes = []
+let wireframeMeshes = []
+
+// Crea, para cada SkinnedMesh del modelo, una copia con material wireframe
+// que sigue exactamente la misma deformación de huesos (bind al mismo esqueleto).
+// Se agrega apagada (visible=false) hasta que el usuario active algún modo con malla.
+export function createWireframeOverlay(){
+    // limpia overlays previos por si se recarga el modelo
+    wireframeMeshes.forEach(m => { if(m.parent) m.parent.remove(m) })
+    wireframeMeshes = []
+    originalMeshes = []
+
+    if(!model) return
+
+    model.traverse(obj => {
+        if(!obj.isSkinnedMesh) return
+
+        originalMeshes.push(obj)
+
+        const wireMat = new THREE.MeshBasicMaterial({
+            wireframe: true,
+            color: 0x00ff88,
+            transparent: true,
+            opacity: 0.5,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2
+        })
+
+        const wireMesh = new THREE.SkinnedMesh(obj.geometry, wireMat)
+        wireMesh.bind(obj.skeleton, obj.bindMatrix)
+        wireMesh.position.copy(obj.position)
+        wireMesh.rotation.copy(obj.rotation)
+        wireMesh.scale.copy(obj.scale)
+        wireMesh.castShadow = false
+        wireMesh.receiveShadow = false
+        wireMesh.visible = false
+
+        if(obj.parent) obj.parent.add(wireMesh)
+        wireframeMeshes.push(wireMesh)
+    })
+}
+
+// mode: 'solid' | 'solidWireframe' | 'wireframeOnly'
+export function setMeshDisplayMode(mode){
+    originalMeshes.forEach(m => { m.visible = mode !== 'wireframeOnly' })
+    wireframeMeshes.forEach(m => { m.visible = (mode === 'solidWireframe' || mode === 'wireframeOnly') })
+}
+
 let keyframes = []
 let currentTime = 0
 
