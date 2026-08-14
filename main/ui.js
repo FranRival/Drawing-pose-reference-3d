@@ -1,5 +1,5 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
-         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity,
+         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -197,6 +197,18 @@ export function initUI(){
     if(cameraShotSelect){
         cameraShotSelect.addEventListener("change",(e)=>{
             applyCameraShot(e.target.value)
+        })
+    }
+
+    /* ========================= */
+    /* MALLA (WIREFRAME) */
+    /* ========================= */
+
+    const meshModeSelect = document.getElementById("meshMode")
+
+    if(meshModeSelect){
+        meshModeSelect.addEventListener("change",(e)=>{
+            setMeshDisplayMode(e.target.value)
         })
     }
 
