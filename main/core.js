@@ -5,7 +5,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { inspectBones, initRaycasting, updateBoneHelper,
          createJointGizmos, updateJointGizmos, updateIK,
-         updateAnimation, consumeNeedsUpdate, setGizmosVisible } from './viewer.js'
+         updateAnimation, consumeNeedsUpdate, setGizmosVisible,
+         createWireframeOverlay } from './viewer.js'
 import { initUI } from './ui.js'
 import { SkeletonHelper } from 'three'
 
@@ -309,6 +310,7 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
         /* inicializar lógica externa */
         inspectBones()
         createJointGizmos()
+        createWireframeOverlay()
         initUI()
         initRaycasting()
         skeletonHelper = new THREE.SkeletonHelper(model)
