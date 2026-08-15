@@ -1,5 +1,6 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
-         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode, setLoomisGuideVisible,
+         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
+         setLoomisGuideVisible, setLoomisOffset, setLoomisScale,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -217,6 +218,22 @@ export function initUI(){
     if(loomisGuideToggle){
         loomisGuideToggle.addEventListener("change",(e)=>{
             setLoomisGuideVisible(e.target.checked)
+        })
+    }
+
+    const loomisOffsetSlider = document.getElementById("loomisOffsetY")
+
+    if(loomisOffsetSlider){
+        loomisOffsetSlider.addEventListener("input",(e)=>{
+            setLoomisOffset(parseFloat(e.target.value))
+        })
+    }
+
+    const loomisScaleSlider = document.getElementById("loomisScale")
+
+    if(loomisScaleSlider){
+        loomisScaleSlider.addEventListener("input",(e)=>{
+            setLoomisScale(parseFloat(e.target.value))
         })
     }
 
