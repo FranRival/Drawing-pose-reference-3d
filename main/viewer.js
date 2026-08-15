@@ -64,6 +64,7 @@ export function setMeshDisplayMode(mode){
 // ⚠️ Punto de partida: el offset vertical del cráneo respecto al bone y el
 // radio son aproximados, van a necesitar ajuste fino una vez vistos en vivo.
 let loomisGroup = null
+let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para offset/escala
 
 function loomisCirclePoints(radius, yOffset, orientation){
     const points = []
@@ -103,6 +104,8 @@ export function createLoomisGuide(radius){
     const localRadius = radius / avgScale
 
     console.log("Loomis guide → headBone:", headBone.name, "| escala mundial del hueso:", avgScale, "| radio mundo:", radius, "| radio local usado:", localRadius)
+
+    loomisBaseRadius = localRadius
 
     loomisGroup = new THREE.Group()
     loomisGroup.visible = false
@@ -149,6 +152,20 @@ export function createLoomisGuide(radius){
 
 export function setLoomisGuideVisible(visible){
     if(loomisGroup) loomisGroup.visible = visible
+}
+
+// ✅ NUEVO: ajuste en vivo, para afinar la guía sin tener que recalcular
+// números a ciegas. offsetMultiplier se aplica sobre el radio base (ej. 0.7
+// = como estaba antes); scaleMultiplier agranda/achica toda la guía desde
+// su punto de anclaje en el hueso.
+export function setLoomisOffset(offsetMultiplier){
+    if(!loomisGroup) return
+    loomisGroup.position.y = loomisBaseRadius * offsetMultiplier
+}
+
+export function setLoomisScale(scaleMultiplier){
+    if(!loomisGroup) return
+    loomisGroup.scale.setScalar(scaleMultiplier)
 }
 
 let keyframes = []
