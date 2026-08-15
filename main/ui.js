@@ -1,5 +1,5 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
-         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
+         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode, setLoomisGuideVisible,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -209,6 +209,14 @@ export function initUI(){
     if(meshModeSelect){
         meshModeSelect.addEventListener("change",(e)=>{
             setMeshDisplayMode(e.target.value)
+        })
+    }
+
+    const loomisGuideToggle = document.getElementById("loomisGuideToggle")
+
+    if(loomisGuideToggle){
+        loomisGuideToggle.addEventListener("change",(e)=>{
+            setLoomisGuideVisible(e.target.checked)
         })
     }
 
