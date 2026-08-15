@@ -65,6 +65,16 @@ export function setMeshDisplayMode(mode){
 // radio son aproximados, van a necesitar ajuste fino una vez vistos en vivo.
 let loomisGroup = null
 let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para offset/escala
+let loomisOffset = { x: 0, y: 0.7, z: 0 } // multiplicadores sobre loomisBaseRadius, por eje
+
+function applyLoomisTransform(){
+    if(!loomisGroup) return
+    loomisGroup.position.set(
+        loomisBaseRadius * loomisOffset.x,
+        loomisBaseRadius * loomisOffset.y,
+        loomisBaseRadius * loomisOffset.z
+    )
+}
 
 function loomisCirclePoints(radius, yOffset, orientation){
     const points = []
@@ -111,7 +121,7 @@ export function createLoomisGuide(radius){
     loomisGroup.visible = false
     // offset aproximado: el bone de la cabeza suele estar en la base del
     // cráneo/cuello, así que subimos el centro de la esfera un poco
-    loomisGroup.position.set(0, localRadius * 0.7, 0)
+    loomisGroup.position.set(0, 0, 0) // se posiciona abajo con applyLoomisTransform()
 
     // esfera craneal
     const sphereGeo = new THREE.SphereGeometry(localRadius, 16, 12)
@@ -148,6 +158,7 @@ export function createLoomisGuide(radius){
     loomisGroup.add(eyeLine)
 
     headBone.add(loomisGroup)
+    applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
 }
 
 export function setLoomisGuideVisible(visible){
@@ -158,9 +169,23 @@ export function setLoomisGuideVisible(visible){
 // números a ciegas. offsetMultiplier se aplica sobre el radio base (ej. 0.7
 // = como estaba antes); scaleMultiplier agranda/achica toda la guía desde
 // su punto de anclaje en el hueso.
-export function setLoomisOffset(offsetMultiplier){
-    if(!loomisGroup) return
-    loomisGroup.position.y = loomisBaseRadius * offsetMultiplier
+// ✅ NUEVO: ajuste en vivo, para afinar la guía sin tener que recalcular
+// números a ciegas. Cada multiplicador se aplica sobre el radio base
+// (ej. 0.7 en Y = como estaba al principio); scaleMultiplier agranda/achica
+// toda la guía desde su punto de anclaje en el hueso.
+export function setLoomisOffsetX(multiplier){
+    loomisOffset.x = multiplier
+    applyLoomisTransform()
+}
+
+export function setLoomisOffsetY(multiplier){
+    loomisOffset.y = multiplier
+    applyLoomisTransform()
+}
+
+export function setLoomisOffsetZ(multiplier){
+    loomisOffset.z = multiplier
+    applyLoomisTransform()
 }
 
 export function setLoomisScale(scaleMultiplier){
