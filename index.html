@@ -119,6 +119,16 @@
   <div class="right-panel" style="position:relative;">
     <div id="viewer" style="position:relative;"></div>
 
+    <!-- ✅ NUEVO: rectángulo que marca el área EXACTA que se exporta
+         (coincide con el recorte real hecho en captureFrameBlob) -->
+    <div id="captureAreaGuide" style="
+        position:absolute; left:0; right:0;
+        border:2px dashed #ffcc00;
+        box-sizing:border-box;
+        pointer-events:none;
+        z-index:5;">
+    </div>
+
     <!-- ✅ NUEVO: barra de poses preestablecidas, flotando sobre el visor -->
     <div id="posePresetsBar" style="
         position:absolute; top:0; left:0; right:0;
