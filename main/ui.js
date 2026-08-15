@@ -1,6 +1,6 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
-         setLoomisGuideVisible, setLoomisOffset, setLoomisScale,
+         setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -221,11 +221,27 @@ export function initUI(){
         })
     }
 
+    const loomisOffsetXSlider = document.getElementById("loomisOffsetX")
+
+    if(loomisOffsetXSlider){
+        loomisOffsetXSlider.addEventListener("input",(e)=>{
+            setLoomisOffsetX(parseFloat(e.target.value))
+        })
+    }
+
     const loomisOffsetSlider = document.getElementById("loomisOffsetY")
 
     if(loomisOffsetSlider){
         loomisOffsetSlider.addEventListener("input",(e)=>{
-            setLoomisOffset(parseFloat(e.target.value))
+            setLoomisOffsetY(parseFloat(e.target.value))
+        })
+    }
+
+    const loomisOffsetZSlider = document.getElementById("loomisOffsetZ")
+
+    if(loomisOffsetZSlider){
+        loomisOffsetZSlider.addEventListener("input",(e)=>{
+            setLoomisOffsetZ(parseFloat(e.target.value))
         })
     }
 
