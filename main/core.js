@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { inspectBones, initRaycasting, updateBoneHelper,
          createJointGizmos, updateJointGizmos, updateIK,
          updateAnimation, consumeNeedsUpdate, setGizmosVisible,
-         createWireframeOverlay } from './viewer.js'
+         createWireframeOverlay, createLoomisGuide } from './viewer.js'
 import { initUI } from './ui.js'
 import { SkeletonHelper } from 'three'
 
@@ -329,6 +329,11 @@ console.log("SkinnedMesh detectado:", window.skinnedMeshes)
 
         // Actualizamos matrices después del movimiento para el Raycasting
         model.updateMatrixWorld(true);
+
+        // ✅ NUEVO: guía tipo Loomis (esfera craneal + cilindro de cuello +
+        // línea central + línea de ojos), atada al hueso de la cabeza.
+        // Radio aproximado: la cabeza suele medir ~1/7-1/8 de la altura total.
+        createLoomisGuide(size.y * 0.085)
 
         /* Ajuste de Cámara y Controles: encuadre por defecto = plano general */
         applyCameraShot('general')
