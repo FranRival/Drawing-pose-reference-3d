@@ -195,6 +195,13 @@ function buildPoseControls(){
 // real de exportación). Izquierda/derecha dejan un margen de aviso — el
 // canvas exporta hasta el borde real, pero si la pose cruza esta línea
 // (manos, pies, etc.) es señal de que se va a cortar en la imagen final.
+// ✅ NUEVO: encuadre fijo 16:9 (widescreen, estándar anime/TV) centrado en el
+// espacio disponible del visor — ya no sigue la forma vertical de la
+// pantalla del celular. El mismo cálculo se replica en viewer.js
+// (getExportCropRect) para que la exportación coincida exactamente con lo
+// que se ve dentro de este rectángulo.
+const TARGET_ASPECT = 16 / 9
+
 function updateCaptureAreaGuide(){
     const guide = document.getElementById("captureAreaGuide")
     const viewer = document.getElementById("viewer")
@@ -204,12 +211,30 @@ function updateCaptureAreaGuide(){
 
     const topPx = headerBar ? headerBar.offsetHeight : 0
     const bottomPx = footerBar ? footerBar.offsetHeight : 0
-    const horizontalMarginPx = viewer.clientWidth * 0.08 // 8% de margen a cada lado
 
-    guide.style.top = `${topPx}px`
-    guide.style.bottom = `${bottomPx}px`
-    guide.style.left = `${horizontalMarginPx}px`
-    guide.style.right = `${horizontalMarginPx}px`
+    const availableWidth = viewer.clientWidth
+    const availableHeight = Math.max(viewer.clientHeight - topPx - bottomPx, 1)
+
+    let guideWidth, guideHeight
+    if(availableWidth / availableHeight > TARGET_ASPECT){
+        // el espacio disponible es más ancho que 16:9 → la altura manda
+        guideHeight = availableHeight
+        guideWidth = guideHeight * TARGET_ASPECT
+    } else {
+        // el espacio disponible es más angosto que 16:9 (como en celular) → el ancho manda
+        guideWidth = availableWidth
+        guideHeight = guideWidth / TARGET_ASPECT
+    }
+
+    const leftPx = (availableWidth - guideWidth) / 2
+    const topOffset = topPx + (availableHeight - guideHeight) / 2
+
+    guide.style.top = `${topOffset}px`
+    guide.style.left = `${leftPx}px`
+    guide.style.width = `${guideWidth}px`
+    guide.style.height = `${guideHeight}px`
+    guide.style.right = "auto"
+    guide.style.bottom = "auto"
 }
 
 export function initUI(){
