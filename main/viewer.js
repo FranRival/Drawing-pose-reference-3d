@@ -92,32 +92,44 @@ export function createLoomisGuide(radius){
     const headBone = bones.head || bones.neck
     if(!headBone || !radius) return
 
+    // ✅ el radio llega en unidades del MUNDO, pero la geometría que colgamos
+    // del hueso se dibuja en su espacio LOCAL. Si el esqueleto tiene una
+    // escala acumulada distinta de 1 (común en exports de Blender/Mixamo),
+    // un radio "correcto" en mundo puede salir gigante o microscópico en
+    // local — lo compensamos dividiendo por la escala mundial del hueso.
+    const worldScale = new THREE.Vector3()
+    headBone.getWorldScale(worldScale)
+    const avgScale = (worldScale.x + worldScale.y + worldScale.z) / 3 || 1
+    const localRadius = radius / avgScale
+
+    console.log("Loomis guide → headBone:", headBone.name, "| escala mundial del hueso:", avgScale, "| radio mundo:", radius, "| radio local usado:", localRadius)
+
     loomisGroup = new THREE.Group()
     loomisGroup.visible = false
     // offset aproximado: el bone de la cabeza suele estar en la base del
     // cráneo/cuello, así que subimos el centro de la esfera un poco
-    loomisGroup.position.set(0, radius * 0.7, 0)
+    loomisGroup.position.set(0, localRadius * 0.7, 0)
 
     // esfera craneal
-    const sphereGeo = new THREE.SphereGeometry(radius, 16, 12)
+    const sphereGeo = new THREE.SphereGeometry(localRadius, 16, 12)
     const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
     const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat)
     sphereMesh.renderOrder = 999 // fuerza a dibujarse encima, incluso con depthTest desactivado
     loomisGroup.add(sphereMesh)
 
     // cilindro de cuello (guía, no es el hueso real del cuello)
-    const neckHeight = radius * 1.1
-    const neckGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.5, neckHeight, 12, 1, true)
+    const neckHeight = localRadius * 1.1
+    const neckGeo = new THREE.CylinderGeometry(localRadius * 0.42, localRadius * 0.5, neckHeight, 12, 1, true)
     const neckMat = new THREE.MeshBasicMaterial({ color: 0x3355ff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
     const neckMesh = new THREE.Mesh(neckGeo, neckMat)
-    neckMesh.position.set(0, -radius - neckHeight * 0.4, 0)
+    neckMesh.position.set(0, -localRadius - neckHeight * 0.4, 0)
     neckMesh.renderOrder = 999
     loomisGroup.add(neckMesh)
 
     // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla)
     const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     const centerLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(radius, 0, 'vertical')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
         centerMat
     )
     centerLine.renderOrder = 999
@@ -126,7 +138,7 @@ export function createLoomisGuide(radius){
     // línea de ojos/cejas (horizontal, envuelve la cabeza a la altura de los ojos)
     const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
     const eyeLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(radius, radius * 0.05, 'horizontal')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, localRadius * 0.05, 'horizontal')),
         eyeMat
     )
     eyeLine.renderOrder = 999
