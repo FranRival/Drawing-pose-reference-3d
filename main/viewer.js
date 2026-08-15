@@ -65,7 +65,8 @@ export function setMeshDisplayMode(mode){
 // radio son aproximados, van a necesitar ajuste fino una vez vistos en vivo.
 let loomisGroup = null
 let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para offset/escala
-let loomisOffset = { x: 0, y: 0.7, z: 0 } // multiplicadores sobre loomisBaseRadius, por eje
+let loomisOffset = { x: 0, y: -0.75, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
+let loomisScaleDefault = 0.80
 
 function applyLoomisTransform(){
     if(!loomisGroup) return
@@ -130,14 +131,15 @@ export function createLoomisGuide(radius){
     sphereMesh.renderOrder = 999 // fuerza a dibujarse encima, incluso con depthTest desactivado
     loomisGroup.add(sphereMesh)
 
-    // cilindro de cuello (guía, no es el hueso real del cuello)
-    const neckHeight = localRadius * 1.1
-    const neckGeo = new THREE.CylinderGeometry(localRadius * 0.42, localRadius * 0.5, neckHeight, 12, 1, true)
-    const neckMat = new THREE.MeshBasicMaterial({ color: 0x3355ff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
-    const neckMesh = new THREE.Mesh(neckGeo, neckMat)
-    neckMesh.position.set(0, -localRadius - neckHeight * 0.4, 0)
-    neckMesh.renderOrder = 999
-    loomisGroup.add(neckMesh)
+    // ⏸️ cilindro de cuello — pausado por ahora, sin datos reales del cuello
+    // todavía; cuando se aborde el cuello va a necesitar geometría propia.
+    // const neckHeight = localRadius * 1.1
+    // const neckGeo = new THREE.CylinderGeometry(localRadius * 0.42, localRadius * 0.5, neckHeight, 12, 1, true)
+    // const neckMat = new THREE.MeshBasicMaterial({ color: 0x3355ff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
+    // const neckMesh = new THREE.Mesh(neckGeo, neckMat)
+    // neckMesh.position.set(0, -localRadius - neckHeight * 0.4, 0)
+    // neckMesh.renderOrder = 999
+    // loomisGroup.add(neckMesh)
 
     // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla)
     const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
@@ -158,6 +160,7 @@ export function createLoomisGuide(radius){
     loomisGroup.add(eyeLine)
 
     headBone.add(loomisGroup)
+    loomisGroup.scale.setScalar(loomisScaleDefault)
     applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
 }
 
