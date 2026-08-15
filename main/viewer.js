@@ -953,6 +953,10 @@ export function loadAnimation(json){
 // ✅ NUEVO: calcula el área real que se va a exportar — el canvas completo
 // menos lo que tapan la barra de presets (arriba) y la barra de línea de
 // tiempo (abajo), que son overlays de HTML, no parte del render 3D.
+// ✅ NUEVO: mismo cálculo de encuadre 16:9 centrado que updateCaptureAreaGuide()
+// en ui.js — si se cambia el aspect ratio ahí, hay que cambiarlo aquí también.
+const TARGET_ASPECT = 16 / 9
+
 function getExportCropRect(){
     const canvas = renderer.domElement
     const headerBar = document.getElementById('posePresetsBar')
@@ -961,10 +965,22 @@ function getExportCropRect(){
     const topCrop = headerBar ? headerBar.offsetHeight : 0
     const bottomCrop = footerBar ? footerBar.offsetHeight : 0
 
-    const width = canvas.width
-    const height = Math.max(canvas.height - topCrop - bottomCrop, 1)
+    const availableWidth = canvas.width
+    const availableHeight = Math.max(canvas.height - topCrop - bottomCrop, 1)
 
-    return { x: 0, y: topCrop, width, height }
+    let width, height
+    if(availableWidth / availableHeight > TARGET_ASPECT){
+        height = availableHeight
+        width = height * TARGET_ASPECT
+    } else {
+        width = availableWidth
+        height = width / TARGET_ASPECT
+    }
+
+    const x = (availableWidth - width) / 2
+    const y = topCrop + (availableHeight - height) / 2
+
+    return { x, y, width, height }
 }
 
 function captureFrameBlob(mime){
