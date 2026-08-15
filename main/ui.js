@@ -187,7 +187,26 @@ function buildPoseControls(){
     container.appendChild(resetWrapper)
 }
 
+// ✅ NUEVO: posiciona el rectángulo de "área de exportación" para que calce
+// exactamente con lo que recorta captureFrameBlob() en viewer.js — mismo
+// criterio en ambos lados: canvas completo menos header y footer.
+function updateCaptureAreaGuide(){
+    const guide = document.getElementById("captureAreaGuide")
+    const headerBar = document.getElementById("posePresetsBar")
+    const footerBar = document.getElementById("poseTimelineBar")
+    if(!guide) return
+
+    const topPx = headerBar ? headerBar.offsetHeight : 0
+    const bottomPx = footerBar ? footerBar.offsetHeight : 0
+
+    guide.style.top = `${topPx}px`
+    guide.style.bottom = `${bottomPx}px`
+}
+
 export function initUI(){
+
+    updateCaptureAreaGuide()
+    window.addEventListener("resize", updateCaptureAreaGuide)
 
     /* ========================= */
     /* ENCUADRE (CAMERA SHOT) */
