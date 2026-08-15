@@ -190,17 +190,26 @@ function buildPoseControls(){
 // ✅ NUEVO: posiciona el rectángulo de "área de exportación" para que calce
 // exactamente con lo que recorta captureFrameBlob() en viewer.js — mismo
 // criterio en ambos lados: canvas completo menos header y footer.
+// ✅ NUEVO: rectángulo de "zona segura" en los 4 lados, no solo arriba/abajo.
+// Arriba/abajo excluyen exactamente el header/footer (igual que el recorte
+// real de exportación). Izquierda/derecha dejan un margen de aviso — el
+// canvas exporta hasta el borde real, pero si la pose cruza esta línea
+// (manos, pies, etc.) es señal de que se va a cortar en la imagen final.
 function updateCaptureAreaGuide(){
     const guide = document.getElementById("captureAreaGuide")
+    const viewer = document.getElementById("viewer")
     const headerBar = document.getElementById("posePresetsBar")
     const footerBar = document.getElementById("poseTimelineBar")
-    if(!guide) return
+    if(!guide || !viewer) return
 
     const topPx = headerBar ? headerBar.offsetHeight : 0
     const bottomPx = footerBar ? footerBar.offsetHeight : 0
+    const horizontalMarginPx = viewer.clientWidth * 0.08 // 8% de margen a cada lado
 
     guide.style.top = `${topPx}px`
     guide.style.bottom = `${bottomPx}px`
+    guide.style.left = `${horizontalMarginPx}px`
+    guide.style.right = `${horizontalMarginPx}px`
 }
 
 export function initUI(){
