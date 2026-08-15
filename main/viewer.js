@@ -412,21 +412,27 @@ export function setGizmosVisible(visible){
 // 1 = totalmente sólidas). A diferencia de setGizmosVisible, esto no las
 // oculta para el raycasting — siguen siendo clicleables aunque estén tenues.
 export function setGizmoOpacity(value){
+    console.log("setGizmoOpacity →", value, "| esferas encontradas:", jointGizmos.length)
+
     jointGizmos.forEach(g => {
         g.material.transparent = true
         g.material.opacity = value
+        g.material.needsUpdate = true
     })
     if(boneHelper){
         boneHelper.material.transparent = true
         boneHelper.material.opacity = value
+        boneHelper.material.needsUpdate = true
     }
     if(ikTarget){
         ikTarget.material.transparent = true
         ikTarget.material.opacity = value
+        ikTarget.material.needsUpdate = true
     }
     if(poleTarget){
         poleTarget.material.transparent = true
         poleTarget.material.opacity = value
+        poleTarget.material.needsUpdate = true
     }
 }
 
