@@ -222,34 +222,46 @@ export function initUI(){
     }
 
     const loomisOffsetXSlider = document.getElementById("loomisOffsetX")
+    const loomisOffsetXValue  = document.getElementById("loomisOffsetXValue")
 
     if(loomisOffsetXSlider){
         loomisOffsetXSlider.addEventListener("input",(e)=>{
-            setLoomisOffsetX(parseFloat(e.target.value))
+            const value = parseFloat(e.target.value)
+            setLoomisOffsetX(value)
+            if(loomisOffsetXValue) loomisOffsetXValue.textContent = value.toFixed(2)
         })
     }
 
     const loomisOffsetSlider = document.getElementById("loomisOffsetY")
+    const loomisOffsetYValue = document.getElementById("loomisOffsetYValue")
 
     if(loomisOffsetSlider){
         loomisOffsetSlider.addEventListener("input",(e)=>{
-            setLoomisOffsetY(parseFloat(e.target.value))
+            const value = parseFloat(e.target.value)
+            setLoomisOffsetY(value)
+            if(loomisOffsetYValue) loomisOffsetYValue.textContent = value.toFixed(2)
         })
     }
 
     const loomisOffsetZSlider = document.getElementById("loomisOffsetZ")
+    const loomisOffsetZValue  = document.getElementById("loomisOffsetZValue")
 
     if(loomisOffsetZSlider){
         loomisOffsetZSlider.addEventListener("input",(e)=>{
-            setLoomisOffsetZ(parseFloat(e.target.value))
+            const value = parseFloat(e.target.value)
+            setLoomisOffsetZ(value)
+            if(loomisOffsetZValue) loomisOffsetZValue.textContent = value.toFixed(2)
         })
     }
 
     const loomisScaleSlider = document.getElementById("loomisScale")
+    const loomisScaleValue  = document.getElementById("loomisScaleValue")
 
     if(loomisScaleSlider){
         loomisScaleSlider.addEventListener("input",(e)=>{
-            setLoomisScale(parseFloat(e.target.value))
+            const value = parseFloat(e.target.value)
+            setLoomisScale(value)
+            if(loomisScaleValue) loomisScaleValue.textContent = value.toFixed(2)
         })
     }
 
