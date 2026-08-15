@@ -57,6 +57,84 @@ export function setMeshDisplayMode(mode){
     wireframeMeshes.forEach(m => { m.visible = (mode === 'solidWireframe' || mode === 'wireframeOnly') })
 }
 
+// ✅ NUEVO: guía tipo Loomis (esfera craneal + cilindro de cuello +
+// línea central + línea de ojos). Se cuelga directamente del hueso de la
+// cabeza (Object3D normal, sin skinning) — al ser hija del bone, hereda su
+// rotación/posición cada frame automáticamente, sin lógica extra.
+// ⚠️ Punto de partida: el offset vertical del cráneo respecto al bone y el
+// radio son aproximados, van a necesitar ajuste fino una vez vistos en vivo.
+let loomisGroup = null
+
+function loomisCirclePoints(radius, yOffset, orientation){
+    const points = []
+    const segs = 48
+
+    if(orientation === 'vertical'){
+        for(let i = 0; i <= segs; i++){
+            const t = (i / segs) * Math.PI * 2
+            points.push(new THREE.Vector3(0, Math.sin(t) * radius, Math.cos(t) * radius))
+        }
+    } else {
+        const rAtY = Math.sqrt(Math.max(radius * radius - yOffset * yOffset, 0.0001))
+        for(let i = 0; i <= segs; i++){
+            const t = (i / segs) * Math.PI * 2
+            points.push(new THREE.Vector3(Math.sin(t) * rAtY, yOffset, Math.cos(t) * rAtY))
+        }
+    }
+
+    return points
+}
+
+export function createLoomisGuide(radius){
+    if(loomisGroup && loomisGroup.parent) loomisGroup.parent.remove(loomisGroup)
+    loomisGroup = null
+
+    const headBone = bones.head || bones.neck
+    if(!headBone || !radius) return
+
+    loomisGroup = new THREE.Group()
+    loomisGroup.visible = false
+    // offset aproximado: el bone de la cabeza suele estar en la base del
+    // cráneo/cuello, así que subimos el centro de la esfera un poco
+    loomisGroup.position.set(0, radius * 0.7, 0)
+
+    // esfera craneal
+    const sphereGeo = new THREE.SphereGeometry(radius, 16, 12)
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat)
+    loomisGroup.add(sphereMesh)
+
+    // cilindro de cuello (guía, no es el hueso real del cuello)
+    const neckHeight = radius * 1.1
+    const neckGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.5, neckHeight, 12, 1, true)
+    const neckMat = new THREE.MeshBasicMaterial({ color: 0x3355ff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
+    const neckMesh = new THREE.Mesh(neckGeo, neckMat)
+    neckMesh.position.set(0, -radius - neckHeight * 0.4, 0)
+    loomisGroup.add(neckMesh)
+
+    // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla)
+    const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    const centerLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(radius, 0, 'vertical')),
+        centerMat
+    )
+    loomisGroup.add(centerLine)
+
+    // línea de ojos/cejas (horizontal, envuelve la cabeza a la altura de los ojos)
+    const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
+    const eyeLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(radius, radius * 0.05, 'horizontal')),
+        eyeMat
+    )
+    loomisGroup.add(eyeLine)
+
+    headBone.add(loomisGroup)
+}
+
+export function setLoomisGuideVisible(visible){
+    if(loomisGroup) loomisGroup.visible = visible
+}
+
 let keyframes = []
 let currentTime = 0
 
