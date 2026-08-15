@@ -950,9 +950,35 @@ export function loadAnimation(json){
 /* EXPORTACIÓN DE IMÁGENES (FOLIOSCOPIO)             */
 /* ------------------------------------------------ */
 
+// ✅ NUEVO: calcula el área real que se va a exportar — el canvas completo
+// menos lo que tapan la barra de presets (arriba) y la barra de línea de
+// tiempo (abajo), que son overlays de HTML, no parte del render 3D.
+function getExportCropRect(){
+    const canvas = renderer.domElement
+    const headerBar = document.getElementById('posePresetsBar')
+    const footerBar = document.getElementById('poseTimelineBar')
+
+    const topCrop = headerBar ? headerBar.offsetHeight : 0
+    const bottomCrop = footerBar ? footerBar.offsetHeight : 0
+
+    const width = canvas.width
+    const height = Math.max(canvas.height - topCrop - bottomCrop, 1)
+
+    return { x: 0, y: topCrop, width, height }
+}
+
 function captureFrameBlob(mime){
+    const canvas = renderer.domElement
+    const rect = getExportCropRect()
+
+    const cropCanvas = document.createElement('canvas')
+    cropCanvas.width = rect.width
+    cropCanvas.height = rect.height
+    const ctx = cropCanvas.getContext('2d')
+    ctx.drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height)
+
     return new Promise(resolve => {
-        renderer.domElement.toBlob(resolve, mime, 0.92)
+        cropCanvas.toBlob(resolve, mime, 0.92)
     })
 }
 
