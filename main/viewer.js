@@ -1001,8 +1001,13 @@ function getExportCropRect(){
     const headerBar = document.getElementById('posePresetsBar')
     const footerBar = document.getElementById('poseTimelineBar')
 
-    const topCrop = headerBar ? headerBar.offsetHeight : 0
-    const bottomCrop = footerBar ? footerBar.offsetHeight : 0
+    // escala entre el tamaño real del buffer (canvas.width) y el tamaño
+    // mostrado en pantalla (canvas.clientWidth) — normalmente 1, pero sube
+    // durante la exportación en alta resolución (ver beginHighResExport)
+    const scale = canvas.clientWidth ? (canvas.width / canvas.clientWidth) : 1
+
+    const topCrop = (headerBar ? headerBar.offsetHeight : 0) * scale
+    const bottomCrop = (footerBar ? footerBar.offsetHeight : 0) * scale
 
     const availableWidth = canvas.width
     const availableHeight = Math.max(canvas.height - topCrop - bottomCrop, 1)
@@ -1020,6 +1025,32 @@ function getExportCropRect(){
     const y = topCrop + (availableHeight - height) / 2
 
     return { x, y, width, height }
+}
+
+// ✅ NUEVO: sube temporalmente la resolución interna del renderer (sin tocar
+// el tamaño visible en pantalla) para exportar imágenes más nítidas.
+const EXPORT_SUPERSAMPLE = 2
+
+function beginHighResExport(){
+    const canvas = renderer.domElement
+    const baseWidth = canvas.clientWidth
+    const baseHeight = canvas.clientHeight
+
+    renderer.setSize(baseWidth * EXPORT_SUPERSAMPLE, baseHeight * EXPORT_SUPERSAMPLE, false)
+    // el aspect ratio no cambia (ancho y alto suben por igual), pero
+    // refrescamos la matriz de proyección de todas formas por seguridad
+    camera.aspect = baseWidth / baseHeight
+    camera.updateProjectionMatrix()
+}
+
+function endHighResExport(){
+    const canvas = renderer.domElement
+    const baseWidth = canvas.clientWidth
+    const baseHeight = canvas.clientHeight
+
+    renderer.setSize(baseWidth, baseHeight, false)
+    camera.aspect = baseWidth / baseHeight
+    camera.updateProjectionMatrix()
 }
 
 function captureFrameBlob(mime){
@@ -1067,6 +1098,7 @@ export async function exportFrameSequence(frameCount = 24, format = 'png'){
 
     setHelpersVisible(false)
     setGizmosVisible(false)
+    beginHighResExport()
 
     const zip = new JSZip()
     const totalDuration = keyframes[keyframes.length - 1].time
@@ -1081,6 +1113,7 @@ export async function exportFrameSequence(frameCount = 24, format = 'png'){
         zip.file(`frame_${String(i + 1).padStart(3, '0')}.${format}`, blob)
     }
 
+    endHighResExport()
     setHelpersVisible(true)
     setGizmosVisible(true)
     loadPose(savedPoseJson)
@@ -1110,6 +1143,7 @@ export async function exportKeyframesOnly(format = 'png'){
 
     setHelpersVisible(false)
     setGizmosVisible(false)
+    beginHighResExport()
 
     const zip = new JSZip()
     const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
@@ -1122,6 +1156,7 @@ export async function exportKeyframesOnly(format = 'png'){
         zip.file(`keyframe_${String(i + 1).padStart(3, '0')}.${format}`, blob)
     }
 
+    endHighResExport()
     setHelpersVisible(true)
     setGizmosVisible(true)
     loadPose(savedPoseJson)
