@@ -147,6 +147,16 @@ export function createLoomisGuide(radius){
     centerLine.renderOrder = 999
     loomisGroup.add(centerLine)
 
+    // línea horizontal de nariz (mismo verde que la línea central — es la
+    // misma referencia, solo en el eje perpendicular)
+    const noseMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    const noseLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, -localRadius * 0.35, 'horizontal')),
+        noseMat
+    )
+    noseLine.renderOrder = 999
+    loomisGroup.add(noseLine)
+
     // línea de cejas (horizontal, más arriba)
     const eyebrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: false })
     const eyebrowLine = new THREE.Line(
@@ -166,7 +176,7 @@ export function createLoomisGuide(radius){
     loomisGroup.add(eyeLine)
 
     // círculos de oreja (izquierda y derecha), a la altura de cejas/ojos
-    const earRadius = localRadius * 0.35
+    const earRadius = localRadius * 0.55
     const earY = localRadius * 0.05
     const earZ = -localRadius * 0.15 // un poco hacia atrás del centro
 
