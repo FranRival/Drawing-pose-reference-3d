@@ -124,12 +124,9 @@ export function createLoomisGuide(radius){
     // cráneo/cuello, así que subimos el centro de la esfera un poco
     loomisGroup.position.set(0, 0, 0) // se posiciona abajo con applyLoomisTransform()
 
-    // esfera craneal
-    const sphereGeo = new THREE.SphereGeometry(localRadius, 16, 12)
-    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.6, depthTest: false })
-    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat)
-    sphereMesh.renderOrder = 999 // fuerza a dibujarse encima, incluso con depthTest desactivado
-    loomisGroup.add(sphereMesh)
+    // ⏸️ esfera craneal (malla densa) — quitada. La proporción del cráneo ya
+    // la da el propio modelo sólido; aquí solo dejamos las líneas de
+    // construcción, como en la referencia de dibujo tradicional.
 
     // ⏸️ cilindro de cuello — pausado por ahora, sin datos reales del cuello
     // todavía; cuando se aborde el cuello va a necesitar geometría propia.
@@ -141,7 +138,7 @@ export function createLoomisGuide(radius){
     // neckMesh.renderOrder = 999
     // loomisGroup.add(neckMesh)
 
-    // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla)
+    // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla) — referencia de nariz
     const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     const centerLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
@@ -150,14 +147,46 @@ export function createLoomisGuide(radius){
     centerLine.renderOrder = 999
     loomisGroup.add(centerLine)
 
-    // línea de ojos/cejas (horizontal, envuelve la cabeza a la altura de los ojos)
+    // línea de cejas (horizontal, más arriba)
+    const eyebrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: false })
+    const eyebrowLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, localRadius * 0.15, 'horizontal')),
+        eyebrowMat
+    )
+    eyebrowLine.renderOrder = 999
+    loomisGroup.add(eyebrowLine)
+
+    // línea de ojos (horizontal, debajo de las cejas)
     const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
     const eyeLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, localRadius * 0.05, 'horizontal')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'horizontal')),
         eyeMat
     )
     eyeLine.renderOrder = 999
     loomisGroup.add(eyeLine)
+
+    // círculos de oreja (izquierda y derecha), a la altura de cejas/ojos
+    const earRadius = localRadius * 0.35
+    const earY = localRadius * 0.05
+    const earZ = -localRadius * 0.15 // un poco hacia atrás del centro
+
+    const leftEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
+    const leftEar = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
+        leftEarMat
+    )
+    leftEar.position.set(-localRadius * 0.85, earY, earZ)
+    leftEar.renderOrder = 999
+    loomisGroup.add(leftEar)
+
+    const rightEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
+    const rightEar = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
+        rightEarMat
+    )
+    rightEar.position.set(localRadius * 0.85, earY, earZ)
+    rightEar.renderOrder = 999
+    loomisGroup.add(rightEar)
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
