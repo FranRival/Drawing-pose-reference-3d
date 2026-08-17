@@ -1073,7 +1073,7 @@ function endHighResExport(){
     camera.updateProjectionMatrix()
 }
 
-function captureFrameBlob(mime){
+function captureFrameBlob(mime, label){
     const canvas = renderer.domElement
     const rect = getExportCropRect()
 
@@ -1082,6 +1082,28 @@ function captureFrameBlob(mime){
     cropCanvas.height = rect.height
     const ctx = cropCanvas.getContext('2d')
     ctx.drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height)
+
+    // ✅ NUEVO: número de frame grabado directamente en la imagen (esquina
+    // inferior derecha), para no perderse al importar la secuencia en un
+    // programa de folioscopio.
+    if(label){
+        const fontSize = Math.max(rect.height * 0.045, 20)
+        ctx.font = `bold ${fontSize}px sans-serif`
+        ctx.textBaseline = 'bottom'
+        const paddingPx = fontSize * 0.5
+        const textWidth = ctx.measureText(label).width
+
+        const boxW = textWidth + paddingPx * 2
+        const boxH = fontSize + paddingPx
+        const boxX = rect.width - boxW - paddingPx
+        const boxY = rect.height - boxH - paddingPx
+
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'
+        ctx.fillRect(boxX, boxY, boxW, boxH)
+
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(label, boxX + paddingPx, boxY + boxH - paddingPx * 0.3)
+    }
 
     return new Promise(resolve => {
         cropCanvas.toBlob(resolve, mime, 0.92)
@@ -1100,7 +1122,7 @@ async function downloadZip(zip, filename){
 
 // ✅ Exporta una secuencia interpolada completa (ej. 12 o 24 frames) entre
 // el primer y el último keyframe, ideal para animar en folioscopio.
-export async function exportFrameSequence(frameCount = 24, format = 'png'){
+export async function exportFrameSequence(frameCount = 24, format = 'png', showLabel = true){
 
     if(keyframes.length < 2){
         alert("Necesitas al menos 2 keyframes grabados para exportar una secuencia.")
@@ -1129,7 +1151,8 @@ export async function exportFrameSequence(frameCount = 24, format = 'png'){
         updateAnimationAtTime(t)
         renderer.render(scene, camera)
 
-        const blob = await captureFrameBlob(mime)
+        const label = showLabel ? `${i + 1}/${frameCount}` : null
+        const blob = await captureFrameBlob(mime, label)
         zip.file(`frame_${String(i + 1).padStart(3, '0')}.${format}`, blob)
     }
 
@@ -1145,7 +1168,7 @@ export async function exportFrameSequence(frameCount = 24, format = 'png'){
 }
 
 // ✅ Exporta solo los keyframes grabados (una imagen por cada uno)
-export async function exportKeyframesOnly(format = 'png'){
+export async function exportKeyframesOnly(format = 'png', showLabel = true){
 
     if(keyframes.length === 0){
         alert("No hay keyframes grabados todavía.")
@@ -1172,7 +1195,8 @@ export async function exportKeyframesOnly(format = 'png'){
         loadPose(JSON.stringify(keyframes[i].pose))
         renderer.render(scene, camera)
 
-        const blob = await captureFrameBlob(mime)
+        const label = showLabel ? `${i + 1}/${keyframes.length}` : null
+        const blob = await captureFrameBlob(mime, label)
         zip.file(`keyframe_${String(i + 1).padStart(3, '0')}.${format}`, blob)
     }
 
