@@ -1,6 +1,6 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
-         setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale,
+         setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -274,6 +274,14 @@ export function initUI(){
         })
     }
 
+    const loomisOcclusionToggle = document.getElementById("loomisOcclusionToggle")
+
+    if(loomisOcclusionToggle){
+        loomisOcclusionToggle.addEventListener("change",(e)=>{
+            setLoomisRespectOcclusion(e.target.checked)
+        })
+    }
+
     const loomisOffsetXSlider = document.getElementById("loomisOffsetX")
     const loomisOffsetXValue  = document.getElementById("loomisOffsetXValue")
 
@@ -364,6 +372,7 @@ export function initUI(){
     const btnPlay           = document.getElementById("btnPlay")
     const frameCountSelect  = document.getElementById("frameCount")
     const imgFormatSelect   = document.getElementById("imgFormat")
+    const numberFramesCheck = document.getElementById("numberFrames")
     const btnExportSequence = document.getElementById("btnExportSequence")
     const btnExportKeyframes= document.getElementById("btnExportKeyframes")
     const btnFooterSavePose = document.getElementById("btnFooterSavePose")
@@ -505,11 +514,12 @@ export function initUI(){
         btnExportSequence.addEventListener("click", async ()=>{
             const frameCount = parseInt(frameCountSelect?.value || "24", 10)
             const format = imgFormatSelect?.value || "png"
+            const showLabel = numberFramesCheck ? numberFramesCheck.checked : true
 
             btnExportSequence.disabled = true
             btnExportSequence.textContent = "Exportando..."
 
-            await exportFrameSequence(frameCount, format)
+            await exportFrameSequence(frameCount, format, showLabel)
 
             btnExportSequence.disabled = false
             btnExportSequence.textContent = "Exportar secuencia completa (.zip)"
@@ -519,11 +529,12 @@ export function initUI(){
     if(btnExportKeyframes){
         btnExportKeyframes.addEventListener("click", async ()=>{
             const format = imgFormatSelect?.value || "png"
+            const showLabel = numberFramesCheck ? numberFramesCheck.checked : true
 
             btnExportKeyframes.disabled = true
             btnExportKeyframes.textContent = "Exportando..."
 
-            await exportKeyframesOnly(format)
+            await exportKeyframesOnly(format, showLabel)
 
             btnExportKeyframes.disabled = false
             btnExportKeyframes.textContent = "Exportar solo keyframes (.zip)"
