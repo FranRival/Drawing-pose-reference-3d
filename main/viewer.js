@@ -64,6 +64,7 @@ export function setMeshDisplayMode(mode){
 // ⚠️ Punto de partida: el offset vertical del cráneo respecto al bone y el
 // radio son aproximados, van a necesitar ajuste fino una vez vistos en vivo.
 let loomisGroup = null
+let loomisMaterials = [] // referencia a todos los materiales de la guía, para poder alternar depthTest
 let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para offset/escala
 let loomisOffset = { x: 0, y: -0.75, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
 let loomisScaleDefault = 0.80
@@ -100,6 +101,7 @@ function loomisCirclePoints(radius, yOffset, orientation){
 export function createLoomisGuide(radius){
     if(loomisGroup && loomisGroup.parent) loomisGroup.parent.remove(loomisGroup)
     loomisGroup = null
+    loomisMaterials = []
 
     const headBone = bones.head || bones.neck
     if(!headBone || !radius) return
@@ -140,6 +142,7 @@ export function createLoomisGuide(radius){
 
     // línea central (vertical, va de la barbilla a la nuca pasando por la coronilla) — referencia de nariz
     const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    loomisMaterials.push(centerMat)
     const centerLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
         centerMat
@@ -150,6 +153,7 @@ export function createLoomisGuide(radius){
     // línea horizontal de nariz (mismo verde que la línea central — es la
     // misma referencia, solo en el eje perpendicular)
     const noseMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    loomisMaterials.push(noseMat)
     const noseLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, -localRadius * 0.35, 'horizontal')),
         noseMat
@@ -159,6 +163,7 @@ export function createLoomisGuide(radius){
 
     // línea de cejas (horizontal, más arriba)
     const eyebrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: false })
+    loomisMaterials.push(eyebrowMat)
     const eyebrowLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, localRadius * 0.15, 'horizontal')),
         eyebrowMat
@@ -168,6 +173,7 @@ export function createLoomisGuide(radius){
 
     // línea de ojos (horizontal, debajo de las cejas)
     const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
+    loomisMaterials.push(eyeMat)
     const eyeLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'horizontal')),
         eyeMat
@@ -181,6 +187,7 @@ export function createLoomisGuide(radius){
     const earZ = -localRadius * 0.15 // un poco hacia atrás del centro
 
     const leftEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
+    loomisMaterials.push(leftEarMat)
     const leftEar = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
         leftEarMat
@@ -190,6 +197,7 @@ export function createLoomisGuide(radius){
     loomisGroup.add(leftEar)
 
     const rightEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
+    loomisMaterials.push(rightEarMat)
     const rightEar = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
         rightEarMat
@@ -201,10 +209,22 @@ export function createLoomisGuide(radius){
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
     applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
+    setLoomisRespectOcclusion(true) // default: solo se ve la parte que la cámara realmente ve
 }
 
 export function setLoomisGuideVisible(visible){
     if(loomisGroup) loomisGroup.visible = visible
+}
+
+// ✅ NUEVO: alterna si la guía respeta la oclusión del modelo (solo se ve la
+// parte que la cámara realmente ve, tapada por la cabeza cuando corresponde)
+// o si se muestra completa "a rayos X" a través del cuerpo (comportamiento
+// anterior, útil como referencia pero puede confundir).
+export function setLoomisRespectOcclusion(respectOcclusion){
+    loomisMaterials.forEach(mat => {
+        mat.depthTest = respectOcclusion
+        mat.needsUpdate = true
+    })
 }
 
 // ✅ NUEVO: ajuste en vivo, para afinar la guía sin tener que recalcular
