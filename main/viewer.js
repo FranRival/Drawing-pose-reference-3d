@@ -169,9 +169,20 @@ export function createLoomisGuide(radius){
     // cráneo/cuello, así que subimos el centro de la esfera un poco
     loomisGroup.position.set(0, 0, 0) // se posiciona abajo con applyLoomisTransform()
 
-    // ⏸️ esfera craneal (malla densa) — quitada. La proporción del cráneo ya
-    // la da el propio modelo sólido; aquí solo dejamos las líneas de
-    // construcción, como en la referencia de dibujo tradicional.
+    // ✅ esfera craneal — de vuelta, pero lisa y translúcida (sin la malla
+    // densa de triángulos que tenía antes). Le da "cuerpo" real a las líneas
+    // de construcción, para poder juzgar tamaño/posición contra algo sólido.
+    const sphereGeo = new THREE.SphereGeometry(localRadius, 20, 14)
+    const sphereMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.15,
+        depthTest: false
+    })
+    loomisMaterials.push(sphereMat)
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat)
+    sphereMesh.renderOrder = 998 // un poco antes que las líneas, para que ellas queden encima
+    loomisGroup.add(sphereMesh)
 
     // ⏸️ cilindro de cuello — pausado por ahora, sin datos reales del cuello
     // todavía; cuando se aborde el cuello va a necesitar geometría propia.
