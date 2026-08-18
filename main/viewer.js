@@ -69,6 +69,49 @@ let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para
 let loomisOffset = { x: 0, y: -0.75, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
 let loomisScaleDefault = 0.80
 
+// ✅ NUEVO: cuña de mandíbula (pómulo → barbilla → pómulo, + línea de boca).
+// A diferencia del resto de la guía, esta geometría sí necesita ajuste fino
+// por separado (no basta con mover/escalar todo el grupo), así que se
+// regenera cada vez que cambia alguno de estos parámetros.
+let leftJawLine = null
+let rightJawLine = null
+let mouthLine = null
+let jawParams = { width: 0.85, chinDrop: 1.05, chinForward: 0.5 }
+
+function computeJawPoints(){
+    const R = loomisBaseRadius
+    const noseBaseY = -R * 0.35 // misma altura que noseLine
+
+    const cheekY = 0 // altura de línea de ojos
+    const cheekZ = R * 0.25
+    const cheekX = R * jawParams.width
+
+    const chinY = -R * jawParams.chinDrop
+    const chinZ = R * jawParams.chinForward
+
+    const mouthY = noseBaseY + (chinY - noseBaseY) * 0.35 // más cerca de la nariz que de la barbilla
+    const mouthHalfWidth = cheekX * 0.4
+    const mouthZ = chinZ * 0.85
+
+    return {
+        leftJaw:  [new THREE.Vector3(-cheekX, cheekY, cheekZ), new THREE.Vector3(0, chinY, chinZ)],
+        rightJaw: [new THREE.Vector3(cheekX, cheekY, cheekZ), new THREE.Vector3(0, chinY, chinZ)],
+        mouth:    [new THREE.Vector3(-mouthHalfWidth, mouthY, mouthZ), new THREE.Vector3(mouthHalfWidth, mouthY, mouthZ)]
+    }
+}
+
+function rebuildJawLines(){
+    if(!leftJawLine || !rightJawLine || !mouthLine) return
+    const pts = computeJawPoints()
+    leftJawLine.geometry.setFromPoints(pts.leftJaw)
+    rightJawLine.geometry.setFromPoints(pts.rightJaw)
+    mouthLine.geometry.setFromPoints(pts.mouth)
+}
+
+export function setJawWidth(mult){ jawParams.width = mult; rebuildJawLines() }
+export function setJawChinDrop(mult){ jawParams.chinDrop = mult; rebuildJawLines() }
+export function setJawChinForward(mult){ jawParams.chinForward = mult; rebuildJawLines() }
+
 function applyLoomisTransform(){
     if(!loomisGroup) return
     loomisGroup.position.set(
@@ -205,6 +248,27 @@ export function createLoomisGuide(radius){
     rightEar.position.set(localRadius * 0.85, earY, earZ)
     rightEar.renderOrder = 999
     loomisGroup.add(rightEar)
+
+    // cuña de mandíbula: dos diagonales (pómulo → barbilla) + línea de boca
+    const jawPts = computeJawPoints()
+
+    const leftJawMat = new THREE.LineBasicMaterial({ color: 0xff66cc, depthTest: false })
+    loomisMaterials.push(leftJawMat)
+    leftJawLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.leftJaw), leftJawMat)
+    leftJawLine.renderOrder = 999
+    loomisGroup.add(leftJawLine)
+
+    const rightJawMat = new THREE.LineBasicMaterial({ color: 0xff66cc, depthTest: false })
+    loomisMaterials.push(rightJawMat)
+    rightJawLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.rightJaw), rightJawMat)
+    rightJawLine.renderOrder = 999
+    loomisGroup.add(rightJawLine)
+
+    const mouthMat = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false })
+    loomisMaterials.push(mouthMat)
+    mouthLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.mouth), mouthMat)
+    mouthLine.renderOrder = 999
+    loomisGroup.add(mouthLine)
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
