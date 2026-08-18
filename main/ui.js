@@ -1,6 +1,7 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
+         setJawWidth, setJawChinDrop, setJawChinForward,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -323,6 +324,39 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLoomisScale(value)
             if(loomisScaleValue) loomisScaleValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const jawWidthSlider = document.getElementById("jawWidth")
+    const jawWidthValue  = document.getElementById("jawWidthValue")
+
+    if(jawWidthSlider){
+        jawWidthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setJawWidth(value)
+            if(jawWidthValue) jawWidthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const jawChinDropSlider = document.getElementById("jawChinDrop")
+    const jawChinDropValue  = document.getElementById("jawChinDropValue")
+
+    if(jawChinDropSlider){
+        jawChinDropSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setJawChinDrop(value)
+            if(jawChinDropValue) jawChinDropValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const jawChinForwardSlider = document.getElementById("jawChinForward")
+    const jawChinForwardValue  = document.getElementById("jawChinForwardValue")
+
+    if(jawChinForwardSlider){
+        jawChinForwardSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setJawChinForward(value)
+            if(jawChinForwardValue) jawChinForwardValue.textContent = value.toFixed(2)
         })
     }
 
