@@ -295,6 +295,7 @@ export function createLoomisGuide(radius){
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
+    applyLoomisScale() // aplica también el estiramiento por eje (X/Y/Z) si ya se había ajustado antes
     applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
     setLoomisRespectOcclusion(true) // default: solo se ve la parte que la cámara realmente ve
 
@@ -348,9 +349,38 @@ export function setLoomisOffsetZ(multiplier){
     applyLoomisTransform()
 }
 
-export function setLoomisScale(scaleMultiplier){
+// ✅ NUEVO: estiramiento por eje, combinado con el tamaño general — permite
+// convertir la esfera uniforme en un óvalo que calce con la forma real de
+// la cabeza (que casi nunca es una esfera perfecta).
+let loomisStretch = { x: 1, y: 1, z: 1 }
+
+function applyLoomisScale(){
     if(!loomisGroup) return
-    loomisGroup.scale.setScalar(scaleMultiplier)
+    loomisGroup.scale.set(
+        loomisScaleDefault * loomisStretch.x,
+        loomisScaleDefault * loomisStretch.y,
+        loomisScaleDefault * loomisStretch.z
+    )
+}
+
+export function setLoomisScale(scaleMultiplier){
+    loomisScaleDefault = scaleMultiplier
+    applyLoomisScale()
+}
+
+export function setLoomisStretchX(multiplier){
+    loomisStretch.x = multiplier
+    applyLoomisScale()
+}
+
+export function setLoomisStretchY(multiplier){
+    loomisStretch.y = multiplier
+    applyLoomisScale()
+}
+
+export function setLoomisStretchZ(multiplier){
+    loomisStretch.z = multiplier
+    applyLoomisScale()
 }
 
 let keyframes = []
