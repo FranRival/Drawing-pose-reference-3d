@@ -1,6 +1,7 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
+         setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
@@ -324,6 +325,39 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLoomisScale(value)
             if(loomisScaleValue) loomisScaleValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const loomisStretchXSlider = document.getElementById("loomisStretchX")
+    const loomisStretchXValue  = document.getElementById("loomisStretchXValue")
+
+    if(loomisStretchXSlider){
+        loomisStretchXSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLoomisStretchX(value)
+            if(loomisStretchXValue) loomisStretchXValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const loomisStretchYSlider = document.getElementById("loomisStretchY")
+    const loomisStretchYValue  = document.getElementById("loomisStretchYValue")
+
+    if(loomisStretchYSlider){
+        loomisStretchYSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLoomisStretchY(value)
+            if(loomisStretchYValue) loomisStretchYValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const loomisStretchZSlider = document.getElementById("loomisStretchZ")
+    const loomisStretchZValue  = document.getElementById("loomisStretchZValue")
+
+    if(loomisStretchZSlider){
+        loomisStretchZSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLoomisStretchZ(value)
+            if(loomisStretchZValue) loomisStretchZValue.textContent = value.toFixed(2)
         })
     }
 
