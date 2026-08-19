@@ -81,11 +81,16 @@ let jawParams = { width: 0.85, chinDrop: 1.05, chinForward: 0.5, chinWidth: 0.5 
 
 function computeJawPoints(){
     const R = loomisBaseRadius
-    const noseBaseY = -R * 0.35 // misma altura que noseLine
+    const noseBaseY = -R * 0.35 // misma altura que noseLine (el círculo verde)
 
-    const cheekY = 0 // altura de línea de ojos
-    const cheekZ = R * 0.25
-    const cheekX = R * jawParams.width
+    // ✅ el punto de pómulo ahora queda matemáticamente SOBRE el círculo
+    // verde de la línea de nariz (misma altura Y, y X/Z calculados para caer
+    // justo en el borde de ese círculo) — así la mandíbula arranca
+    // conectada a la esfera, en vez de flotar suelta a la altura de ojos.
+    const noseBaseRadius = Math.sqrt(Math.max(R * R - noseBaseY * noseBaseY, 0.0001))
+    const cheekY = noseBaseY
+    const cheekX = Math.min(jawParams.width * R, noseBaseRadius * 0.98)
+    const cheekZ = Math.sqrt(Math.max(noseBaseRadius * noseBaseRadius - cheekX * cheekX, 0))
 
     const chinY = -R * jawParams.chinDrop
     const chinZ = R * jawParams.chinForward
