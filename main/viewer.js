@@ -66,7 +66,7 @@ export function setMeshDisplayMode(mode){
 let loomisGroup = null
 let loomisMaterials = [] // referencia a todos los materiales de la guía, para poder alternar depthTest
 let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para offset/escala
-let loomisOffset = { x: 0, y: -0.75, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
+let loomisOffset = { x: 0, y: -0.80, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
 let loomisScaleDefault = 0.80
 
 // ✅ NUEVO: cuña de mandíbula (pómulo → barbilla → pómulo, + línea de boca).
@@ -77,7 +77,7 @@ let loomisScaleDefault = 0.80
 // ajustar su ángulo de rotación, no recalcular geometría.
 let leftSideLine = null
 let rightSideLine = null
-let sideProfileAngleDeg = 40
+let sideProfileAngleDeg = 39
 
 export function setSideProfileAngle(degrees){
     sideProfileAngleDeg = degrees
@@ -93,7 +93,7 @@ let mouthLine = null
 let leftTempleLine = null
 let rightTempleLine = null
 let bridgeLine = null
-let jawParams = { width: 0.85, chinDrop: 1.05, chinForward: 0.5, chinWidth: 0.5 }
+let jawParams = { width: 0.70, chinDrop: 1.25, chinForward: 0.5, chinWidth: 0.45 }
 
 function computeJawPoints(){
     const R = loomisBaseRadius
@@ -384,7 +384,7 @@ export function createLoomisGuide(radius){
     loomisGroup.scale.setScalar(loomisScaleDefault)
     applyLoomisScale() // aplica también el estiramiento por eje (X/Y/Z) si ya se había ajustado antes
     applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
-    setLoomisRespectOcclusion(true) // default: solo se ve la parte que la cámara realmente ve
+    setLoomisRespectOcclusion(false) // default: se ve la guía completa (como quedó calibrada)
 
     // ✅ NUEVO: diagnóstico — compara dónde está el hueso de la cabeza en el
     // mundo contra dónde terminó quedando la guía, para detectar si se
@@ -439,7 +439,7 @@ export function setLoomisOffsetZ(multiplier){
 // ✅ NUEVO: estiramiento por eje, combinado con el tamaño general — permite
 // convertir la esfera uniforme en un óvalo que calce con la forma real de
 // la cabeza (que casi nunca es una esfera perfecta).
-let loomisStretch = { x: 1, y: 1, z: 1 }
+let loomisStretch = { x: 0.85, y: 1, z: 1 }
 
 function applyLoomisScale(){
     if(!loomisGroup) return
