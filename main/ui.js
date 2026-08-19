@@ -2,7 +2,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
          setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
-         setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth,
+         setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -402,6 +402,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setJawChinWidth(value)
             if(jawChinWidthValue) jawChinWidthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const sideProfileAngleSlider = document.getElementById("sideProfileAngle")
+    const sideProfileAngleValue  = document.getElementById("sideProfileAngleValue")
+
+    if(sideProfileAngleSlider){
+        sideProfileAngleSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setSideProfileAngle(value)
+            if(sideProfileAngleValue) sideProfileAngleValue.textContent = value.toFixed(0)
         })
     }
 
