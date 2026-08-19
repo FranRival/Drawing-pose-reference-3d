@@ -135,7 +135,10 @@ function computeJawPoints(){
         // (donde termina la línea central verde) con el centro de la
         // barbilla (donde termina la mandíbula). Sin esto, ambas formas
         // quedaban separadas en el espacio, sin nada que las una.
-        bridge: [new THREE.Vector3(0, -R, 0), new THREE.Vector3(0, chinY, chinZ)]
+        // puente central: nace del cruce entre la línea horizontal (ecuador,
+        // Y=0) y la línea vertical (centro, X=0) — el punto (0,0,R) al
+        // frente de la esfera — y baja hasta el centro de la mandíbula.
+        bridge: [new THREE.Vector3(0, 0, R), new THREE.Vector3(0, chinY, chinZ)]
     }
 }
 
