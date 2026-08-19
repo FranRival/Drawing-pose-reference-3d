@@ -92,6 +92,7 @@ let chinLine = null
 let mouthLine = null
 let leftTempleLine = null
 let rightTempleLine = null
+let bridgeLine = null
 let jawParams = { width: 0.85, chinDrop: 1.05, chinForward: 0.5, chinWidth: 0.5 }
 
 function computeJawPoints(){
@@ -129,7 +130,12 @@ function computeJawPoints(){
         chin:     [new THREE.Vector3(-chinHalfWidth, chinY, chinZ), new THREE.Vector3(chinHalfWidth, chinY, chinZ)],
         mouth:    [new THREE.Vector3(-mouthHalfWidth, mouthY, mouthZ), new THREE.Vector3(mouthHalfWidth, mouthY, mouthZ)],
         leftTemple:  [new THREE.Vector3(-equatorX, 0, equatorZ), new THREE.Vector3(-cheekX, cheekY, cheekZ)],
-        rightTemple: [new THREE.Vector3(equatorX, 0, equatorZ), new THREE.Vector3(cheekX, cheekY, cheekZ)]
+        rightTemple: [new THREE.Vector3(equatorX, 0, equatorZ), new THREE.Vector3(cheekX, cheekY, cheekZ)],
+        // ✅ NUEVO: puente central — conecta el punto más bajo de la esfera
+        // (donde termina la línea central verde) con el centro de la
+        // barbilla (donde termina la mandíbula). Sin esto, ambas formas
+        // quedaban separadas en el espacio, sin nada que las una.
+        bridge: [new THREE.Vector3(0, -R, 0), new THREE.Vector3(0, chinY, chinZ)]
     }
 }
 
@@ -142,6 +148,7 @@ function rebuildJawLines(){
     mouthLine.geometry.setFromPoints(pts.mouth)
     if(leftTempleLine) leftTempleLine.geometry.setFromPoints(pts.leftTemple)
     if(rightTempleLine) rightTempleLine.geometry.setFromPoints(pts.rightTemple)
+    if(bridgeLine) bridgeLine.geometry.setFromPoints(pts.bridge)
 }
 
 export function setJawWidth(mult){ jawParams.width = mult; rebuildJawLines() }
@@ -362,6 +369,13 @@ export function createLoomisGuide(radius){
     rightTempleLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.rightTemple), rightTempleMat)
     rightTempleLine.renderOrder = 999
     loomisGroup.add(rightTempleLine)
+
+    // puente central: conecta el fondo de la esfera con el centro de la barbilla
+    const bridgeMat = new THREE.LineBasicMaterial({ color: 0xcccccc, depthTest: false })
+    loomisMaterials.push(bridgeMat)
+    bridgeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.bridge), bridgeMat)
+    bridgeLine.renderOrder = 999
+    loomisGroup.add(bridgeLine)
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
