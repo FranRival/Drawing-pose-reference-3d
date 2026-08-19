@@ -90,6 +90,8 @@ let leftJawLine = null
 let rightJawLine = null
 let chinLine = null
 let mouthLine = null
+let leftTempleLine = null
+let rightTempleLine = null
 let jawParams = { width: 0.85, chinDrop: 1.05, chinForward: 0.5, chinWidth: 0.5 }
 
 function computeJawPoints(){
@@ -113,11 +115,21 @@ function computeJawPoints(){
     const mouthHalfWidth = chinHalfWidth * 0.8
     const mouthZ = chinZ * 0.85
 
+    // ✅ NUEVO: línea de sien/pómulo — conecta el ecuador de la esfera
+    // (punto más ancho, altura de las orejas, Y=0) con el punto donde
+    // arranca la mandíbula (a la altura de la nariz). Misma dirección
+    // angular que el pómulo, solo que en el ecuador el radio es completo (R).
+    const dirLen = Math.sqrt(cheekX * cheekX + cheekZ * cheekZ) || 1
+    const equatorX = (cheekX / dirLen) * R
+    const equatorZ = (cheekZ / dirLen) * R
+
     return {
         leftJaw:  [new THREE.Vector3(-cheekX, cheekY, cheekZ), new THREE.Vector3(-chinHalfWidth, chinY, chinZ)],
         rightJaw: [new THREE.Vector3(cheekX, cheekY, cheekZ), new THREE.Vector3(chinHalfWidth, chinY, chinZ)],
         chin:     [new THREE.Vector3(-chinHalfWidth, chinY, chinZ), new THREE.Vector3(chinHalfWidth, chinY, chinZ)],
-        mouth:    [new THREE.Vector3(-mouthHalfWidth, mouthY, mouthZ), new THREE.Vector3(mouthHalfWidth, mouthY, mouthZ)]
+        mouth:    [new THREE.Vector3(-mouthHalfWidth, mouthY, mouthZ), new THREE.Vector3(mouthHalfWidth, mouthY, mouthZ)],
+        leftTemple:  [new THREE.Vector3(-equatorX, 0, equatorZ), new THREE.Vector3(-cheekX, cheekY, cheekZ)],
+        rightTemple: [new THREE.Vector3(equatorX, 0, equatorZ), new THREE.Vector3(cheekX, cheekY, cheekZ)]
     }
 }
 
@@ -128,6 +140,8 @@ function rebuildJawLines(){
     rightJawLine.geometry.setFromPoints(pts.rightJaw)
     chinLine.geometry.setFromPoints(pts.chin)
     mouthLine.geometry.setFromPoints(pts.mouth)
+    if(leftTempleLine) leftTempleLine.geometry.setFromPoints(pts.leftTemple)
+    if(rightTempleLine) rightTempleLine.geometry.setFromPoints(pts.rightTemple)
 }
 
 export function setJawWidth(mult){ jawParams.width = mult; rebuildJawLines() }
@@ -335,6 +349,19 @@ export function createLoomisGuide(radius){
     mouthLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.mouth), mouthMat)
     mouthLine.renderOrder = 999
     loomisGroup.add(mouthLine)
+
+    // línea de sien/pómulo: conecta el ecuador de la esfera con el arranque de la mandíbula
+    const leftTempleMat = new THREE.LineBasicMaterial({ color: 0x66ccff, depthTest: false })
+    loomisMaterials.push(leftTempleMat)
+    leftTempleLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.leftTemple), leftTempleMat)
+    leftTempleLine.renderOrder = 999
+    loomisGroup.add(leftTempleLine)
+
+    const rightTempleMat = new THREE.LineBasicMaterial({ color: 0x66ccff, depthTest: false })
+    loomisMaterials.push(rightTempleMat)
+    rightTempleLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.rightTemple), rightTempleMat)
+    rightTempleLine.renderOrder = 999
+    loomisGroup.add(rightTempleLine)
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
