@@ -73,6 +73,19 @@ let loomisScaleDefault = 0.80
 // A diferencia del resto de la guía, esta geometría sí necesita ajuste fino
 // por separado (no basta con mover/escalar todo el grupo), así que se
 // regenera cada vez que cambia alguno de estos parámetros.
+// ✅ NUEVO: líneas de perfil lateral (meridianos rotados) — solo necesitan
+// ajustar su ángulo de rotación, no recalcular geometría.
+let leftSideLine = null
+let rightSideLine = null
+let sideProfileAngleDeg = 40
+
+export function setSideProfileAngle(degrees){
+    sideProfileAngleDeg = degrees
+    const rad = THREE.MathUtils.degToRad(degrees)
+    if(leftSideLine) leftSideLine.rotation.y = rad
+    if(rightSideLine) rightSideLine.rotation.y = -rad
+}
+
 let leftJawLine = null
 let rightJawLine = null
 let chinLine = null
@@ -213,6 +226,31 @@ export function createLoomisGuide(radius){
     )
     centerLine.renderOrder = 999
     loomisGroup.add(centerLine)
+
+    // ✅ NUEVO: líneas de perfil lateral — mismo círculo que la línea
+    // central, pero rotadas alrededor del eje vertical. Marcan dónde
+    // termina el plano frontal de la cara y empieza el costado del cráneo.
+    const sideAngleRad = THREE.MathUtils.degToRad(sideProfileAngleDeg)
+
+    const leftSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    loomisMaterials.push(leftSideMat)
+    leftSideLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
+        leftSideMat
+    )
+    leftSideLine.rotation.y = sideAngleRad
+    leftSideLine.renderOrder = 999
+    loomisGroup.add(leftSideLine)
+
+    const rightSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
+    loomisMaterials.push(rightSideMat)
+    rightSideLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
+        rightSideMat
+    )
+    rightSideLine.rotation.y = -sideAngleRad
+    rightSideLine.renderOrder = 999
+    loomisGroup.add(rightSideLine)
 
     // línea horizontal de nariz (mismo verde que la línea central — es la
     // misma referencia, solo en el eje perpendicular)
