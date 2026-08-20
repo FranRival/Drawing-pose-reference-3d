@@ -168,6 +168,19 @@
   <div class="right-panel" style="position:relative;">
     <div id="viewer" style="position:relative;"></div>
 
+    <!-- ✅ NUEVO: botón "Soltar" fijo en la esquina inferior derecha —
+         necesario en touch (iPad), donde el hueso seleccionado sigue
+         rotando con cualquier movimiento posterior hasta que se toca otro -->
+    <button id="btnReleaseBone" style="
+        position:absolute; bottom:70px; right:12px;
+        z-index:15;
+        padding:10px 16px;
+        font-size:14px;
+        background:#cc3333; color:#fff;
+        border:none; border-radius:6px;">
+      Soltar
+    </button>
+
     <!-- ✅ NUEVO: rectángulo que marca el área EXACTA que se exporta
          (coincide con el recorte real hecho en captureFrameBlob) -->
     <div id="captureAreaGuide" style="
