@@ -3,6 +3,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
          setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
+         deselectBone,
          setOnKeyframesChange } from './viewer.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -243,6 +244,13 @@ export function initUI(){
 
     updateCaptureAreaGuide()
     window.addEventListener("resize", updateCaptureAreaGuide)
+
+    const btnReleaseBone = document.getElementById("btnReleaseBone")
+    if(btnReleaseBone){
+        btnReleaseBone.addEventListener("click", ()=>{
+            deselectBone()
+        })
+    }
 
     /* ========================= */
     /* ENCUADRE (CAMERA SHOT) */
