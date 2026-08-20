@@ -958,6 +958,29 @@ export function updateBoneHelper(){
     boneHelper.position.copy(pos)
 }
 
+// ✅ NUEVO: "soltar" — deselecciona explícitamente el hueso actual y limpia
+// todos los estados de arrastre. Necesario en touch (iPad): pointerup no
+// limpia selectedBone, así que sin esto el hueso sigue rotando con
+// cualquier movimiento posterior hasta tocar otra esfera.
+export function deselectBone(){
+    if(selectedGizmo) selectedGizmo.material.color.set(COLORS.gizmo)
+    selectedGizmo = null
+    selectedBone = null
+
+    if(boneHelper){
+        scene.remove(boneHelper)
+        boneHelper = null
+    }
+
+    ikActive   = false
+    ikDragging = false
+    poleActive = false
+    selectedSun = false
+
+    if(ikTarget)   ikTarget.visible = false
+    if(poleTarget) poleTarget.visible = false
+}
+
 /* ------------------------------------------------ */
 /* DRAG PLANE HELPER                                 */
 /* ------------------------------------------------ */
