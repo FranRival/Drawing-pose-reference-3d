@@ -406,7 +406,10 @@ export function setLoomisGuideVisible(visible){
 // parte que la cámara realmente ve, tapada por la cabeza cuando corresponde)
 // o si se muestra completa "a rayos X" a través del cuerpo (comportamiento
 // anterior, útil como referencia pero puede confundir).
+let loomisOcclusionState = false // rastrea el estado actual, para poder restaurarlo después de exportar
+
 export function setLoomisRespectOcclusion(respectOcclusion){
+    loomisOcclusionState = respectOcclusion
     loomisMaterials.forEach(mat => {
         mat.depthTest = respectOcclusion
         mat.needsUpdate = true
@@ -1379,6 +1382,8 @@ export async function exportFrameSequence(frameCount = 24, format = 'png', showL
     setHelpersVisible(false)
     setGizmosVisible(false)
     beginHighResExport()
+    const savedOcclusion = loomisOcclusionState
+    setLoomisRespectOcclusion(true) // fuerza a que la guía solo muestre lo que la cámara realmente ve
 
     const zip = new JSZip()
     const totalDuration = keyframes[keyframes.length - 1].time
@@ -1395,6 +1400,7 @@ export async function exportFrameSequence(frameCount = 24, format = 'png', showL
     }
 
     endHighResExport()
+    setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
     setHelpersVisible(true)
     setGizmosVisible(true)
     loadPose(savedPoseJson)
@@ -1425,6 +1431,8 @@ export async function exportKeyframesOnly(format = 'png', showLabel = true){
     setHelpersVisible(false)
     setGizmosVisible(false)
     beginHighResExport()
+    const savedOcclusion = loomisOcclusionState
+    setLoomisRespectOcclusion(true) // fuerza a que la guía solo muestre lo que la cámara realmente ve
 
     const zip = new JSZip()
     const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
@@ -1439,6 +1447,7 @@ export async function exportKeyframesOnly(format = 'png', showLabel = true){
     }
 
     endHighResExport()
+    setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
     setHelpersVisible(true)
     setGizmosVisible(true)
     loadPose(savedPoseJson)
