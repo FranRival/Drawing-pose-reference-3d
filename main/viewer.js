@@ -95,6 +95,14 @@ let rightTempleLine = null
 let bridgeLine = null
 let jawParams = { width: 0.70, chinDrop: 1.25, chinForward: 0.5, chinWidth: 0.45 }
 
+// ✅ NUEVO: círculos de oreja — radio ajustable en vivo con límite para que
+// nunca iguale/supere el radio de la esfera craneal.
+let leftEarLine = null
+let rightEarLine = null
+let earRadiusMult = 0.55
+const EAR_RADIUS_MIN = 0.1
+const EAR_RADIUS_MAX = 1.0 // límite: no puede igualar/superar el radio de la esfera
+
 function computeJawPoints(){
     const R = loomisBaseRadius
     const noseBaseY = -R * 0.35 // misma altura que noseLine (el círculo verde)
@@ -308,29 +316,29 @@ export function createLoomisGuide(radius){
     loomisGroup.add(eyeLine)
 
     // círculos de oreja (izquierda y derecha), a la altura de cejas/ojos
-    const earRadius = localRadius * 0.55
+    const earRadius = localRadius * earRadiusMult
     const earY = localRadius * 0.05
     const earZ = -localRadius * 0.15 // un poco hacia atrás del centro
 
     const leftEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
     loomisMaterials.push(leftEarMat)
-    const leftEar = new THREE.Line(
+    leftEarLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
         leftEarMat
     )
-    leftEar.position.set(-localRadius * 0.85, earY, earZ)
-    leftEar.renderOrder = 999
-    loomisGroup.add(leftEar)
+    leftEarLine.position.set(-localRadius * 0.85, earY, earZ)
+    leftEarLine.renderOrder = 999
+    loomisGroup.add(leftEarLine)
 
     const rightEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
     loomisMaterials.push(rightEarMat)
-    const rightEar = new THREE.Line(
+    rightEarLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(earRadius, 0, 'vertical')),
         rightEarMat
     )
-    rightEar.position.set(localRadius * 0.85, earY, earZ)
-    rightEar.renderOrder = 999
-    loomisGroup.add(rightEar)
+    rightEarLine.position.set(localRadius * 0.85, earY, earZ)
+    rightEarLine.renderOrder = 999
+    loomisGroup.add(rightEarLine)
 
     // cuña de mandíbula (trapecio): dos diagonales (pómulo → esquina de
     // barbilla) + borde de barbilla + línea de boca
@@ -471,6 +479,20 @@ export function setLoomisStretchY(multiplier){
 export function setLoomisStretchZ(multiplier){
     loomisStretch.z = multiplier
     applyLoomisScale()
+}
+
+// ✅ NUEVO: radio de los círculos de oreja — clamp entre EAR_RADIUS_MIN y
+// EAR_RADIUS_MAX para que nunca puedan igualar o superar el radio de la
+// esfera craneal, sin importar el valor que llegue del slider.
+export function setEarRadius(multiplier){
+    earRadiusMult = THREE.MathUtils.clamp(multiplier, EAR_RADIUS_MIN, EAR_RADIUS_MAX)
+    if(!loomisBaseRadius) return
+
+    const earRadius = loomisBaseRadius * earRadiusMult
+    const newPoints = loomisCirclePoints(earRadius, 0, 'vertical')
+
+    if(leftEarLine) leftEarLine.geometry.setFromPoints(newPoints)
+    if(rightEarLine) rightEarLine.geometry.setFromPoints(newPoints)
 }
 
 let keyframes = []
