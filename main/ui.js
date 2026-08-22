@@ -2,6 +2,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
          setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
+         setEarRadius,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
          deselectBone,
          setOnKeyframesChange } from './viewer.js'
@@ -366,6 +367,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLoomisStretchZ(value)
             if(loomisStretchZValue) loomisStretchZValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const earRadiusSlider = document.getElementById("earRadius")
+    const earRadiusValue  = document.getElementById("earRadiusValue")
+
+    if(earRadiusSlider){
+        earRadiusSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setEarRadius(value)
+            if(earRadiusValue) earRadiusValue.textContent = value.toFixed(2)
         })
     }
 
