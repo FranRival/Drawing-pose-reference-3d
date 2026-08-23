@@ -443,6 +443,11 @@ export function setLoomisRespectOcclusion(respectOcclusion){
     loomisOcclusionState = respectOcclusion
     loomisMaterials.forEach(mat => {
         mat.depthTest = respectOcclusion
+        // ✅ NUEVO: depthWrite siempre en false — ningún elemento de la guía
+        // (ni la esfera translúcida ni las líneas) escribe profundidad, así
+        // que nunca se bloquean entre ellos mismos. depthTest sigue
+        // controlando si los tapa la malla REAL de la cabeza.
+        mat.depthWrite = false
         mat.needsUpdate = true
     })
 }
