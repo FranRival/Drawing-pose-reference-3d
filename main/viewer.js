@@ -73,11 +73,17 @@ let loomisScaleDefault = 0.80
 // A diferencia del resto de la guía, esta geometría sí necesita ajuste fino
 // por separado (no basta con mover/escalar todo el grupo), así que se
 // regenera cada vez que cambia alguno de estos parámetros.
-// ✅ NUEVO: líneas de perfil lateral (meridianos rotados) — solo necesitan
-// ajustar su ángulo de rotación, no recalcular geometría.
+// ✅ NUEVO: líneas de perfil lateral (meridianos rotados) — su ángulo ya no
+// se ajusta a mano: se recalcula solo para que su punto más ancho toque
+// siempre el borde interior del círculo de oreja (ver syncSideProfileToEar).
 let leftSideLine = null
 let rightSideLine = null
 let sideProfileAngleDeg = 39
+
+// ✅ NUEVO: callback opcional — si la UI quiere reflejar el ángulo calculado
+// (por ejemplo, actualizar el número junto al slider), se registra aquí.
+let onSideProfileAngleChange = null
+export function setOnSideProfileAngleChange(fn){ onSideProfileAngleChange = fn }
 
 export function setSideProfileAngle(degrees){
     sideProfileAngleDeg = degrees
@@ -102,6 +108,28 @@ let rightEarLine = null
 let earRadiusMult = 0.55
 const EAR_RADIUS_MIN = 0.1
 const EAR_RADIUS_MAX = 1.0 // límite: no puede igualar/superar el radio de la esfera
+const EAR_ANCHOR_X_MULT = 0.85 // multiplicador sobre localRadius para la posición X del ancla de oreja
+
+// ✅ NUEVO: calcula el ángulo de las líneas de perfil para que su punto más
+// ancho (a la altura de los ojos) toque siempre el borde interior del
+// círculo de oreja, sin importar qué tan grande/chico sea earRadiusMult.
+// El punto más ancho de la línea está en R*sin(ángulo); el borde interior
+// del círculo de oreja está en (EAR_ANCHOR_X_MULT - earRadiusMult)*R.
+// Igualando ambos: sin(ángulo) = EAR_ANCHOR_X_MULT - earRadiusMult.
+function syncSideProfileToEar(){
+    if(!loomisBaseRadius) return
+
+    const innerEdge = EAR_ANCHOR_X_MULT - earRadiusMult
+    const ratio = THREE.MathUtils.clamp(innerEdge, -1, 1)
+    const angleRad = Math.asin(ratio)
+
+    sideProfileAngleDeg = THREE.MathUtils.radToDeg(angleRad)
+
+    if(leftSideLine) leftSideLine.rotation.y = angleRad
+    if(rightSideLine) rightSideLine.rotation.y = -angleRad
+
+    if(onSideProfileAngleChange) onSideProfileAngleChange(sideProfileAngleDeg)
+}
 
 function computeJawPoints(){
     const R = loomisBaseRadius
@@ -262,6 +290,8 @@ export function createLoomisGuide(radius){
     // ✅ NUEVO: líneas de perfil lateral — mismo círculo que la línea
     // central, pero rotadas alrededor del eje vertical. Marcan dónde
     // termina el plano frontal de la cara y empieza el costado del cráneo.
+    // El ángulo inicial se sobreescribe justo después de crear las orejas,
+    // vía syncSideProfileToEar(), así que este valor de arranque no importa mucho.
     const sideAngleRad = THREE.MathUtils.degToRad(sideProfileAngleDeg)
 
     const leftSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
@@ -339,6 +369,10 @@ export function createLoomisGuide(radius){
     rightEarLine.position.set(localRadius * 0.85, earY, earZ)
     rightEarLine.renderOrder = 999
     loomisGroup.add(rightEarLine)
+
+    // ✅ NUEVO: sincroniza el ángulo de las líneas de perfil con el radio de
+    // oreja por defecto, apenas se crean ambas piezas.
+    syncSideProfileToEar()
 
     // cuña de mandíbula (trapecio): dos diagonales (pómulo → esquina de
     // barbilla) + borde de barbilla + línea de boca
@@ -483,7 +517,9 @@ export function setLoomisStretchZ(multiplier){
 
 // ✅ NUEVO: radio de los círculos de oreja — clamp entre EAR_RADIUS_MIN y
 // EAR_RADIUS_MAX para que nunca puedan igualar o superar el radio de la
-// esfera craneal, sin importar el valor que llegue del slider.
+// esfera craneal, sin importar el valor que llegue del slider. Cada cambio
+// también recalcula el ángulo de las líneas de perfil, para que sigan
+// tocando siempre el borde del círculo de oreja.
 export function setEarRadius(multiplier){
     earRadiusMult = THREE.MathUtils.clamp(multiplier, EAR_RADIUS_MIN, EAR_RADIUS_MAX)
     if(!loomisBaseRadius) return
@@ -493,6 +529,8 @@ export function setEarRadius(multiplier){
 
     if(leftEarLine) leftEarLine.geometry.setFromPoints(newPoints)
     if(rightEarLine) rightEarLine.geometry.setFromPoints(newPoints)
+
+    syncSideProfileToEar() // ← el ángulo de las líneas de perfil se recalcula solo
 }
 
 let keyframes = []
