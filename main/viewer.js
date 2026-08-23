@@ -224,28 +224,6 @@ function loomisCirclePoints(radius, yOffset, orientation){
     return points
 }
 
-// ✅ NUEVO: agrega una copia "fantasma" de una línea guía, como HIJA directa
-// de la línea original — así hereda su posición/rotación automáticamente
-// (sin necesidad de sincronizar nada a mano) y comparte la misma geometría
-// (si luego se llama geometry.setFromPoints(...) sobre la línea original,
-// el fantasma se actualiza solo, porque apunta al mismo objeto).
-// El fantasma NUNCA respeta oclusión (depthTest siempre false) y se ve muy
-// tenue, así que la línea real nunca desaparece del todo: se ve completa
-// donde no hay nada delante, y tenue donde la tapa la malla real.
-function addGhostLine(sourceLine, color){
-    const ghostMat = new THREE.LineBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.22,
-        depthTest: false,
-        depthWrite: false
-    })
-    const ghost = new THREE.Line(sourceLine.geometry, ghostMat)
-    ghost.renderOrder = 997 // por debajo de la línea real (999), para que la brillante mande cuando ambas se ven
-    sourceLine.add(ghost)
-    return ghost
-}
-
 export function createLoomisGuide(radius){
     if(loomisGroup && loomisGroup.parent) loomisGroup.parent.remove(loomisGroup)
     loomisGroup = null
@@ -267,6 +245,15 @@ export function createLoomisGuide(radius){
     console.log("Loomis guide → headBone:", headBone.name, "| escala mundial del hueso:", avgScale, "| radio mundo:", radius, "| radio local usado:", localRadius)
 
     loomisBaseRadius = localRadius
+
+    // ✅ NUEVO: las líneas que envuelven la esfera (central, perfil, cejas,
+    // ojos) se generan a un radio LIGERAMENTE mayor que la malla real. Sin
+    // esto, cuando ambas superficies casi coinciden, la comparación de
+    // profundidad falla por precisión ("z-fighting") y el lado cercano de
+    // la guía parpadea/desaparece como si estuviera hundido en el maniquí,
+    // aunque en teoría debería ganarle. El lado lejano se sigue ocultando
+    // normal — este empuje es demasiado pequeño para que se note ahí.
+    const surfaceRadius = localRadius * 1.02
 
     loomisGroup = new THREE.Group()
     loomisGroup.visible = false
@@ -303,12 +290,11 @@ export function createLoomisGuide(radius){
     const centerMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     loomisMaterials.push(centerMat)
     const centerLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(surfaceRadius, 0, 'vertical')),
         centerMat
     )
     centerLine.renderOrder = 999
     loomisGroup.add(centerLine)
-    addGhostLine(centerLine, 0x00ff00)
 
     // ✅ NUEVO: líneas de perfil lateral — mismo círculo que la línea
     // central, pero rotadas alrededor del eje vertical. Marcan dónde
@@ -320,46 +306,42 @@ export function createLoomisGuide(radius){
     const leftSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     loomisMaterials.push(leftSideMat)
     leftSideLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(surfaceRadius, 0, 'vertical')),
         leftSideMat
     )
     leftSideLine.rotation.y = sideAngleRad
     leftSideLine.renderOrder = 999
     loomisGroup.add(leftSideLine)
-    addGhostLine(leftSideLine, 0x00ff00)
 
     const rightSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     loomisMaterials.push(rightSideMat)
     rightSideLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'vertical')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(surfaceRadius, 0, 'vertical')),
         rightSideMat
     )
     rightSideLine.rotation.y = -sideAngleRad
     rightSideLine.renderOrder = 999
     loomisGroup.add(rightSideLine)
-    addGhostLine(rightSideLine, 0x00ff00)
 
     // línea de cejas (horizontal, más arriba)
     const eyebrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: false })
     loomisMaterials.push(eyebrowMat)
     const eyebrowLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, localRadius * 0.15, 'horizontal')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(surfaceRadius, surfaceRadius * 0.15, 'horizontal')),
         eyebrowMat
     )
     eyebrowLine.renderOrder = 999
     loomisGroup.add(eyebrowLine)
-    addGhostLine(eyebrowLine, 0xffaa00)
 
     // línea de ojos (horizontal, debajo de las cejas)
     const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
     loomisMaterials.push(eyeMat)
     const eyeLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(localRadius, 0, 'horizontal')),
+        new THREE.BufferGeometry().setFromPoints(loomisCirclePoints(surfaceRadius, 0, 'horizontal')),
         eyeMat
     )
     eyeLine.renderOrder = 999
     loomisGroup.add(eyeLine)
-    addGhostLine(eyeLine, 0xff3333)
 
     // círculos de oreja (izquierda y derecha), a la altura de cejas/ojos
     const earRadius = localRadius * earRadiusMult
@@ -375,7 +357,6 @@ export function createLoomisGuide(radius){
     leftEarLine.position.set(-localRadius * 0.85, earY, earZ)
     leftEarLine.renderOrder = 999
     loomisGroup.add(leftEarLine)
-    addGhostLine(leftEarLine, 0x33aaff)
 
     const rightEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
     loomisMaterials.push(rightEarMat)
@@ -386,7 +367,6 @@ export function createLoomisGuide(radius){
     rightEarLine.position.set(localRadius * 0.85, earY, earZ)
     rightEarLine.renderOrder = 999
     loomisGroup.add(rightEarLine)
-    addGhostLine(rightEarLine, 0x33aaff)
 
     // ✅ NUEVO: sincroniza el ángulo de las líneas de perfil con el radio de
     // oreja por defecto, apenas se crean ambas piezas.
@@ -401,21 +381,18 @@ export function createLoomisGuide(radius){
     leftJawLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.leftJaw), leftJawMat)
     leftJawLine.renderOrder = 999
     loomisGroup.add(leftJawLine)
-    addGhostLine(leftJawLine, 0xff66cc)
 
     const rightJawMat = new THREE.LineBasicMaterial({ color: 0xff66cc, depthTest: false })
     loomisMaterials.push(rightJawMat)
     rightJawLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.rightJaw), rightJawMat)
     rightJawLine.renderOrder = 999
     loomisGroup.add(rightJawLine)
-    addGhostLine(rightJawLine, 0xff66cc)
 
     const chinMat = new THREE.LineBasicMaterial({ color: 0xff66cc, depthTest: false })
     loomisMaterials.push(chinMat)
     chinLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(jawPts.chin), chinMat)
     chinLine.renderOrder = 999
     loomisGroup.add(chinLine)
-    addGhostLine(chinLine, 0xff66cc)
 
     const mouthMat = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false })
     loomisMaterials.push(mouthMat)
