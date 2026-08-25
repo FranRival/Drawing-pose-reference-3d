@@ -6,7 +6,8 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
          deselectBone,
          setOnKeyframesChange } from './viewer.js'
-import { setEyeWidth, setEyeHeightRatio, setEyeGap, setEyeTilt, setEyeVerticalOffset } from './eyes.js'
+import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
+         setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset } from './eyes.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -386,25 +387,91 @@ export function initUI(){
     /* OJOS (eyes.js) */
     /* ========================= */
 
-    const eyeWidthSlider = document.getElementById("eyeWidth")
-    const eyeWidthValue  = document.getElementById("eyeWidthValue")
+    const cantoLengthSlider = document.getElementById("cantoLength")
+    const cantoLengthValue  = document.getElementById("cantoLengthValue")
 
-    if(eyeWidthSlider){
-        eyeWidthSlider.addEventListener("input",(e)=>{
+    if(cantoLengthSlider){
+        cantoLengthSlider.addEventListener("input",(e)=>{
             const value = parseFloat(e.target.value)
-            setEyeWidth(value)
-            if(eyeWidthValue) eyeWidthValue.textContent = value.toFixed(2)
+            setCantoLength(value)
+            if(cantoLengthValue) cantoLengthValue.textContent = value.toFixed(2)
         })
     }
 
-    const eyeHeightRatioSlider = document.getElementById("eyeHeightRatio")
-    const eyeHeightRatioValue  = document.getElementById("eyeHeightRatioValue")
+    const cantoAngleSlider = document.getElementById("cantoAngle")
+    const cantoAngleValue  = document.getElementById("cantoAngleValue")
 
-    if(eyeHeightRatioSlider){
-        eyeHeightRatioSlider.addEventListener("input",(e)=>{
+    if(cantoAngleSlider){
+        cantoAngleSlider.addEventListener("input",(e)=>{
             const value = parseFloat(e.target.value)
-            setEyeHeightRatio(value)
-            if(eyeHeightRatioValue) eyeHeightRatioValue.textContent = value.toFixed(2)
+            setCantoAngle(value)
+            if(cantoAngleValue) cantoAngleValue.textContent = value.toFixed(0)
+        })
+    }
+
+    const upperLidBulgeSlider = document.getElementById("upperLidBulge")
+    const upperLidBulgeValue  = document.getElementById("upperLidBulgeValue")
+
+    if(upperLidBulgeSlider){
+        upperLidBulgeSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setUpperLidBulge(value)
+            if(upperLidBulgeValue) upperLidBulgeValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const lowerLidBulgeSlider = document.getElementById("lowerLidBulge")
+    const lowerLidBulgeValue  = document.getElementById("lowerLidBulgeValue")
+
+    if(lowerLidBulgeSlider){
+        lowerLidBulgeSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLowerLidBulge(value)
+            if(lowerLidBulgeValue) lowerLidBulgeValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const innerSharpSlider = document.getElementById("innerSharp")
+    const innerSharpValue  = document.getElementById("innerSharpValue")
+
+    if(innerSharpSlider){
+        innerSharpSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setInnerSharp(value)
+            if(innerSharpValue) innerSharpValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const outerSharpSlider = document.getElementById("outerSharp")
+    const outerSharpValue  = document.getElementById("outerSharpValue")
+
+    if(outerSharpSlider){
+        outerSharpSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setOuterSharp(value)
+            if(outerSharpValue) outerSharpValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const eyeVerticalStretchSlider = document.getElementById("eyeVerticalStretch")
+    const eyeVerticalStretchValue  = document.getElementById("eyeVerticalStretchValue")
+
+    if(eyeVerticalStretchSlider){
+        eyeVerticalStretchSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setEyeVerticalStretch(value)
+            if(eyeVerticalStretchValue) eyeVerticalStretchValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const eyeHorizontalStretchSlider = document.getElementById("eyeHorizontalStretch")
+    const eyeHorizontalStretchValue  = document.getElementById("eyeHorizontalStretchValue")
+
+    if(eyeHorizontalStretchSlider){
+        eyeHorizontalStretchSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setEyeHorizontalStretch(value)
+            if(eyeHorizontalStretchValue) eyeHorizontalStretchValue.textContent = value.toFixed(2)
         })
     }
 
@@ -416,17 +483,6 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setEyeGap(value)
             if(eyeGapValue) eyeGapValue.textContent = value.toFixed(2)
-        })
-    }
-
-    const eyeTiltSlider = document.getElementById("eyeTilt")
-    const eyeTiltValue  = document.getElementById("eyeTiltValue")
-
-    if(eyeTiltSlider){
-        eyeTiltSlider.addEventListener("input",(e)=>{
-            const value = parseFloat(e.target.value)
-            setEyeTilt(value)
-            if(eyeTiltValue) eyeTiltValue.textContent = value.toFixed(0)
         })
     }
 
