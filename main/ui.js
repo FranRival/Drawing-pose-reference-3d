@@ -7,7 +7,8 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          deselectBone,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
-         setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset } from './eyes.js'
+         setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
+         setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -494,6 +495,39 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setEyeVerticalOffset(value)
             if(eyeVerticalOffsetValue) eyeVerticalOffsetValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const lagrimalDepthSlider = document.getElementById("lagrimalDepth")
+    const lagrimalDepthValue  = document.getElementById("lagrimalDepthValue")
+
+    if(lagrimalDepthSlider){
+        lagrimalDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLagrimalDepth(value)
+            if(lagrimalDepthValue) lagrimalDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const centerDepthSlider = document.getElementById("centerDepth")
+    const centerDepthValue  = document.getElementById("centerDepthValue")
+
+    if(centerDepthSlider){
+        centerDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setCenterDepth(value)
+            if(centerDepthValue) centerDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const cantoDepthSlider = document.getElementById("cantoDepth")
+    const cantoDepthValue  = document.getElementById("cantoDepthValue")
+
+    if(cantoDepthSlider){
+        cantoDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setCantoDepth(value)
+            if(cantoDepthValue) cantoDepthValue.textContent = value.toFixed(2)
         })
     }
 
