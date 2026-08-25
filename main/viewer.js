@@ -1,4 +1,5 @@
 import { model, camera, renderer, scene, sunGizmo, setSunAngles, setHelpersVisible } from './core.js'
+import { createEyeGuides, setEyeOcclusion } from './eyes.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -420,6 +421,10 @@ export function createLoomisGuide(radius){
     bridgeLine.renderOrder = 999
     loomisGroup.add(bridgeLine)
 
+    // ✅ NUEVO: guías de ojos (eyes.js) — cuelgan del mismo loomisGroup,
+    // así heredan posición/rotación del hueso de cabeza automáticamente.
+    createEyeGuides(loomisGroup, localRadius)
+
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
     applyLoomisScale() // aplica también el estiramiento por eje (X/Y/Z) si ya se había ajustado antes
@@ -459,6 +464,7 @@ export function setLoomisRespectOcclusion(respectOcclusion){
         mat.depthWrite = false
         mat.needsUpdate = true
     })
+    setEyeOcclusion(respectOcclusion) // los ojos viven en eyes.js, con sus propios materiales
 }
 
 // ✅ NUEVO: ajuste en vivo, para afinar la guía sin tener que recalcular
