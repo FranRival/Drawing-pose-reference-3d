@@ -23,7 +23,17 @@ let eyeParams = {
 
     // --- posicion del par de ojos en la cara ---
     gapMult: 1.0,           // separacion lagrimal-a-lagrimal, en "longitudes de canto"
-    vertOffsetMult: 0.06    // desplazamiento vertical bajo la linea de ojos, fraccion del radio
+    vertOffsetMult: 0.06,   // desplazamiento vertical bajo la linea de ojos, fraccion del radio
+
+    // --- CAPA 4: profundidad en 3D (pegado a la curvatura del rostro) ---
+    // 0 = sigue exactamente la curvatura natural de la esfera craneal en
+    // ese punto. Positivo = se aleja hacia adelante (mas cerca de camara
+    // en vista frontal); negativo = se hunde hacia atras. Cada uno es
+    // independiente, para poder "envolver" el ojo sobre la cara en vez de
+    // dejarlo como una calcomania plana.
+    lagrimalDepth: 0,
+    centerDepth: 0,
+    cantoDepth: 0
 }
 
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js
@@ -68,12 +78,26 @@ function handleAxisFraction(sharp){
     return THREE.MathUtils.lerp(0.45, 0.12, THREE.MathUtils.clamp(sharp, 0, 1))
 }
 
-// Construye el contorno de UN ojo. mirrorX=true -> el canto se abre hacia
-// la izquierda (para el ojo izquierdo); mirrorX=false -> hacia la derecha.
-// El lagrimal SIEMPRE queda fijo en el origen local (0,0) - es el ancla;
-// todo lo demas (canto, manejadores, estiramiento) se construye a partir
-// de el.
-function buildEyePoints(baseRadius, mirrorX){
+// interpola la profundidad entre las 3 anclas (lagrimal en axisT=0, centro
+// en axisT=0.5, canto en axisT=1) - lineal por tramos, simple y predecible:
+// mover un ancla solo afecta la mitad del ojo mas cercana a ella.
+function depthOffsetAt(axisT){
+    const p = eyeParams
+    if(axisT <= 0.5){
+        return THREE.MathUtils.lerp(p.lagrimalDepth, p.centerDepth, axisT / 0.5)
+    }
+    return THREE.MathUtils.lerp(p.centerDepth, p.cantoDepth, (axisT - 0.5) / 0.5)
+}
+
+// Construye el contorno de UN ojo, ya en coordenadas absolutas dentro de
+// loomisGroup (no relativas a un origen que luego se traduce aparte) -
+// porque cada punto necesita su PROPIA profundidad Z, calculada sobre la
+// curvatura real de la esfera en su X/Y exacto, mas el ajuste de las 3
+// anclas de profundidad. mirrorX=true -> el canto se abre hacia la
+// izquierda (ojo izquierdo); mirrorX=false -> hacia la derecha (ojo
+// derecho). anchorX/anchorY ubican el lagrimal (el ancla, en el origen
+// LOCAL del ojo antes de este paso) dentro de la cara.
+function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const p = eyeParams
     const segs = 24
 
@@ -103,6 +127,8 @@ function buildEyePoints(baseRadius, mirrorX){
     const upperAmp = baseRadius * p.upperLidBulge
     const lowerAmp = baseRadius * p.lowerLidBulge
 
+    // cada punto guarda tambien axisT (0 = lagrimal, 1 = canto), para
+    // luego interpolar la profundidad de las 3 anclas correctamente
     const raw = []
 
     // --- parpado superior: Bezier cubica lagrimal (P0) -> canto (P3) ---
@@ -115,7 +141,9 @@ function buildEyePoints(baseRadius, mirrorX){
         y: outer.y - dy * outerFrac + perpUpY * upperAmp
     }
     for(let i = 0; i <= segs; i++){
-        raw.push(cubicBezierPoint(inner, upP1, upP2, outer, i / segs))
+        const t = i / segs // 0 = lagrimal, 1 = canto
+        const pt = cubicBezierPoint(inner, upP1, upP2, outer, t)
+        raw.push({ x: pt.x, y: pt.y, axisT: t })
     }
 
     // --- parpado inferior: Bezier cubica canto (P0) -> lagrimal (P3) ---
@@ -129,7 +157,9 @@ function buildEyePoints(baseRadius, mirrorX){
         y: dy * innerFrac + perpDownY * lowerAmp
     }
     for(let i = 0; i <= segs; i++){
-        raw.push(cubicBezierPoint(outer, loP1, loP2, inner, i / segs))
+        const t = i / segs // aqui 0 = canto, 1 = lagrimal (orden invertido)
+        const pt = cubicBezierPoint(outer, loP1, loP2, inner, t)
+        raw.push({ x: pt.x, y: pt.y, axisT: 1 - t }) // se reconvierte a la misma convencion (0=lagrimal, 1=canto)
     }
 
     // CAPA 3: estiramiento final, aplicado alrededor del centro del eje
@@ -138,17 +168,25 @@ function buildEyePoints(baseRadius, mirrorX){
     const centerX = outer.x / 2
     const centerY = outer.y / 2
 
-    return raw.map(pt => new THREE.Vector3(
-        centerX + (pt.x - centerX) * p.horizontalStretch,
-        centerY + (pt.y - centerY) * p.verticalStretch,
-        0
-    ))
+    // CAPA 4: profundidad por punto - cada uno se "pega" a la curvatura de
+    // la esfera en su X/Y exacto (como las demas lineas de superficie),
+    // mas el ajuste interpolado entre las 3 anclas de profundidad.
+    const surfaceR = baseRadius * EYE_SURFACE_OFFSET
+
+    return raw.map(({ x, y, axisT }) => {
+        const sx = centerX + (x - centerX) * p.horizontalStretch
+        const sy = centerY + (y - centerY) * p.verticalStretch
+
+        const worldX = anchorX + sx
+        const worldY = anchorY + sy
+
+        const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+        const z = naturalZ + depthOffsetAt(axisT) * baseRadius
+
+        return new THREE.Vector3(worldX, worldY, z)
+    })
 }
 
-function computeEyeZ(baseRadius, x, y){
-    const surfaceR = baseRadius * EYE_SURFACE_OFFSET
-    return Math.sqrt(Math.max(surfaceR * surfaceR - x * x - y * y, 0.0001))
-}
 
 function buildEyes(baseRadius){
     if(!eyesGroup || !baseRadius) return
@@ -162,17 +200,19 @@ function buildEyes(baseRadius){
     const anchorX = gap / 2 // distancia del lagrimal al centro de la cara
     const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
+    // ✅ cada punto ya trae su X/Y/Z absolutos (ver buildEyePoints), así que
+    // la línea se agrega sin traducción extra - la profundidad ya no es un
+    // solo valor para todo el ojo, sino que varía punto a punto siguiendo
+    // la curvatura real de la cara + las 3 anclas de profundidad.
     rightEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
-    const rightPts = buildEyePoints(baseRadius, false)
+    const rightPts = buildEyePoints(baseRadius, false, anchorX, anchorY)
     rightEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightEyeMat)
-    rightEyeLine.position.set(anchorX, anchorY, computeEyeZ(baseRadius, anchorX, anchorY))
     rightEyeLine.renderOrder = 999
     eyesGroup.add(rightEyeLine)
 
     leftEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
-    const leftPts = buildEyePoints(baseRadius, true)
+    const leftPts = buildEyePoints(baseRadius, true, -anchorX, anchorY)
     leftEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftEyeMat)
-    leftEyeLine.position.set(-anchorX, anchorY, computeEyeZ(baseRadius, -anchorX, anchorY))
     leftEyeLine.renderOrder = 999
     eyesGroup.add(leftEyeLine)
 }
@@ -221,6 +261,11 @@ export function setEyeHorizontalStretch(mult){ eyeParams.horizontalStretch = mul
 // setters - posicion del par en la cara
 export function setEyeGap(mult){ eyeParams.gapMult = mult; rebuild() }
 export function setEyeVerticalOffset(mult){ eyeParams.vertOffsetMult = mult; rebuild() }
+
+// setters - CAPA 4 (profundidad en 3D: lagrimal, centro, canto)
+export function setLagrimalDepth(mult){ eyeParams.lagrimalDepth = mult; rebuild() }
+export function setCenterDepth(mult){ eyeParams.centerDepth = mult; rebuild() }
+export function setCantoDepth(mult){ eyeParams.cantoDepth = mult; rebuild() }
 
 // para conectar con el toggle "respetar oclusion" existente en viewer.js -
 // llamar setEyeOcclusion(respectOcclusion) junto con
