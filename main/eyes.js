@@ -1,27 +1,34 @@
 import * as THREE from 'three'
 
-// ✅ NUEVO: guías de ojos — archivo aparte de viewer.js, pensado como
-// calibrador contra referencia (no como "canon" fijo de proporción anime).
-// El dibujante trae su propio dibujo, ajusta estos parámetros hasta que
-// las formas coincidan con SU referencia, y de ahí en adelante el maniquí
-// se puede posar libremente con los ojos ya calibrados en su lugar —
-// porque cuelgan del mismo loomisGroup que ya sigue el hueso de la cabeza.
+// ✅ REESCRITO: modelo de ojo en 3 capas, según construcción anatómica real
+// (lagrimal → canto como eje base, párpados como "carne" sobre ese eje,
+// estiramiento final aparte) en vez de una elipse con una sola inclinación
+// global. Sigue colgando del mismo loomisGroup que la cabeza — mismo
+// patrón que antes, solo cambia CÓMO se genera la forma.
 
-// ⚠️ Valores iniciales estimados a ojo desde la vista frontal de IMG_3395
-// (chica de cabello blanco, retrato central). Son un punto de partida, no
-// una medición exacta — se recalibran en vivo con los sliders una vez
-// conectados en el index.
+// ⚠️ Valores iniciales estimados a ojo desde la referencia frontal
+// (IMG_3395). Punto de partida para calibrar en vivo con los sliders.
 let eyeParams = {
-    widthMult: 0.40,      // ancho de cada ojo, como fracción del radio de la esfera craneal
-    heightRatio: 0.55,    // alto del ojo, como fracción de SU PROPIO ancho
-    gapMult: 1.0,         // separación entre ojos (borde interno a borde interno), en anchos de ojo
-    tiltDeg: 8,           // inclinación — positivo = esquina externa hacia arriba
-    vertOffsetMult: 0.06  // desplazamiento vertical bajo la línea de ojos, fracción del radio
+    // --- CAPA 1: el eje (lagrimal fijo, canto se mueve) ---
+    cantoLengthMult: 0.40,  // distancia lagrimal→canto, fracción del radio de cabeza
+    cantoAngleDeg: 8,       // ángulo del canto respecto al lagrimal — positivo = canto sube hacia la ceja
+
+    // --- CAPA 2: la carne sobre ese eje ---
+    upperLidBulge: 0.14,    // qué tanto se infla el párpado superior, fracción del radio de cabeza (anime = alto)
+    lowerLidBulge: 0.08,    // qué tanto se infla el párpado inferior (normalmente menor que el superior)
+    innerSharp: 0.30,       // 0 = lagrimal redondeado, 1 = lagrimal picudo
+    outerSharp: 0.60,       // 0 = canto redondeado, 1 = canto picudo (el canto suele ser más picudo que el lagrimal)
+
+    // --- CAPA 3: estiramiento final, independiente de las otras dos ---
+    verticalStretch: 1.0,   // alarga/achica el ojo YA CONSTRUIDO en vertical
+    horizontalStretch: 1.0, // alarga/achica el ojo YA CONSTRUIDO en horizontal
+
+    // --- posición del par de ojos en la cara (sin cambios de antes) ---
+    gapMult: 1.0,           // separación lagrimal-a-lagrimal, en "longitudes de canto"
+    vertOffsetMult: 0.06    // desplazamiento vertical bajo la línea de ojos, fracción del radio
 }
 
-// ✅ mismo truco que las líneas de superficie en viewer.js: un empuje
-// radial pequeño para que los ojos no queden hundidos en la malla real por
-// z-fighting cuando "respetar oclusión" está activo.
+// mismo truco anti z-fighting que las líneas de superficie en viewer.js
 const EYE_SURFACE_OFFSET = 1.02
 
 let eyesGroup = null
@@ -31,46 +38,94 @@ let rightEyeMat = null
 let leftEyeMat = null
 let currentBaseRadius = 0
 
-// Genera el contorno de un ojo tipo almendra: dos medias elipses de distinta
-// amplitud (párpado superior más curvo que el inferior) unidas en dos
-// esquinas — sin necesidad de definir puntos de control a mano.
-function buildEyeOutlinePoints(width, height, tiltRad){
-    const segs = 32
-    const points = []
-    const upperAmp = height * 0.65 // párpado superior: curva más pronunciada
-    const lowerAmp = height * 0.35 // párpado inferior: más plano
+// convierte "picudez" (0-1) en un exponente para la función de inflado:
+// exponente bajo (≈1) = la curva se separa del eje de inmediato → esquina
+// redondeada. Exponente alto (≈5) = la curva se queda pegada al eje y
+// recién se separa tarde → esquina picuda.
+function sharpToExponent(sharp){
+    return 1 + THREE.MathUtils.clamp(sharp, 0, 1) * 4
+}
 
-    const cosT = Math.cos(tiltRad)
-    const sinT = Math.sin(tiltRad)
+// función de "inflado" a lo largo del eje (t: 0 = lagrimal, 1 = canto),
+// normalizada para que su punto más alto valga exactamente 1 — así el
+// parámetro de bulge (upperLidBulge/lowerLidBulge) es la altura real, sin
+// tener que adivinar cómo se relaciona con los exponentes de picudez.
+function bulgeShape(t, innerExp, outerExp){
+    const tPeak = innerExp / (innerExp + outerExp)
+    const peak = Math.pow(tPeak, innerExp) * Math.pow(1 - tPeak, outerExp)
+    if(peak <= 0) return 0
+    const raw = Math.pow(t, innerExp) * Math.pow(1 - t, outerExp)
+    return raw / peak
+}
 
+// Construye el contorno de UN ojo. mirrorX=true → el canto se abre hacia
+// la izquierda (para el ojo izquierdo); mirrorX=false → hacia la derecha.
+// El lagrimal SIEMPRE queda fijo en el origen local (0,0) — es el ancla;
+// todo lo demás (canto, párpados, estiramiento) se construye a partir de él.
+function buildEyePoints(baseRadius, mirrorX){
+    const p = eyeParams
+    const segs = 24
+
+    const angleRad = THREE.MathUtils.degToRad(p.cantoAngleDeg)
+    const dirSign = mirrorX ? -1 : 1
+    const dx = dirSign * Math.cos(angleRad)
+    const dy = Math.sin(angleRad)
+
+    const cantoLength = baseRadius * p.cantoLengthMult
+    const outer = { x: dx * cantoLength, y: dy * cantoLength }
+
+    // perpendicular al eje, elegida para que SIEMPRE apunte "hacia arriba"
+    // (y >= 0) sin importar el signo de mirrorX — evita que el párpado
+    // superior termine apuntando hacia abajo en el ojo espejado.
+    let perpUpX = -dy
+    let perpUpY = dx
+    if(perpUpY < 0){
+        perpUpX = dy
+        perpUpY = -dx
+    }
+    const perpDownX = -perpUpX
+    const perpDownY = -perpUpY
+
+    const innerExp = sharpToExponent(p.innerSharp)
+    const outerExp = sharpToExponent(p.outerSharp)
+    const upperAmp = baseRadius * p.upperLidBulge
+    const lowerAmp = baseRadius * p.lowerLidBulge
+
+    const raw = []
+
+    // párpado superior: lagrimal (t=0) → canto (t=1)
     for(let i = 0; i <= segs; i++){
-        const t = (i / segs) * Math.PI * 2
-        const x = Math.cos(t) * (width / 2)
-        const amp = Math.sin(t) >= 0 ? upperAmp : lowerAmp
-        const y = Math.sin(t) * amp
-
-        // rotación 2D simple para la inclinación, antes de ubicar en 3D
-        const xr = x * cosT - y * sinT
-        const yr = x * sinT + y * cosT
-
-        points.push(new THREE.Vector3(xr, yr, 0))
+        const t = i / segs
+        const amp = upperAmp * bulgeShape(t, innerExp, outerExp)
+        raw.push({
+            x: t * outer.x + perpUpX * amp,
+            y: t * outer.y + perpUpY * amp
+        })
     }
 
-    return points
+    // párpado inferior: canto (t=1) → lagrimal (t=0), cerrando el lazo
+    for(let i = segs; i >= 0; i--){
+        const t = i / segs
+        const amp = lowerAmp * bulgeShape(t, innerExp, outerExp)
+        raw.push({
+            x: t * outer.x + perpDownX * amp,
+            y: t * outer.y + perpDownY * amp
+        })
+    }
+
+    // ✅ CAPA 3: estiramiento final, aplicado alrededor del centro del eje
+    // (punto medio lagrimal-canto) para que estire la forma ya construida
+    // sin desplazar el conjunto — independiente de cómo se construyó arriba.
+    const centerX = outer.x / 2
+    const centerY = outer.y / 2
+
+    return raw.map(pt => new THREE.Vector3(
+        centerX + (pt.x - centerX) * p.horizontalStretch,
+        centerY + (pt.y - centerY) * p.verticalStretch,
+        0
+    ))
 }
 
-function computeEyeLayout(baseRadius){
-    const width = baseRadius * eyeParams.widthMult
-    const height = width * eyeParams.heightRatio
-    const gap = width * eyeParams.gapMult
-    const centerX = gap / 2 + width / 2
-    const eyeY = -baseRadius * eyeParams.vertOffsetMult
-    return { width, height, centerX, eyeY }
-}
-
-// aproxima la profundidad Z para que el ojo quede "pegado" a la curvatura
-// de la esfera craneal en su posición X/Y, igual que hacen las demás
-// líneas de superficie (cejas, ojos, perfil) en viewer.js
 function computeEyeZ(baseRadius, x, y){
     const surfaceR = baseRadius * EYE_SURFACE_OFFSET
     return Math.sqrt(Math.max(surfaceR * surfaceR - x * x - y * y, 0.0001))
@@ -79,25 +134,26 @@ function computeEyeZ(baseRadius, x, y){
 function buildEyes(baseRadius){
     if(!eyesGroup || !baseRadius) return
 
-    // limpia las líneas anteriores antes de reconstruir con los nuevos parámetros
     while(eyesGroup.children.length){
         eyesGroup.remove(eyesGroup.children[0])
     }
 
-    const { width, height, centerX, eyeY } = computeEyeLayout(baseRadius)
-    const tiltRad = THREE.MathUtils.degToRad(eyeParams.tiltDeg)
+    const cantoLength = baseRadius * eyeParams.cantoLengthMult
+    const gap = cantoLength * eyeParams.gapMult
+    const anchorX = gap / 2 // distancia del lagrimal al centro de la cara
+    const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
     rightEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
-    const rightPts = buildEyeOutlinePoints(width, height, tiltRad) // esquina externa en +x local → tilt positivo la sube
+    const rightPts = buildEyePoints(baseRadius, false)
     rightEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightEyeMat)
-    rightEyeLine.position.set(centerX, eyeY, computeEyeZ(baseRadius, centerX, eyeY))
+    rightEyeLine.position.set(anchorX, anchorY, computeEyeZ(baseRadius, anchorX, anchorY))
     rightEyeLine.renderOrder = 999
     eyesGroup.add(rightEyeLine)
 
     leftEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
-    const leftPts = buildEyeOutlinePoints(width, height, -tiltRad) // esquina externa en -x local → tilt negativo la sube
+    const leftPts = buildEyePoints(baseRadius, true)
     leftEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftEyeMat)
-    leftEyeLine.position.set(-centerX, eyeY, computeEyeZ(baseRadius, -centerX, eyeY))
+    leftEyeLine.position.set(-anchorX, anchorY, computeEyeZ(baseRadius, -anchorX, anchorY))
     leftEyeLine.renderOrder = 999
     eyesGroup.add(leftEyeLine)
 }
@@ -129,12 +185,22 @@ function rebuild(){
     if(currentBaseRadius) buildEyes(currentBaseRadius)
 }
 
-// ✅ setters — mismo patrón que setEarRadius/setJawWidth en viewer.js,
-// pensados para conectarse a sliders del index.
-export function setEyeWidth(mult){ eyeParams.widthMult = mult; rebuild() }
-export function setEyeHeightRatio(mult){ eyeParams.heightRatio = mult; rebuild() }
+// ✅ setters — CAPA 1 (eje)
+export function setCantoLength(mult){ eyeParams.cantoLengthMult = mult; rebuild() }
+export function setCantoAngle(degrees){ eyeParams.cantoAngleDeg = degrees; rebuild() }
+
+// ✅ setters — CAPA 2 (carne)
+export function setUpperLidBulge(mult){ eyeParams.upperLidBulge = mult; rebuild() }
+export function setLowerLidBulge(mult){ eyeParams.lowerLidBulge = mult; rebuild() }
+export function setInnerSharp(value){ eyeParams.innerSharp = value; rebuild() }
+export function setOuterSharp(value){ eyeParams.outerSharp = value; rebuild() }
+
+// ✅ setters — CAPA 3 (estiramiento final)
+export function setEyeVerticalStretch(mult){ eyeParams.verticalStretch = mult; rebuild() }
+export function setEyeHorizontalStretch(mult){ eyeParams.horizontalStretch = mult; rebuild() }
+
+// ✅ setters — posición del par en la cara (sin cambios respecto a antes)
 export function setEyeGap(mult){ eyeParams.gapMult = mult; rebuild() }
-export function setEyeTilt(degrees){ eyeParams.tiltDeg = degrees; rebuild() }
 export function setEyeVerticalOffset(mult){ eyeParams.vertOffsetMult = mult; rebuild() }
 
 // ✅ para conectar con el toggle "respetar oclusión" existente en
