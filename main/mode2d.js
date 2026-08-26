@@ -45,6 +45,35 @@ function project(pt, centerX, centerY, pxPerUnit){
     }
 }
 
+// ✅ NUEVO: cruz de referencia en el centro del maniquí (el mismo punto
+// (centerX, centerY) usado para proyectar TODAS las guías) — sirve para
+// cuadrar la imagen de referencia contra el eje central de la cabeza,
+// sin tener que adivinar dónde cae ese "cero" a simple vista.
+function drawCenterCross(cx, cy){
+    if(!ctx) return
+    const armLength = 16
+    const gap = 4 // hueco chico en el medio, para que no tape el punto exacto
+
+    ctx.strokeStyle = '#ff3333'
+    ctx.lineWidth = 1.5
+
+    ctx.beginPath()
+    ctx.moveTo(cx - armLength, cy)
+    ctx.lineTo(cx - gap, cy)
+    ctx.moveTo(cx + gap, cy)
+    ctx.lineTo(cx + armLength, cy)
+    ctx.moveTo(cx, cy - armLength)
+    ctx.lineTo(cx, cy - gap)
+    ctx.moveTo(cx, cy + gap)
+    ctx.lineTo(cx, cy + armLength)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.arc(cx, cy, 2, 0, Math.PI * 2)
+    ctx.fillStyle = '#ff3333'
+    ctx.fill()
+}
+
 function drawOutline(points, color){
     if(!ctx || !points || points.length === 0) return
     ctx.beginPath()
@@ -136,6 +165,10 @@ function drawFrame(){
     drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
     drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
     drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit)), bridgeColor)
+
+    // ✅ NUEVO: cruz de referencia, dibujada al final para que quede
+    // siempre encima de todo (imagen y guías) y sea fácil de ubicar.
+    drawCenterCross(centerX, centerY)
 }
 
 function loop(){
