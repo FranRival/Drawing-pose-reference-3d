@@ -21,6 +21,40 @@ let refScale = 1
 let refOffsetX = 0 // -1 a 1, fracción del ancho del canvas
 let refOffsetY = 0 // -1 a 1, fracción del alto del canvas
 
+// ✅ NUEVO: ajuste fino POR FORMA, exclusivo del modo 2D — no toca
+// eyeParams/browParams (eyes.js/eyebrows.js), así el 3D queda intacto.
+// Sirve para casos donde el dibujo de referencia no es perfectamente
+// simétrico: cada ojo/ceja se puede mover, escalar y rotar por separado
+// sobre la silueta ya calculada, tomando como pivote su propio ancla
+// (el primer punto de su contorno — lagrimal para el ojo, cabeza para
+// la ceja), igual que el resto del sistema usa anclas fijas.
+let selectedTarget = 'rightEye'
+const shapeAdjustments = {
+    rightEye:  { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    leftEye:   { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    rightBrow: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    leftBrow:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+}
+
+function applyShapeAdjust(points, adjust){
+    if(!points || points.length === 0) return points
+    const pivot = points[0] // el ancla de la forma (lagrimal / cabeza de ceja)
+    const rad = adjust.rotationDeg * Math.PI / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+
+    return points.map(p => {
+        const dx = p.x - pivot.x
+        const dy = p.y - pivot.y
+        const rx = (dx * cos - dy * sin) * adjust.scale
+        const ry = (dx * sin + dy * cos) * adjust.scale
+        return {
+            x: pivot.x + rx + adjust.x,
+            y: pivot.y + ry + adjust.y
+        }
+    })
+}
+
 function resizeCanvas(){
     if(!canvas) return
     const parent = canvas.parentElement
@@ -91,10 +125,15 @@ function drawFrame(){
     const eyeOutlines = getEyeOutlines2D()
     const browOutlines = getBrowOutlines2D()
 
-    drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
-    drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+    const rightEyeAdjusted = applyShapeAdjust(eyeOutlines.right, shapeAdjustments.rightEye)
+    const leftEyeAdjusted = applyShapeAdjust(eyeOutlines.left, shapeAdjustments.leftEye)
+    const rightBrowAdjusted = applyShapeAdjust(browOutlines.right, shapeAdjustments.rightBrow)
+    const leftBrowAdjusted = applyShapeAdjust(browOutlines.left, shapeAdjustments.leftBrow)
+
+    drawOutline(rightEyeAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
+    drawOutline(leftEyeAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
+    drawOutline(rightBrowAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+    drawOutline(leftBrowAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
 }
 
 function loop(){
@@ -166,3 +205,24 @@ export function setRefImage(file){
 export function setRefScale(value){ refScale = value; drawFrame() }
 export function setRefOffsetX(value){ refOffsetX = value; drawFrame() }
 export function setRefOffsetY(value){ refOffsetY = value; drawFrame() }
+
+// ✅ conectar al selector "Ajustar forma" — cambia cuál de las 4 formas
+// afectan los sliders de ajuste fino (no dispara redibujado por sí solo,
+// solo cambia el objetivo).
+export function setSelectedTarget(key){
+    if(shapeAdjustments[key]) selectedTarget = key
+}
+
+// ✅ para que ui.js pueda leer los valores actuales al cambiar de
+// objetivo, y así sincronizar la posición de los sliders sin disparar
+// un cambio real.
+export function getTargetAdjust(key){
+    return shapeAdjustments[key] || shapeAdjustments.rightEye
+}
+
+// ✅ conectar a los 4 sliders de ajuste fino — todos operan sobre el
+// objetivo actualmente seleccionado (setSelectedTarget).
+export function setTargetOffsetX(value){ shapeAdjustments[selectedTarget].x = value; drawFrame() }
+export function setTargetOffsetY(value){ shapeAdjustments[selectedTarget].y = value; drawFrame() }
+export function setTargetScale(value){ shapeAdjustments[selectedTarget].scale = value; drawFrame() }
+export function setTargetRotation(degrees){ shapeAdjustments[selectedTarget].rotationDeg = degrees; drawFrame() }
