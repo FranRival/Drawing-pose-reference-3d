@@ -11,6 +11,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
+import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -250,6 +251,60 @@ export function initUI(){
 
     updateCaptureAreaGuide()
     window.addEventListener("resize", updateCaptureAreaGuide)
+
+    /* ========================= */
+    /* MODO 2D (mode2d.js) */
+    /* ========================= */
+
+    initMode2D()
+
+    const mode2DToggle = document.getElementById("mode2DToggle")
+    if(mode2DToggle){
+        mode2DToggle.addEventListener("change",(e)=>{
+            setMode2DActive(e.target.checked)
+        })
+    }
+
+    const refImageInput = document.getElementById("refImageInput")
+    if(refImageInput){
+        refImageInput.addEventListener("change",(e)=>{
+            const file = e.target.files && e.target.files[0]
+            if(file) setRefImage(file)
+        })
+    }
+
+    const refScaleSlider = document.getElementById("refScale")
+    const refScaleValue  = document.getElementById("refScaleValue")
+
+    if(refScaleSlider){
+        refScaleSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setRefScale(value)
+            if(refScaleValue) refScaleValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const refOffsetXSlider = document.getElementById("refOffsetX")
+    const refOffsetXValue  = document.getElementById("refOffsetXValue")
+
+    if(refOffsetXSlider){
+        refOffsetXSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setRefOffsetX(value)
+            if(refOffsetXValue) refOffsetXValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const refOffsetYSlider = document.getElementById("refOffsetY")
+    const refOffsetYValue  = document.getElementById("refOffsetYValue")
+
+    if(refOffsetYSlider){
+        refOffsetYSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setRefOffsetY(value)
+            if(refOffsetYValue) refOffsetYValue.textContent = value.toFixed(2)
+        })
+    }
 
     const btnReleaseBone = document.getElementById("btnReleaseBone")
     if(btnReleaseBone){
