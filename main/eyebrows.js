@@ -1,0 +1,193 @@
+import * as THREE from 'three'
+
+// Guia de cejas: una banda alargada con espesor variable a lo largo de un
+// eje cabeza-cola, con un arco (bump) posicionable. Mismo patron que
+// eyes.js - cuelga del mismo loomisGroup, asi hereda posicion/rotacion de
+// la cabeza automaticamente.
+
+let browParams = {
+    // --- eje: cabeza de la ceja (fija, cerca de la nariz) -> cola ---
+    lengthMult: 0.42,   // largo total, fraccion del radio de cabeza (mas corta = bajar esto)
+    angleDeg: 5,        // inclinacion/rotacion de toda la ceja sobre su ancla (la cabeza)
+
+    // --- espesor de la banda ---
+    thicknessMult: 0.045, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
+    tailTaper: 0.60,       // 0 = espesor uniforme, 1 = la cola se afina hasta casi un punto
+
+    // --- arco ---
+    archPosition: 0.62, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
+    archHeight: 0.09,   // que tan pronunciado es el arco, fraccion del radio de cabeza
+
+    // --- posicion del par en la cara ---
+    gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
+    vertOffsetMult: 0.16 // altura sobre la linea de ojos, fraccion del radio
+}
+
+// mismo truco anti z-fighting que las lineas de superficie en viewer.js y en eyes.js
+const BROW_SURFACE_OFFSET = 1.02
+
+// suma fija de exponentes para la forma del arco - controla que tan
+// "ancho" es el bulto alrededor de su pico; no se expone como slider
+// porque no fue pedido, pero queda aca si mas adelante hace falta afinarlo
+const ARCH_SHAPE_SUM = 6
+
+let browGroup = null
+let rightBrowLine = null
+let leftBrowLine = null
+let rightBrowMat = null
+let leftBrowMat = null
+let currentBaseRadius = 0
+
+// bulto unimodal normalizado (pico = 1), con el pico ubicado exactamente
+// en archPosition - mismo principio que las curvas de inflado del ojo,
+// pero aca SI queremos una sola joroba suave (no dos esquinas picudas),
+// asi que la funcion de potencias es la herramienta correcta para esto.
+function archBump(t, archPosition){
+    const a = ARCH_SHAPE_SUM * THREE.MathUtils.clamp(archPosition, 0.05, 0.95)
+    const b = ARCH_SHAPE_SUM * (1 - THREE.MathUtils.clamp(archPosition, 0.05, 0.95))
+    const peak = Math.pow(archPosition, a) * Math.pow(1 - archPosition, b)
+    if(peak <= 0) return 0
+    const raw = Math.pow(t, a) * Math.pow(1 - t, b)
+    return raw / peak
+}
+
+// Construye el contorno de UNA ceja, ya en coordenadas absolutas dentro de
+// loomisGroup (misma logica que eyes.js: cada punto calcula su propia
+// profundidad sobre la curvatura real de la cabeza). mirrorX=true -> la
+// cola se abre hacia la izquierda (ceja izquierda).
+function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
+    const p = browParams
+    const segs = 24
+
+    const angleRad = THREE.MathUtils.degToRad(p.angleDeg)
+    const dirSign = mirrorX ? -1 : 1
+    const dx = dirSign * Math.cos(angleRad)
+    const dy = Math.sin(angleRad)
+
+    const length = baseRadius * p.lengthMult
+    const outer = { x: dx * length, y: dy * length } // la cola
+
+    // perpendicular al eje, elegida para que SIEMPRE apunte "hacia arriba"
+    // (y >= 0) sin importar mirrorX - misma logica que en eyes.js.
+    let perpUpX = -dy
+    let perpUpY = dx
+    if(perpUpY < 0){
+        perpUpX = dy
+        perpUpY = -dx
+    }
+
+    const archHeightWorld = baseRadius * p.archHeight
+    const halfThicknessBase = (baseRadius * p.thicknessMult) / 2
+
+    const raw = []
+
+    // --- borde superior: cabeza (t=0) -> cola (t=1) ---
+    for(let i = 0; i <= segs; i++){
+        const t = i / segs
+        const arch = archHeightWorld * archBump(t, p.archPosition)
+        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
+
+        raw.push({
+            x: t * outer.x + perpUpX * (arch + halfThickness),
+            y: t * outer.y + perpUpY * (arch + halfThickness)
+        })
+    }
+
+    // --- borde inferior: cola (t=1) -> cabeza (t=0), cierra el lazo ---
+    for(let i = segs; i >= 0; i--){
+        const t = i / segs
+        const arch = archHeightWorld * archBump(t, p.archPosition)
+        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
+
+        raw.push({
+            x: t * outer.x + perpUpX * (arch - halfThickness),
+            y: t * outer.y + perpUpY * (arch - halfThickness)
+        })
+    }
+
+    // cada punto se "pega" a la curvatura real de la cabeza en su X/Y
+    // exacto - mismo principio que las demas lineas de superficie.
+    const surfaceR = baseRadius * BROW_SURFACE_OFFSET
+
+    return raw.map(({ x, y }) => {
+        const worldX = anchorX + x
+        const worldY = anchorY + y
+        const z = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+        return new THREE.Vector3(worldX, worldY, z)
+    })
+}
+
+function buildBrows(baseRadius){
+    if(!browGroup || !baseRadius) return
+
+    while(browGroup.children.length){
+        browGroup.remove(browGroup.children[0])
+    }
+
+    const anchorX = baseRadius * browParams.gapMult
+    const anchorY = baseRadius * browParams.vertOffsetMult
+
+    rightBrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: true, depthWrite: false })
+    const rightPts = buildBrowPoints(baseRadius, false, anchorX, anchorY)
+    rightBrowLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightBrowMat)
+    rightBrowLine.renderOrder = 999
+    browGroup.add(rightBrowLine)
+
+    leftBrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: true, depthWrite: false })
+    const leftPts = buildBrowPoints(baseRadius, true, -anchorX, anchorY)
+    leftBrowLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftBrowMat)
+    leftBrowLine.renderOrder = 999
+    browGroup.add(leftBrowLine)
+}
+
+// Llamar desde viewer.js, dentro/despues de createLoomisGuide, pasando el
+// loomisGroup y el loomisBaseRadius ya calculado - mismo patron que eyes.js.
+export function createEyebrowGuides(loomisGroup, loomisBaseRadius){
+    removeEyebrowGuides()
+    if(!loomisGroup || !loomisBaseRadius) return
+
+    currentBaseRadius = loomisBaseRadius
+    browGroup = new THREE.Group()
+    loomisGroup.add(browGroup)
+
+    buildBrows(currentBaseRadius)
+}
+
+export function removeEyebrowGuides(){
+    if(browGroup && browGroup.parent) browGroup.parent.remove(browGroup)
+    browGroup = null
+    rightBrowLine = null
+    leftBrowLine = null
+    rightBrowMat = null
+    leftBrowMat = null
+}
+
+function rebuild(){
+    if(currentBaseRadius) buildBrows(currentBaseRadius)
+}
+
+// setters - eje (cabeza fija, cola se mueve)
+export function setBrowLength(mult){ browParams.lengthMult = mult; rebuild() }
+export function setBrowAngle(degrees){ browParams.angleDeg = degrees; rebuild() }
+
+// setters - espesor de la banda
+export function setBrowThickness(mult){ browParams.thicknessMult = mult; rebuild() }
+export function setBrowTailTaper(value){ browParams.tailTaper = value; rebuild() }
+
+// setters - arco
+export function setBrowArchPosition(value){ browParams.archPosition = value; rebuild() }
+export function setBrowArchHeight(mult){ browParams.archHeight = mult; rebuild() }
+
+// setters - posicion del par en la cara
+export function setBrowGap(mult){ browParams.gapMult = mult; rebuild() }
+export function setBrowVerticalOffset(mult){ browParams.vertOffsetMult = mult; rebuild() }
+
+// para conectar con el toggle "respetar oclusion" existente en viewer.js
+export function setEyebrowOcclusion(respectOcclusion){
+    ;[rightBrowMat, leftBrowMat].forEach(mat => {
+        if(!mat) return
+        mat.depthTest = respectOcclusion
+        mat.depthWrite = false
+        mat.needsUpdate = true
+    })
+}
