@@ -103,6 +103,23 @@ let rightTempleLine = null
 let bridgeLine = null
 let jawParams = { width: 0.70, chinDrop: 1.25, chinForward: 0.5, chinWidth: 0.45 }
 
+// ✅ NUEVO: ajuste de forma para la mandíbula (posición/escala/rotación) —
+// mismo patrón que eyeShapeAdjust/browShapeAdjust, compartido entre 2D y
+// 3D. Solo afecta X/Y (frontal); la Z se deja intacta porque la mandíbula
+// no es una superficie que "abraza" la esfera como ojos/cejas — es una
+// cuña con su propia lógica de profundidad por punto (cheekZ, chinZ, etc),
+// y recalcularla desde una fórmula de esfera genérica la rompería.
+let jawShapeAdjust = { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+
+function applyJawAdjust(v, R){
+    const rad = THREE.MathUtils.degToRad(jawShapeAdjust.rotationDeg)
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const x = (v.x * cos - v.y * sin) * jawShapeAdjust.scale + jawShapeAdjust.x * R
+    const y = (v.x * sin + v.y * cos) * jawShapeAdjust.scale + jawShapeAdjust.y * R
+    return new THREE.Vector3(x, y, v.z)
+}
+
 // ✅ NUEVO: círculos de oreja — radio ajustable en vivo con límite para que
 // nunca iguale/supere el radio de la esfera craneal.
 let leftEarLine = null
@@ -162,7 +179,7 @@ function computeJawPoints(radius = loomisBaseRadius){
     const equatorX = (cheekX / dirLen) * R
     const equatorZ = (cheekZ / dirLen) * R
 
-    return {
+    const raw = {
         leftJaw:  [new THREE.Vector3(-cheekX, cheekY, cheekZ), new THREE.Vector3(-chinHalfWidth, chinY, chinZ)],
         rightJaw: [new THREE.Vector3(cheekX, cheekY, cheekZ), new THREE.Vector3(chinHalfWidth, chinY, chinZ)],
         chin:     [new THREE.Vector3(-chinHalfWidth, chinY, chinZ), new THREE.Vector3(chinHalfWidth, chinY, chinZ)],
@@ -178,6 +195,14 @@ function computeJawPoints(radius = loomisBaseRadius){
         // frente de la esfera — y baja hasta el centro de la mandíbula.
         bridge: [new THREE.Vector3(0, 0, R), new THREE.Vector3(0, chinY, chinZ)]
     }
+
+    // ✅ NUEVO: aplica el ajuste de forma (posición/escala/rotación) a
+    // todos los segmentos, en X/Y únicamente.
+    const adjusted = {}
+    Object.keys(raw).forEach(key => {
+        adjusted[key] = raw[key].map(v => applyJawAdjust(v, R))
+    })
+    return adjusted
 }
 
 // ✅ NUEVO: silueta 2D de la mandíbula, para el modo de calibración
@@ -217,6 +242,14 @@ export function setJawWidth(mult){ jawParams.width = mult; rebuildJawLines() }
 export function setJawChinDrop(mult){ jawParams.chinDrop = mult; rebuildJawLines() }
 export function setJawChinForward(mult){ jawParams.chinForward = mult; rebuildJawLines() }
 export function setJawChinWidth(mult){ jawParams.chinWidth = mult; rebuildJawLines() }
+
+// setters/getter - ajuste de FORMA de la mandíbula (posición/escala/
+// rotación), compartido entre 2D y 3D — mismo patrón que eyes.js/eyebrows.js.
+export function setJawShapeOffsetX(value){ jawShapeAdjust.x = value; rebuildJawLines() }
+export function setJawShapeOffsetY(value){ jawShapeAdjust.y = value; rebuildJawLines() }
+export function setJawShapeScale(value){ jawShapeAdjust.scale = value; rebuildJawLines() }
+export function setJawShapeRotation(degrees){ jawShapeAdjust.rotationDeg = degrees; rebuildJawLines() }
+export function getJawShapeAdjust(){ return jawShapeAdjust }
 
 function applyLoomisTransform(){
     if(!loomisGroup) return
