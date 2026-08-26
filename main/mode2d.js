@@ -49,6 +49,23 @@ function project(pt, centerX, centerY, pxPerUnit){
 // (centerX, centerY) usado para proyectar TODAS las guías) — sirve para
 // cuadrar la imagen de referencia contra el eje central de la cabeza,
 // sin tener que adivinar dónde cae ese "cero" a simple vista.
+// ✅ NUEVO: círculo de referencia en radio=1 (el límite normalizado que
+// usan eyeParams/browParams como "100% del radio de cabeza"). Sirve como
+// ancla real para escalar la imagen — antes no había ningún punto de
+// comparación concreto, así que la gente escalaba la GUÍA para que
+// calzara con la imagen (sin efecto en 3D) en vez de escalar la IMAGEN
+// para que calzara con este círculo (que sí tiene el tamaño correcto).
+function drawHeadReferenceCircle(cx, cy, pxPerUnit){
+    if(!ctx) return
+    ctx.beginPath()
+    ctx.arc(cx, cy, pxPerUnit, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+}
+
 function drawCenterCross(cx, cy){
     if(!ctx) return
     const armLength = 16
@@ -109,20 +126,36 @@ function drawFrame(){
     ctx.fillStyle = '#1a1a1a'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // --- imagen de referencia, centrada y ajustada dentro del canvas ---
+    // --- transform compartido: imagen y guía se mueven/escalan JUNTAS,
+    // como una sola cámara — así "Guía 2D" es un zoom/pan de TODO el
+    // lienzo, no una forma de mover la guía sola contra una imagen fija
+    // (eso era lo que rompía la traducción a 3D: la imagen no se movía). ---
+    const centerX = canvas.width / 2 + refOffsetX * canvas.width * 0.5
+    const centerY = canvas.height / 2 + refOffsetY * canvas.height * 0.5
+    const pxPerUnit = Math.min(canvas.width, canvas.height) * 0.5 * refScale
+
+    // --- imagen de referencia, ahora anclada al mismo centro/escala que
+    // la guía (antes se dibujaba fija en el centro del canvas, ignorando
+    // refScale/refOffset por completo — por eso mover esos sliders solo
+    // desalineaba todavía más una vez que la imagen sí se movía). ---
     if(refImage){
         const imgAspect = refImage.width / refImage.height
+        // tamaño BASE (a escala 1.0): la imagen ocupa ~90% del lienzo,
+        // igual que antes — a partir de ahí, refScale la agranda/achica.
+        let baseDrawW, baseDrawH
         const canvasAspect = canvas.width / canvas.height
-        let drawW, drawH
         if(imgAspect > canvasAspect){
-            drawW = canvas.width * 0.9
-            drawH = drawW / imgAspect
+            baseDrawW = canvas.width * 0.9
+            baseDrawH = baseDrawW / imgAspect
         } else {
-            drawH = canvas.height * 0.9
-            drawW = drawH * imgAspect
+            baseDrawH = canvas.height * 0.9
+            baseDrawW = baseDrawH * imgAspect
         }
-        const imgX = (canvas.width - drawW) / 2
-        const imgY = (canvas.height - drawH) / 2
+        const drawW = baseDrawW * refScale
+        const drawH = baseDrawH * refScale
+        const imgX = centerX - drawW / 2
+        const imgY = centerY - drawH / 2
+
         ctx.globalAlpha = 0.9
         ctx.drawImage(refImage, imgX, imgY, drawW, drawH)
         ctx.globalAlpha = 1
@@ -135,11 +168,8 @@ function drawFrame(){
     }
 
     // --- silueta de ojos y cejas, en las mismas unidades normalizadas que
-    // usan eyes.js/eyebrows.js (radio de cabeza = 1), escaladas y
-    // centradas según los controles de posición/escala del modo 2D ---
-    const centerX = canvas.width / 2 + refOffsetX * canvas.width * 0.5
-    const centerY = canvas.height / 2 + refOffsetY * canvas.height * 0.5
-    const pxPerUnit = Math.min(canvas.width, canvas.height) * 0.5 * refScale
+    // usan eyes.js/eyebrows.js (radio de cabeza = 1) ---
+    drawHeadReferenceCircle(centerX, centerY, pxPerUnit)
 
     const eyeOutlines = getEyeOutlines2D()
     const browOutlines = getBrowOutlines2D()
