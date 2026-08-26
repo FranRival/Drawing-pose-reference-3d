@@ -40,6 +40,14 @@ let rightBrowMat = null
 let leftBrowMat = null
 let currentBaseRadius = 0
 
+// ✅ NUEVO: ajuste POR CEJA (derecho/izquierdo) - misma logica que
+// eyeShapeAdjust en eyes.js. Vive aqui para que sea la unica fuente de
+// verdad entre el 3D (buildBrows) y el 2D (getBrowOutlines2D).
+let browShapeAdjust = {
+    right: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    left:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+}
+
 // bulto unimodal normalizado (pico = 1), con el pico ubicado exactamente
 // en archPosition y un ancho controlado por shapeSum - mismo principio que
 // las curvas de inflado del ojo, pero aca SI queremos una sola joroba
@@ -114,9 +122,19 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // exacto - mismo principio que las demas lineas de superficie.
     const surfaceR = baseRadius * BROW_SURFACE_OFFSET
 
+    // ✅ NUEVO: ajuste por ceja (compartido con el modo 2D) - pivotea
+    // sobre la cabeza de la ceja (origen local), igual que en eyes.js.
+    const adjust = mirrorX ? browShapeAdjust.left : browShapeAdjust.right
+    const adjRad = THREE.MathUtils.degToRad(adjust.rotationDeg)
+    const cosAdj = Math.cos(adjRad)
+    const sinAdj = Math.sin(adjRad)
+
     return raw.map(({ x, y }) => {
-        const worldX = anchorX + x
-        const worldY = anchorY + y
+        const ax = (x * cosAdj - y * sinAdj) * adjust.scale + adjust.x * baseRadius
+        const ay = (x * sinAdj + y * cosAdj) * adjust.scale + adjust.y * baseRadius
+
+        const worldX = anchorX + ax
+        const worldY = anchorY + ay
         const z = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
         return new THREE.Vector3(worldX, worldY, z)
     })
@@ -188,6 +206,14 @@ export function setBrowArchSharpness(value){ browParams.archSharpness = value; r
 // setters - posicion del par en la cara
 export function setBrowGap(mult){ browParams.gapMult = mult; rebuild() }
 export function setBrowVerticalOffset(mult){ browParams.vertOffsetMult = mult; rebuild() }
+
+// setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
+// el modo 2D y el 3D — side es 'right' o 'left'.
+export function setBrowShapeOffsetX(side, value){ if(browShapeAdjust[side]){ browShapeAdjust[side].x = value; rebuild() } }
+export function setBrowShapeOffsetY(side, value){ if(browShapeAdjust[side]){ browShapeAdjust[side].y = value; rebuild() } }
+export function setBrowShapeScale(side, value){ if(browShapeAdjust[side]){ browShapeAdjust[side].scale = value; rebuild() } }
+export function setBrowShapeRotation(side, degrees){ if(browShapeAdjust[side]){ browShapeAdjust[side].rotationDeg = degrees; rebuild() } }
+export function getBrowShapeAdjust(side){ return browShapeAdjust[side] || browShapeAdjust.right }
 
 // para conectar con el toggle "respetar oclusion" existente en viewer.js
 export function setEyebrowOcclusion(respectOcclusion){
