@@ -17,6 +17,7 @@ let browParams = {
     // --- arco ---
     archPosition: 0.62, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
     archHeight: 0.09,   // que tan pronunciado es el arco, fraccion del radio de cabeza
+    archSharpness: 0.30, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
     // --- posicion del par en la cara ---
     gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
@@ -26,10 +27,10 @@ let browParams = {
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js y en eyes.js
 const BROW_SURFACE_OFFSET = 1.02
 
-// suma fija de exponentes para la forma del arco - controla que tan
-// "ancho" es el bulto alrededor de su pico; no se expone como slider
-// porque no fue pedido, pero queda aca si mas adelante hace falta afinarlo
-const ARCH_SHAPE_SUM = 6
+// el ancho de la joroba del arco ahora es controlable via archSharpness -
+// suma baja (ancha, arco simple y suave) a suma alta (angosta, acento marcado)
+const ARCH_SHAPE_SUM_MIN = 2.5  // muy ancho, casi imperceptible como "joroba" - arco simple
+const ARCH_SHAPE_SUM_MAX = 16   // muy angosto, pico marcado y localizado
 
 let browGroup = null
 let rightBrowLine = null
@@ -39,12 +40,13 @@ let leftBrowMat = null
 let currentBaseRadius = 0
 
 // bulto unimodal normalizado (pico = 1), con el pico ubicado exactamente
-// en archPosition - mismo principio que las curvas de inflado del ojo,
-// pero aca SI queremos una sola joroba suave (no dos esquinas picudas),
-// asi que la funcion de potencias es la herramienta correcta para esto.
-function archBump(t, archPosition){
-    const a = ARCH_SHAPE_SUM * THREE.MathUtils.clamp(archPosition, 0.05, 0.95)
-    const b = ARCH_SHAPE_SUM * (1 - THREE.MathUtils.clamp(archPosition, 0.05, 0.95))
+// en archPosition y un ancho controlado por shapeSum - mismo principio que
+// las curvas de inflado del ojo, pero aca SI queremos una sola joroba
+// suave (no dos esquinas picudas), asi que la funcion de potencias es la
+// herramienta correcta para esto.
+function archBump(t, archPosition, shapeSum){
+    const a = shapeSum * THREE.MathUtils.clamp(archPosition, 0.05, 0.95)
+    const b = shapeSum * (1 - THREE.MathUtils.clamp(archPosition, 0.05, 0.95))
     const peak = Math.pow(archPosition, a) * Math.pow(1 - archPosition, b)
     if(peak <= 0) return 0
     const raw = Math.pow(t, a) * Math.pow(1 - t, b)
@@ -77,6 +79,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     }
 
     const archHeightWorld = baseRadius * p.archHeight
+    const archShapeSum = THREE.MathUtils.lerp(ARCH_SHAPE_SUM_MIN, ARCH_SHAPE_SUM_MAX, THREE.MathUtils.clamp(p.archSharpness, 0, 1))
     const halfThicknessBase = (baseRadius * p.thicknessMult) / 2
 
     const raw = []
@@ -84,7 +87,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // --- borde superior: cabeza (t=0) -> cola (t=1) ---
     for(let i = 0; i <= segs; i++){
         const t = i / segs
-        const arch = archHeightWorld * archBump(t, p.archPosition)
+        const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
 
         raw.push({
@@ -96,7 +99,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // --- borde inferior: cola (t=1) -> cabeza (t=0), cierra el lazo ---
     for(let i = segs; i >= 0; i--){
         const t = i / segs
-        const arch = archHeightWorld * archBump(t, p.archPosition)
+        const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
 
         raw.push({
@@ -177,6 +180,7 @@ export function setBrowTailTaper(value){ browParams.tailTaper = value; rebuild()
 // setters - arco
 export function setBrowArchPosition(value){ browParams.archPosition = value; rebuild() }
 export function setBrowArchHeight(mult){ browParams.archHeight = mult; rebuild() }
+export function setBrowArchSharpness(value){ browParams.archSharpness = value; rebuild() }
 
 // setters - posicion del par en la cara
 export function setBrowGap(mult){ browParams.gapMult = mult; rebuild() }
