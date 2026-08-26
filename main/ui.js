@@ -10,7 +10,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper,
-         setBrowArchPosition, setBrowArchHeight, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
@@ -719,6 +719,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowArchHeight(value)
             if(browArchHeightValue) browArchHeightValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browArchSharpnessSlider = document.getElementById("browArchSharpness")
+    const browArchSharpnessValue  = document.getElementById("browArchSharpnessValue")
+
+    if(browArchSharpnessSlider){
+        browArchSharpnessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowArchSharpness(value)
+            if(browArchSharpnessValue) browArchSharpnessValue.textContent = value.toFixed(2)
         })
     }
 
