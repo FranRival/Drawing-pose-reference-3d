@@ -1,5 +1,6 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
+import { getJawOutlines2D } from './viewer.js'
 
 // Modo 2D: un canvas plano donde se carga un model sheet / dibujo de
 // referencia, y se superpone la silueta de ojos y cejas (solo vista
@@ -57,6 +58,21 @@ function drawOutline(points, color){
     ctx.stroke()
 }
 
+// ✅ NUEVO: igual que drawOutline pero SIN cerrar el lazo — para segmentos
+// abiertos como los de la mandíbula (pómulo→barbilla, sien, puente), que
+// no son formas cerradas como el ojo o la ceja.
+function drawLine(points, color){
+    if(!ctx || !points || points.length === 0) return
+    ctx.beginPath()
+    points.forEach((p, i) => {
+        if(i === 0) ctx.moveTo(p.x, p.y)
+        else ctx.lineTo(p.x, p.y)
+    })
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2
+    ctx.stroke()
+}
+
 function drawFrame(){
     if(!ctx || !canvas) return
 
@@ -105,6 +121,21 @@ function drawFrame(){
     drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
     drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
     drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+
+    // ✅ NUEVO: mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
+    // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
+    const jawOutlines = getJawOutlines2D()
+    const jawColor = '#ff66cc'
+    const templeColor = '#66ccff'
+    const bridgeColor = '#cccccc'
+
+    drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
+    drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
+    drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
+    drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffffff')
+    drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
+    drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
+    drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit)), bridgeColor)
 }
 
 function loop(){
