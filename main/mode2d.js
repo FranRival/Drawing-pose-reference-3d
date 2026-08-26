@@ -1,5 +1,5 @@
-import { getEyeOutlines2D } from './eyes.js'
-import { getBrowOutlines2D } from './eyebrows.js'
+import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
+import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
 
 // Modo 2D: un canvas plano donde se carga un model sheet / dibujo de
 // referencia, y se superpone la silueta de ojos y cejas (solo vista
@@ -21,39 +21,13 @@ let refScale = 1
 let refOffsetX = 0 // -1 a 1, fracción del ancho del canvas
 let refOffsetY = 0 // -1 a 1, fracción del alto del canvas
 
-// ✅ NUEVO: ajuste fino POR FORMA, exclusivo del modo 2D — no toca
-// eyeParams/browParams (eyes.js/eyebrows.js), así el 3D queda intacto.
-// Sirve para casos donde el dibujo de referencia no es perfectamente
-// simétrico: cada ojo/ceja se puede mover, escalar y rotar por separado
-// sobre la silueta ya calculada, tomando como pivote su propio ancla
-// (el primer punto de su contorno — lagrimal para el ojo, cabeza para
-// la ceja), igual que el resto del sistema usa anclas fijas.
+// ✅ el ajuste por forma (offset/escala/rotación de cada ojo/ceja) YA NO
+// vive aquí — vive en eyeShapeAdjust (eyes.js) y browShapeAdjust
+// (eyebrows.js), aplicado dentro de buildEyePoints/buildBrowPoints. Así
+// lo que se mueve en el modo 2D es el mismo dato que usa el 3D — antes
+// era una capa aparte que solo afectaba el dibujo del canvas, por eso los
+// cambios no se veían al volver a 3D.
 let selectedTarget = 'rightEye'
-const shapeAdjustments = {
-    rightEye:  { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    leftEye:   { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    rightBrow: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    leftBrow:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
-}
-
-function applyShapeAdjust(points, adjust){
-    if(!points || points.length === 0) return points
-    const pivot = points[0] // el ancla de la forma (lagrimal / cabeza de ceja)
-    const rad = adjust.rotationDeg * Math.PI / 180
-    const cos = Math.cos(rad)
-    const sin = Math.sin(rad)
-
-    return points.map(p => {
-        const dx = p.x - pivot.x
-        const dy = p.y - pivot.y
-        const rx = (dx * cos - dy * sin) * adjust.scale
-        const ry = (dx * sin + dy * cos) * adjust.scale
-        return {
-            x: pivot.x + rx + adjust.x,
-            y: pivot.y + ry + adjust.y
-        }
-    })
-}
 
 function resizeCanvas(){
     if(!canvas) return
@@ -125,15 +99,12 @@ function drawFrame(){
     const eyeOutlines = getEyeOutlines2D()
     const browOutlines = getBrowOutlines2D()
 
-    const rightEyeAdjusted = applyShapeAdjust(eyeOutlines.right, shapeAdjustments.rightEye)
-    const leftEyeAdjusted = applyShapeAdjust(eyeOutlines.left, shapeAdjustments.leftEye)
-    const rightBrowAdjusted = applyShapeAdjust(browOutlines.right, shapeAdjustments.rightBrow)
-    const leftBrowAdjusted = applyShapeAdjust(browOutlines.left, shapeAdjustments.leftBrow)
-
-    drawOutline(rightEyeAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(leftEyeAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(rightBrowAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
-    drawOutline(leftBrowAdjusted.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+    // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
+    // dentro de eyes.js/eyebrows.js), así que se proyectan directo.
+    drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
+    drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
+    drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+    drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
 }
 
 function loop(){
@@ -207,22 +178,58 @@ export function setRefOffsetX(value){ refOffsetX = value; drawFrame() }
 export function setRefOffsetY(value){ refOffsetY = value; drawFrame() }
 
 // ✅ conectar al selector "Ajustar forma" — cambia cuál de las 4 formas
-// afectan los sliders de ajuste fino (no dispara redibujado por sí solo,
-// solo cambia el objetivo).
+// afectan los sliders de ajuste fino.
 export function setSelectedTarget(key){
-    if(shapeAdjustments[key]) selectedTarget = key
+    selectedTarget = key
+}
+
+// mapea cada clave del selector al módulo (eyes.js / eyebrows.js) y lado
+// ('right'/'left') que realmente guarda ese ajuste.
+function resolveTarget(key){
+    switch(key){
+        case 'rightEye':  return { kind: 'eye', side: 'right' }
+        case 'leftEye':   return { kind: 'eye', side: 'left' }
+        case 'rightBrow': return { kind: 'brow', side: 'right' }
+        case 'leftBrow':  return { kind: 'brow', side: 'left' }
+        default:          return { kind: 'eye', side: 'right' }
+    }
 }
 
 // ✅ para que ui.js pueda leer los valores actuales al cambiar de
 // objetivo, y así sincronizar la posición de los sliders sin disparar
-// un cambio real.
+// un cambio real. Lee directo de eyes.js/eyebrows.js — no hay copia local.
 export function getTargetAdjust(key){
-    return shapeAdjustments[key] || shapeAdjustments.rightEye
+    const t = resolveTarget(key)
+    return t.kind === 'eye' ? getEyeShapeAdjust(t.side) : getBrowShapeAdjust(t.side)
 }
 
 // ✅ conectar a los 4 sliders de ajuste fino — todos operan sobre el
-// objetivo actualmente seleccionado (setSelectedTarget).
-export function setTargetOffsetX(value){ shapeAdjustments[selectedTarget].x = value; drawFrame() }
-export function setTargetOffsetY(value){ shapeAdjustments[selectedTarget].y = value; drawFrame() }
-export function setTargetScale(value){ shapeAdjustments[selectedTarget].scale = value; drawFrame() }
-export function setTargetRotation(degrees){ shapeAdjustments[selectedTarget].rotationDeg = degrees; drawFrame() }
+// objetivo actualmente seleccionado, escribiendo DIRECTO en eyes.js o
+// eyebrows.js (según corresponda), que es lo que también usa el 3D.
+export function setTargetOffsetX(value){
+    const t = resolveTarget(selectedTarget)
+    if(t.kind === 'eye') setEyeShapeOffsetX(t.side, value)
+    else setBrowShapeOffsetX(t.side, value)
+    drawFrame()
+}
+
+export function setTargetOffsetY(value){
+    const t = resolveTarget(selectedTarget)
+    if(t.kind === 'eye') setEyeShapeOffsetY(t.side, value)
+    else setBrowShapeOffsetY(t.side, value)
+    drawFrame()
+}
+
+export function setTargetScale(value){
+    const t = resolveTarget(selectedTarget)
+    if(t.kind === 'eye') setEyeShapeScale(t.side, value)
+    else setBrowShapeScale(t.side, value)
+    drawFrame()
+}
+
+export function setTargetRotation(degrees){
+    const t = resolveTarget(selectedTarget)
+    if(t.kind === 'eye') setEyeShapeRotation(t.side, degrees)
+    else setBrowShapeRotation(t.side, degrees)
+    drawFrame()
+}
