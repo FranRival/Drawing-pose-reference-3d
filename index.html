@@ -19,6 +19,31 @@
 <div class="container">
   <!-- PANEL IZQUIERDO -->
   <div class="left-panel">
+    <h3>Modo 2D (calibrar contra referencia)</h3>
+    <div class="control">
+      <label for="mode2DToggle">Activar modo 2D</label>
+      <input type="checkbox" id="mode2DToggle">
+    </div>
+    <div class="control">
+      <label for="refImageInput">Imagen de referencia (model sheet)</label>
+      <input type="file" id="refImageInput" accept="image/*">
+    </div>
+    <div class="control">
+      <label for="refScale">Guía 2D - escala</label>
+      <input type="range" id="refScale" min="0.3" max="3" step="0.05" value="1">
+      <span id="refScaleValue">1.00</span>
+    </div>
+    <div class="control">
+      <label for="refOffsetX">Guía 2D - posición X</label>
+      <input type="range" id="refOffsetX" min="-1" max="1" step="0.01" value="0">
+      <span id="refOffsetXValue">0.00</span>
+    </div>
+    <div class="control">
+      <label for="refOffsetY">Guía 2D - posición Y</label>
+      <input type="range" id="refOffsetY" min="-1" max="1" step="0.01" value="0">
+      <span id="refOffsetYValue">0.00</span>
+    </div>
+
     <h2>Perspectivas</h2>
     <div id="views"></div>
 
@@ -277,6 +302,14 @@
   <!-- PANEL DERECHO -->
   <div class="right-panel" style="position:relative;">
     <div id="viewer" style="position:relative;"></div>
+
+    <!-- ✅ NUEVO: canvas del modo 2D — ocupa el mismo espacio que el visor
+         3D, oculto por defecto; mode2d.js alterna cuál de los dos se ve. -->
+    <canvas id="mode2DCanvas" style="
+        display:none;
+        position:absolute; top:0; left:0;
+        width:100%; height:100%;">
+    </canvas>
 
     <!-- ✅ NUEVO: botón "Soltar" fijo en la esquina inferior derecha —
          necesario en touch (iPad), donde el hueso seleccionado sigue
