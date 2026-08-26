@@ -14,336 +14,435 @@
   }
 }
 </script>
+<style>
+  /* ✅ NUEVO: grupos de controles desplegables (details/summary nativos,
+     sin JS extra). No toca .control ni ningún id existente. */
+  details.control-group {
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #1c1c1c;
+  }
+  details.control-group > summary {
+    cursor: pointer;
+    padding: 10px 12px;
+    font-weight: bold;
+    font-size: 15px;
+    list-style: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+  }
+  details.control-group > summary::-webkit-details-marker { display: none; }
+  details.control-group > summary::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 11px;
+    transition: transform 0.15s ease;
+  }
+  details.control-group[open] > summary::before {
+    transform: rotate(90deg);
+  }
+  details.control-group > summary:hover { background: #262626; border-radius: 6px; }
+  details.control-group .group-body {
+    padding: 4px 12px 12px 12px;
+  }
+  /* subgrupo anidado dentro de Modo 2D */
+  details.control-subgroup {
+    border: 1px solid #333;
+    border-radius: 6px;
+    margin: 8px 0;
+    background: #202020;
+  }
+  details.control-subgroup > summary {
+    cursor: pointer;
+    padding: 8px 10px;
+    font-weight: 600;
+    font-size: 13.5px;
+    list-style: none;
+    user-select: none;
+  }
+  details.control-subgroup > summary::-webkit-details-marker { display: none; }
+  details.control-subgroup > summary::before { content: '▶ '; font-size: 10px; }
+  details.control-subgroup[open] > summary::before { content: '▼ '; }
+  details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
+</style>
 </head>
 <body>
 <div class="container">
   <!-- PANEL IZQUIERDO -->
   <div class="left-panel">
-    <h3>Modo 2D (calibrar contra referencia)</h3>
-    <div class="control">
-      <label for="mode2DToggle">Activar modo 2D</label>
-      <input type="checkbox" id="mode2DToggle">
-    </div>
-    <div class="control">
-      <label for="refImageInput">Imagen de referencia (model sheet)</label>
-      <input type="file" id="refImageInput" accept="image/*">
-    </div>
-    <div class="control">
-      <label for="refScale">Guía 2D - escala</label>
-      <input type="range" id="refScale" min="0.3" max="3" step="0.05" value="1">
-      <span id="refScaleValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="refOffsetX">Guía 2D - posición X</label>
-      <input type="range" id="refOffsetX" min="-1" max="1" step="0.01" value="0">
-      <span id="refOffsetXValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="refOffsetY">Guía 2D - posición Y</label>
-      <input type="range" id="refOffsetY" min="-1" max="1" step="0.01" value="0">
-      <span id="refOffsetYValue">0.00</span>
-    </div>
 
-    <h4>Ajuste fino por forma (solo 2D)</h4>
-    <div class="control">
-      <select id="mode2DTarget">
-        <option value="rightEye" selected>Ojo derecho</option>
-        <option value="leftEye">Ojo izquierdo</option>
-        <option value="rightBrow">Ceja derecha</option>
-        <option value="leftBrow">Ceja izquierda</option>
-      </select>
-    </div>
-    <div class="control">
-      <label for="targetOffsetX">Forma - posición X</label>
-      <input type="range" id="targetOffsetX" min="-0.5" max="0.5" step="0.01" value="0">
-      <span id="targetOffsetXValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="targetOffsetY">Forma - posición Y</label>
-      <input type="range" id="targetOffsetY" min="-0.5" max="0.5" step="0.01" value="0">
-      <span id="targetOffsetYValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="targetScale">Forma - escala</label>
-      <input type="range" id="targetScale" min="0.5" max="1.5" step="0.02" value="1">
-      <span id="targetScaleValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="targetRotation">Forma - rotación</label>
-      <input type="range" id="targetRotation" min="-30" max="30" step="1" value="0">
-      <span id="targetRotationValue">0</span>
-    </div>
+    <details class="control-group">
+      <summary>Modo 2D (calibrar contra referencia)</summary>
+      <div class="group-body">
+        <div class="control">
+          <label for="mode2DToggle">Activar modo 2D</label>
+          <input type="checkbox" id="mode2DToggle">
+        </div>
+        <div class="control">
+          <label for="refImageInput">Imagen de referencia (model sheet)</label>
+          <input type="file" id="refImageInput" accept="image/*">
+        </div>
+        <div class="control">
+          <label for="refScale">Guía 2D - escala</label>
+          <input type="range" id="refScale" min="0.3" max="3" step="0.05" value="1">
+          <span id="refScaleValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="refOffsetX">Guía 2D - posición X</label>
+          <input type="range" id="refOffsetX" min="-1" max="1" step="0.01" value="0">
+          <span id="refOffsetXValue">0.00</span>
+        </div>
+        <div class="control">
+          <label for="refOffsetY">Guía 2D - posición Y</label>
+          <input type="range" id="refOffsetY" min="-1" max="1" step="0.01" value="0">
+          <span id="refOffsetYValue">0.00</span>
+        </div>
 
-    <h2>Perspectivas</h2>
-    <div id="views"></div>
+        <details class="control-subgroup">
+          <summary>Ajuste fino por forma (solo 2D)</summary>
+          <div class="group-body">
+            <div class="control">
+              <select id="mode2DTarget">
+                <option value="rightEye" selected>Ojo derecho</option>
+                <option value="leftEye">Ojo izquierdo</option>
+                <option value="rightBrow">Ceja derecha</option>
+                <option value="leftBrow">Ceja izquierda</option>
+              </select>
+            </div>
+            <div class="control">
+              <label for="targetOffsetX">Forma - posición X</label>
+              <input type="range" id="targetOffsetX" min="-0.5" max="0.5" step="0.01" value="0">
+              <span id="targetOffsetXValue">0.00</span>
+            </div>
+            <div class="control">
+              <label for="targetOffsetY">Forma - posición Y</label>
+              <input type="range" id="targetOffsetY" min="-0.5" max="0.5" step="0.01" value="0">
+              <span id="targetOffsetYValue">0.00</span>
+            </div>
+            <div class="control">
+              <label for="targetScale">Forma - escala</label>
+              <input type="range" id="targetScale" min="0.5" max="1.5" step="0.02" value="1">
+              <span id="targetScaleValue">1.00</span>
+            </div>
+            <div class="control">
+              <label for="targetRotation">Forma - rotación</label>
+              <input type="range" id="targetRotation" min="-30" max="30" step="1" value="0">
+              <span id="targetRotationValue">0</span>
+            </div>
+          </div>
+        </details>
+      </div>
+    </details>
 
-    <h3>Encuadre</h3>
-    <div class="control">
-      <select id="cameraShot">
-        <option value="general" selected>Plano general</option>
-        <option value="medio">Plano medio</option>
-        <option value="primerPlano">Primer plano</option>
-        <option value="cenital">Cenital</option>
-        <option value="contrapicado">Contrapicado</option>
-        <option value="picado">Picado</option>
-      </select>
-    </div>
+    <details class="control-group" open>
+      <summary>Perspectivas</summary>
+      <div class="group-body">
+        <div id="views"></div>
+      </div>
+    </details>
 
-    <h3>Malla</h3>
-    <div class="control">
-      <select id="meshMode">
-        <option value="solid" selected>Sólido normal</option>
-        <option value="solidWireframe">Sólido + malla</option>
-        <option value="wireframeOnly">Solo malla</option>
-      </select>
-    </div>
-    <div class="control">
-      <label for="loomisGuideToggle">Guía de cabeza (Loomis)</label>
-      <input type="checkbox" id="loomisGuideToggle">
-    </div>
-    <div class="control">
-      <label for="loomisOcclusionToggle">Guía - solo parte visible (respetar oclusión)</label>
-      <input type="checkbox" id="loomisOcclusionToggle">
-    </div>
-    <div class="control">
-      <label for="loomisOffsetX">Guía - ajuste horizontal (X)</label>
-      <input type="range" id="loomisOffsetX" min="-1.5" max="1.5" step="0.05" value="0">
-      <span id="loomisOffsetXValue">0</span>
-    </div>
-    <div class="control">
-      <label for="loomisOffsetY">Guía - ajuste vertical (Y)</label>
-      <input type="range" id="loomisOffsetY" min="-1.5" max="1.5" step="0.05" value="-0.80">
-      <span id="loomisOffsetYValue">-0.80</span>
-    </div>
-    <div class="control">
-      <label for="loomisOffsetZ">Guía - profundidad (Z)</label>
-      <input type="range" id="loomisOffsetZ" min="-1.5" max="1.5" step="0.05" value="-0.50">
-      <span id="loomisOffsetZValue">-0.50</span>
-    </div>
-    <div class="control">
-      <label for="loomisScale">Guía - tamaño</label>
-      <input type="range" id="loomisScale" min="0.3" max="2" step="0.05" value="0.80">
-      <span id="loomisScaleValue">0.80</span>
-    </div>
-    <div class="control">
-      <label for="loomisStretchX">Guía - agrandar X</label>
-      <input type="range" id="loomisStretchX" min="0.5" max="2" step="0.05" value="0.85">
-      <span id="loomisStretchXValue">0.85</span>
-    </div>
-    <div class="control">
-      <label for="loomisStretchY">Guía - agrandar Y</label>
-      <input type="range" id="loomisStretchY" min="0.5" max="2" step="0.05" value="1">
-      <span id="loomisStretchYValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="loomisStretchZ">Guía - agrandar Z</label>
-      <input type="range" id="loomisStretchZ" min="0.5" max="2" step="0.05" value="1">
-      <span id="loomisStretchZValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="earRadius">Guía - tamaño de orejas</label>
-      <input type="range" id="earRadius" min="0.1" max="1" step="0.05" value="0.55">
-      <span id="earRadiusValue">0.55</span>
-    </div>
-    <div class="control">
-      <label for="cantoLength">Ojos - largo lagrimal→canto</label>
-      <input type="range" id="cantoLength" min="0.15" max="0.60" step="0.01" value="0.40">
-      <span id="cantoLengthValue">0.40</span>
-    </div>
-    <div class="control">
-      <label for="cantoAngle">Ojos - ángulo del canto</label>
-      <input type="range" id="cantoAngle" min="-25" max="40" step="1" value="8">
-      <span id="cantoAngleValue">8</span>
-    </div>
-    <div class="control">
-      <label for="upperLidBulge">Ojos - inflado párpado superior</label>
-      <input type="range" id="upperLidBulge" min="0.02" max="0.35" step="0.01" value="0.14">
-      <span id="upperLidBulgeValue">0.14</span>
-    </div>
-    <div class="control">
-      <label for="lowerLidBulge">Ojos - inflado párpado inferior</label>
-      <input type="range" id="lowerLidBulge" min="0.00" max="0.25" step="0.01" value="0.08">
-      <span id="lowerLidBulgeValue">0.08</span>
-    </div>
-    <div class="control">
-      <label for="innerSharp">Ojos - lagrimal (redondo ↔ picudo)</label>
-      <input type="range" id="innerSharp" min="0" max="1" step="0.05" value="0.30">
-      <span id="innerSharpValue">0.30</span>
-    </div>
-    <div class="control">
-      <label for="outerSharp">Ojos - canto (redondo ↔ picudo)</label>
-      <input type="range" id="outerSharp" min="0" max="1" step="0.05" value="0.60">
-      <span id="outerSharpValue">0.60</span>
-    </div>
-    <div class="control">
-      <label for="eyeVerticalStretch">Ojos - estirar vertical</label>
-      <input type="range" id="eyeVerticalStretch" min="0.5" max="2.0" step="0.05" value="1.00">
-      <span id="eyeVerticalStretchValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="eyeHorizontalStretch">Ojos - estirar horizontal</label>
-      <input type="range" id="eyeHorizontalStretch" min="0.5" max="2.0" step="0.05" value="1.00">
-      <span id="eyeHorizontalStretchValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="eyeGap">Ojos - separación</label>
-      <input type="range" id="eyeGap" min="0.3" max="2.0" step="0.05" value="1.00">
-      <span id="eyeGapValue">1.00</span>
-    </div>
-    <div class="control">
-      <label for="eyeVerticalOffset">Ojos - altura bajo línea de ojos</label>
-      <input type="range" id="eyeVerticalOffset" min="-0.20" max="0.30" step="0.01" value="0.06">
-      <span id="eyeVerticalOffsetValue">0.06</span>
-    </div>
-    <div class="control">
-      <label for="lagrimalDepth">Ojos - profundidad lagrimal</label>
-      <input type="range" id="lagrimalDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
-      <span id="lagrimalDepthValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="centerDepth">Ojos - profundidad centro</label>
-      <input type="range" id="centerDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
-      <span id="centerDepthValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="cantoDepth">Ojos - profundidad canto</label>
-      <input type="range" id="cantoDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
-      <span id="cantoDepthValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="browLength">Cejas - largo</label>
-      <input type="range" id="browLength" min="0.15" max="0.65" step="0.01" value="0.42">
-      <span id="browLengthValue">0.42</span>
-    </div>
-    <div class="control">
-      <label for="browAngle">Cejas - inclinación/rotación</label>
-      <input type="range" id="browAngle" min="-20" max="35" step="1" value="5">
-      <span id="browAngleValue">5</span>
-    </div>
-    <div class="control">
-      <label for="browThickness">Cejas - grosor</label>
-      <input type="range" id="browThickness" min="0.01" max="0.12" step="0.005" value="0.045">
-      <span id="browThicknessValue">0.045</span>
-    </div>
-    <div class="control">
-      <label for="browTailTaper">Cejas - afinar cola (punta)</label>
-      <input type="range" id="browTailTaper" min="0" max="1" step="0.05" value="0.60">
-      <span id="browTailTaperValue">0.60</span>
-    </div>
-    <div class="control">
-      <label for="browHeadTaper">Cejas - afinar cabeza (punta)</label>
-      <input type="range" id="browHeadTaper" min="0" max="1" step="0.05" value="0.00">
-      <span id="browHeadTaperValue">0.00</span>
-    </div>
-    <div class="control">
-      <label for="browArchPosition">Cejas - posición del arco</label>
-      <input type="range" id="browArchPosition" min="0.03" max="0.97" step="0.02" value="0.62">
-      <span id="browArchPositionValue">0.62</span>
-    </div>
-    <div class="control">
-      <label for="browArchHeight">Cejas - altura del arco</label>
-      <input type="range" id="browArchHeight" min="0.00" max="0.25" step="0.01" value="0.09">
-      <span id="browArchHeightValue">0.09</span>
-    </div>
-    <div class="control">
-      <label for="browArchSharpness">Cejas - arco (ancho/suave ↔ angosto/marcado)</label>
-      <input type="range" id="browArchSharpness" min="0" max="1" step="0.05" value="0.30">
-      <span id="browArchSharpnessValue">0.30</span>
-    </div>
-    <div class="control">
-      <label for="browGap">Cejas - separación del centro</label>
-      <input type="range" id="browGap" min="0.20" max="0.90" step="0.01" value="0.55">
-      <span id="browGapValue">0.55</span>
-    </div>
-    <div class="control">
-      <label for="browVerticalOffset">Cejas - altura sobre línea de ojos</label>
-      <input type="range" id="browVerticalOffset" min="0.00" max="0.35" step="0.01" value="0.16">
-      <span id="browVerticalOffsetValue">0.16</span>
-    </div>
-    <div class="control">
-      <label for="jawWidth">Mandíbula - ancho</label>
-      <input type="range" id="jawWidth" min="0.3" max="1.5" step="0.05" value="0.70">
-      <span id="jawWidthValue">0.70</span>
-    </div>
-    <div class="control">
-      <label for="jawChinDrop">Mandíbula - largo (barbilla)</label>
-      <input type="range" id="jawChinDrop" min="0.3" max="1.8" step="0.05" value="1.25">
-      <span id="jawChinDropValue">1.25</span>
-    </div>
-    <div class="control">
-      <label for="jawChinForward">Mandíbula - profundidad</label>
-      <input type="range" id="jawChinForward" min="0" max="1.2" step="0.05" value="0.50">
-      <span id="jawChinForwardValue">0.50</span>
-    </div>
-    <div class="control">
-      <label for="jawChinWidth">Mandíbula - ancho de barbilla</label>
-      <input type="range" id="jawChinWidth" min="0.1" max="1" step="0.05" value="0.45">
-      <span id="jawChinWidthValue">0.45</span>
-    </div>
-    <div class="control">
-      <label for="sideProfileAngle">Línea de perfil - ángulo</label>
-      <input type="range" id="sideProfileAngle" min="10" max="80" step="1" value="39">
-      <span id="sideProfileAngleValue">39</span>
-    </div>
+    <details class="control-group" open>
+      <summary>Encuadre</summary>
+      <div class="group-body">
+        <div class="control">
+          <select id="cameraShot">
+            <option value="general" selected>Plano general</option>
+            <option value="medio">Plano medio</option>
+            <option value="primerPlano">Primer plano</option>
+            <option value="cenital">Cenital</option>
+            <option value="contrapicado">Contrapicado</option>
+            <option value="picado">Picado</option>
+          </select>
+        </div>
+      </div>
+    </details>
 
-    <h3>Controles de Pose</h3>
+    <details class="control-group">
+      <summary>Malla y guía de cabeza (Loomis)</summary>
+      <div class="group-body">
+        <div class="control">
+          <select id="meshMode">
+            <option value="solid" selected>Sólido normal</option>
+            <option value="solidWireframe">Sólido + malla</option>
+            <option value="wireframeOnly">Solo malla</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="loomisGuideToggle">Guía de cabeza (Loomis)</label>
+          <input type="checkbox" id="loomisGuideToggle">
+        </div>
+        <div class="control">
+          <label for="loomisOcclusionToggle">Guía - solo parte visible (respetar oclusión)</label>
+          <input type="checkbox" id="loomisOcclusionToggle">
+        </div>
+        <div class="control">
+          <label for="loomisOffsetX">Guía - ajuste horizontal (X)</label>
+          <input type="range" id="loomisOffsetX" min="-1.5" max="1.5" step="0.05" value="0">
+          <span id="loomisOffsetXValue">0</span>
+        </div>
+        <div class="control">
+          <label for="loomisOffsetY">Guía - ajuste vertical (Y)</label>
+          <input type="range" id="loomisOffsetY" min="-1.5" max="1.5" step="0.05" value="-0.80">
+          <span id="loomisOffsetYValue">-0.80</span>
+        </div>
+        <div class="control">
+          <label for="loomisOffsetZ">Guía - profundidad (Z)</label>
+          <input type="range" id="loomisOffsetZ" min="-1.5" max="1.5" step="0.05" value="-0.50">
+          <span id="loomisOffsetZValue">-0.50</span>
+        </div>
+        <div class="control">
+          <label for="loomisScale">Guía - tamaño</label>
+          <input type="range" id="loomisScale" min="0.3" max="2" step="0.05" value="0.80">
+          <span id="loomisScaleValue">0.80</span>
+        </div>
+        <div class="control">
+          <label for="loomisStretchX">Guía - agrandar X</label>
+          <input type="range" id="loomisStretchX" min="0.5" max="2" step="0.05" value="0.85">
+          <span id="loomisStretchXValue">0.85</span>
+        </div>
+        <div class="control">
+          <label for="loomisStretchY">Guía - agrandar Y</label>
+          <input type="range" id="loomisStretchY" min="0.5" max="2" step="0.05" value="1">
+          <span id="loomisStretchYValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="loomisStretchZ">Guía - agrandar Z</label>
+          <input type="range" id="loomisStretchZ" min="0.5" max="2" step="0.05" value="1">
+          <span id="loomisStretchZValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="earRadius">Guía - tamaño de orejas</label>
+          <input type="range" id="earRadius" min="0.1" max="1" step="0.05" value="0.55">
+          <span id="earRadiusValue">0.55</span>
+        </div>
+        <div class="control">
+          <label for="sideProfileAngle">Línea de perfil - ángulo</label>
+          <input type="range" id="sideProfileAngle" min="10" max="80" step="1" value="39">
+          <span id="sideProfileAngleValue">39</span>
+        </div>
+      </div>
+    </details>
 
-    <div class="control">
-      <label for="gizmoOpacity">Visibilidad de esferas</label>
-      <input type="range" id="gizmoOpacity" min="0" max="1" step="0.05" value="1">
-    </div>
-    <div id="timelineContainer" class="control">
-      <label for="timeline">Línea de tiempo (mover para revisar la animación)</label>
-      <input type="range" id="timeline" min="0" max="1" step="0.01" value="0">
-    </div>
+    <details class="control-group">
+      <summary>Ojos</summary>
+      <div class="group-body">
+        <div class="control">
+          <label for="cantoLength">Ojos - largo lagrimal→canto</label>
+          <input type="range" id="cantoLength" min="0.15" max="0.60" step="0.01" value="0.40">
+          <span id="cantoLengthValue">0.40</span>
+        </div>
+        <div class="control">
+          <label for="cantoAngle">Ojos - ángulo del canto</label>
+          <input type="range" id="cantoAngle" min="-25" max="40" step="1" value="8">
+          <span id="cantoAngleValue">8</span>
+        </div>
+        <div class="control">
+          <label for="upperLidBulge">Ojos - inflado párpado superior</label>
+          <input type="range" id="upperLidBulge" min="0.02" max="0.35" step="0.01" value="0.14">
+          <span id="upperLidBulgeValue">0.14</span>
+        </div>
+        <div class="control">
+          <label for="lowerLidBulge">Ojos - inflado párpado inferior</label>
+          <input type="range" id="lowerLidBulge" min="0.00" max="0.25" step="0.01" value="0.08">
+          <span id="lowerLidBulgeValue">0.08</span>
+        </div>
+        <div class="control">
+          <label for="innerSharp">Ojos - lagrimal (redondo ↔ picudo)</label>
+          <input type="range" id="innerSharp" min="0" max="1" step="0.05" value="0.30">
+          <span id="innerSharpValue">0.30</span>
+        </div>
+        <div class="control">
+          <label for="outerSharp">Ojos - canto (redondo ↔ picudo)</label>
+          <input type="range" id="outerSharp" min="0" max="1" step="0.05" value="0.60">
+          <span id="outerSharpValue">0.60</span>
+        </div>
+        <div class="control">
+          <label for="eyeVerticalStretch">Ojos - estirar vertical</label>
+          <input type="range" id="eyeVerticalStretch" min="0.5" max="2.0" step="0.05" value="1.00">
+          <span id="eyeVerticalStretchValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="eyeHorizontalStretch">Ojos - estirar horizontal</label>
+          <input type="range" id="eyeHorizontalStretch" min="0.5" max="2.0" step="0.05" value="1.00">
+          <span id="eyeHorizontalStretchValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="eyeGap">Ojos - separación</label>
+          <input type="range" id="eyeGap" min="0.3" max="2.0" step="0.05" value="1.00">
+          <span id="eyeGapValue">1.00</span>
+        </div>
+        <div class="control">
+          <label for="eyeVerticalOffset">Ojos - altura bajo línea de ojos</label>
+          <input type="range" id="eyeVerticalOffset" min="-0.20" max="0.30" step="0.01" value="0.06">
+          <span id="eyeVerticalOffsetValue">0.06</span>
+        </div>
+        <div class="control">
+          <label for="lagrimalDepth">Ojos - profundidad lagrimal</label>
+          <input type="range" id="lagrimalDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
+          <span id="lagrimalDepthValue">0.00</span>
+        </div>
+        <div class="control">
+          <label for="centerDepth">Ojos - profundidad centro</label>
+          <input type="range" id="centerDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
+          <span id="centerDepthValue">0.00</span>
+        </div>
+        <div class="control">
+          <label for="cantoDepth">Ojos - profundidad canto</label>
+          <input type="range" id="cantoDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
+          <span id="cantoDepthValue">0.00</span>
+        </div>
+      </div>
+    </details>
 
-    <div id="poseControlsContainer"></div>
+    <details class="control-group">
+      <summary>Cejas</summary>
+      <div class="group-body">
+        <div class="control">
+          <label for="browLength">Cejas - largo</label>
+          <input type="range" id="browLength" min="0.15" max="0.65" step="0.01" value="0.42">
+          <span id="browLengthValue">0.42</span>
+        </div>
+        <div class="control">
+          <label for="browAngle">Cejas - inclinación/rotación</label>
+          <input type="range" id="browAngle" min="-20" max="35" step="1" value="5">
+          <span id="browAngleValue">5</span>
+        </div>
+        <div class="control">
+          <label for="browThickness">Cejas - grosor</label>
+          <input type="range" id="browThickness" min="0.01" max="0.12" step="0.005" value="0.045">
+          <span id="browThicknessValue">0.045</span>
+        </div>
+        <div class="control">
+          <label for="browTailTaper">Cejas - afinar cola (punta)</label>
+          <input type="range" id="browTailTaper" min="0" max="1" step="0.05" value="0.60">
+          <span id="browTailTaperValue">0.60</span>
+        </div>
+        <div class="control">
+          <label for="browHeadTaper">Cejas - afinar cabeza (punta)</label>
+          <input type="range" id="browHeadTaper" min="0" max="1" step="0.05" value="0.00">
+          <span id="browHeadTaperValue">0.00</span>
+        </div>
+        <div class="control">
+          <label for="browArchPosition">Cejas - posición del arco</label>
+          <input type="range" id="browArchPosition" min="0.03" max="0.97" step="0.02" value="0.62">
+          <span id="browArchPositionValue">0.62</span>
+        </div>
+        <div class="control">
+          <label for="browArchHeight">Cejas - altura del arco</label>
+          <input type="range" id="browArchHeight" min="0.00" max="0.25" step="0.01" value="0.09">
+          <span id="browArchHeightValue">0.09</span>
+        </div>
+        <div class="control">
+          <label for="browArchSharpness">Cejas - arco (ancho/suave ↔ angosto/marcado)</label>
+          <input type="range" id="browArchSharpness" min="0" max="1" step="0.05" value="0.30">
+          <span id="browArchSharpnessValue">0.30</span>
+        </div>
+        <div class="control">
+          <label for="browGap">Cejas - separación del centro</label>
+          <input type="range" id="browGap" min="0.20" max="0.90" step="0.01" value="0.55">
+          <span id="browGapValue">0.55</span>
+        </div>
+        <div class="control">
+          <label for="browVerticalOffset">Cejas - altura sobre línea de ojos</label>
+          <input type="range" id="browVerticalOffset" min="0.00" max="0.35" step="0.01" value="0.16">
+          <span id="browVerticalOffsetValue">0.16</span>
+        </div>
+      </div>
+    </details>
 
-    <!-- ===== NUEVO: PANEL DE ANIMACION / FOLIOSCOPIO ===== -->
-    <h3>Animación (Folioscopio)</h3>
+    <details class="control-group">
+      <summary>Mandíbula</summary>
+      <div class="group-body">
+        <div class="control">
+          <label for="jawWidth">Mandíbula - ancho</label>
+          <input type="range" id="jawWidth" min="0.3" max="1.5" step="0.05" value="0.70">
+          <span id="jawWidthValue">0.70</span>
+        </div>
+        <div class="control">
+          <label for="jawChinDrop">Mandíbula - largo (barbilla)</label>
+          <input type="range" id="jawChinDrop" min="0.3" max="1.8" step="0.05" value="1.25">
+          <span id="jawChinDropValue">1.25</span>
+        </div>
+        <div class="control">
+          <label for="jawChinForward">Mandíbula - profundidad</label>
+          <input type="range" id="jawChinForward" min="0" max="1.2" step="0.05" value="0.50">
+          <span id="jawChinForwardValue">0.50</span>
+        </div>
+        <div class="control">
+          <label for="jawChinWidth">Mandíbula - ancho de barbilla</label>
+          <input type="range" id="jawChinWidth" min="0.1" max="1" step="0.05" value="0.45">
+          <span id="jawChinWidthValue">0.45</span>
+        </div>
+      </div>
+    </details>
 
-    <div class="control">
-      <button id="btnAddKeyframe">● Grabar keyframe</button>
-      <button id="btnClearKeyframes">Borrar todos</button>
-      <span id="keyframeCount">0 keyframes</span>
-    </div>
+    <details class="control-group" open>
+      <summary>Controles de Pose</summary>
+      <div class="group-body">
+        <div class="control">
+          <label for="gizmoOpacity">Visibilidad de esferas</label>
+          <input type="range" id="gizmoOpacity" min="0" max="1" step="0.05" value="1">
+        </div>
+        <div id="timelineContainer" class="control">
+          <label for="timeline">Línea de tiempo (mover para revisar la animación)</label>
+          <input type="range" id="timeline" min="0" max="1" step="0.01" value="0">
+        </div>
 
-    <div class="control">
-      <button id="btnPlay">▶ Reproducir</button>
-    </div>
+        <div id="poseControlsContainer"></div>
+      </div>
+    </details>
 
-    <div class="control">
-      <label for="frameCount">Frames a exportar</label>
-      <select id="frameCount">
-        <option value="12">12</option>
-        <option value="24" selected>24</option>
-      </select>
+    <details class="control-group">
+      <summary>Animación (Folioscopio)</summary>
+      <div class="group-body">
+        <div class="control">
+          <button id="btnAddKeyframe">● Grabar keyframe</button>
+          <button id="btnClearKeyframes">Borrar todos</button>
+          <span id="keyframeCount">0 keyframes</span>
+        </div>
 
-      <label for="imgFormat">Formato</label>
-      <select id="imgFormat">
-        <option value="png" selected>PNG</option>
-        <option value="jpg">JPG</option>
-      </select>
-    </div>
+        <div class="control">
+          <button id="btnPlay">▶ Reproducir</button>
+        </div>
 
-    <div class="control">
-      <label for="numberFrames">Numerar imágenes</label>
-      <input type="checkbox" id="numberFrames" checked>
-    </div>
+        <div class="control">
+          <label for="frameCount">Frames a exportar</label>
+          <select id="frameCount">
+            <option value="12">12</option>
+            <option value="24" selected>24</option>
+          </select>
 
-    <div class="control">
-      <button id="btnExportSequence">Exportar secuencia completa (.zip)</button>
-    </div>
-    <div class="control">
-      <button id="btnExportKeyframes">Exportar solo keyframes (.zip)</button>
-    </div>
+          <label for="imgFormat">Formato</label>
+          <select id="imgFormat">
+            <option value="png" selected>PNG</option>
+            <option value="jpg">JPG</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="numberFrames">Numerar imágenes</label>
+          <input type="checkbox" id="numberFrames" checked>
+        </div>
+
+        <div class="control">
+          <button id="btnExportSequence">Exportar secuencia completa (.zip)</button>
+        </div>
+        <div class="control">
+          <button id="btnExportKeyframes">Exportar solo keyframes (.zip)</button>
+        </div>
+      </div>
+    </details>
+
   </div>
 
   <!-- PANEL DERECHO -->
   <div class="right-panel" style="position:relative;">
     <div id="viewer" style="position:relative;"></div>
 
-    <!-- ✅ NUEVO: canvas del modo 2D — ocupa el mismo espacio que el visor
+    <!-- ✅ canvas del modo 2D — ocupa el mismo espacio que el visor
          3D, oculto por defecto; mode2d.js alterna cuál de los dos se ve. -->
     <canvas id="mode2DCanvas" style="
         display:none;
@@ -351,7 +450,7 @@
         width:100%; height:100%;">
     </canvas>
 
-    <!-- ✅ NUEVO: botón "Soltar" fijo en la esquina inferior derecha —
+    <!-- botón "Soltar" fijo en la esquina inferior derecha —
          necesario en touch (iPad), donde el hueso seleccionado sigue
          rotando con cualquier movimiento posterior hasta que se toca otro -->
     <button id="btnReleaseBone" style="
@@ -364,7 +463,7 @@
       Soltar
     </button>
 
-    <!-- ✅ NUEVO: rectángulo que marca el área EXACTA que se exporta
+    <!-- rectángulo que marca el área EXACTA que se exporta
          (coincide con el recorte real hecho en captureFrameBlob) -->
     <div id="captureAreaGuide" style="
         position:absolute;
@@ -374,7 +473,7 @@
         z-index:5;">
     </div>
 
-    <!-- ✅ NUEVO: barra de poses preestablecidas, flotando sobre el visor -->
+    <!-- barra de poses preestablecidas, flotando sobre el visor -->
     <div id="posePresetsBar" style="
         position:absolute; top:0; left:0; right:0;
         display:flex; gap:6px; padding:8px;
@@ -390,7 +489,7 @@
       <button class="posePresetBtn" data-preset="agachado">Agachado combate</button>
     </div>
 
-    <!-- ✅ NUEVO: footer con timeline de poses grabadas (tarjetas) -->
+    <!-- footer con timeline de poses grabadas (tarjetas) -->
     <div id="poseTimelineBar" style="
         position:absolute; bottom:0; left:0; right:0;
         display:flex; align-items:center; gap:8px; padding:8px;
