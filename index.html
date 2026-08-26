@@ -44,6 +44,36 @@
       <span id="refOffsetYValue">0.00</span>
     </div>
 
+    <h4>Ajuste fino por forma (solo 2D)</h4>
+    <div class="control">
+      <select id="mode2DTarget">
+        <option value="rightEye" selected>Ojo derecho</option>
+        <option value="leftEye">Ojo izquierdo</option>
+        <option value="rightBrow">Ceja derecha</option>
+        <option value="leftBrow">Ceja izquierda</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="targetOffsetX">Forma - posición X</label>
+      <input type="range" id="targetOffsetX" min="-0.5" max="0.5" step="0.01" value="0">
+      <span id="targetOffsetXValue">0.00</span>
+    </div>
+    <div class="control">
+      <label for="targetOffsetY">Forma - posición Y</label>
+      <input type="range" id="targetOffsetY" min="-0.5" max="0.5" step="0.01" value="0">
+      <span id="targetOffsetYValue">0.00</span>
+    </div>
+    <div class="control">
+      <label for="targetScale">Forma - escala</label>
+      <input type="range" id="targetScale" min="0.5" max="1.5" step="0.02" value="1">
+      <span id="targetScaleValue">1.00</span>
+    </div>
+    <div class="control">
+      <label for="targetRotation">Forma - rotación</label>
+      <input type="range" id="targetRotation" min="-30" max="30" step="1" value="0">
+      <span id="targetRotationValue">0</span>
+    </div>
+
     <h2>Perspectivas</h2>
     <div id="views"></div>
 
