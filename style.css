@@ -1,28 +1,171 @@
 html, body{
-height:100%;
-margin:0;
+  height:100%;
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .container{
-display:flex;
-height:100vh;
-width: 100vw;
+  display:flex;
+  height:100vh;
+  width: 100vw;
 }
 
 .left-panel{
-width:240px;
-background:#f3f3f3;
-overflow-y: auto;
-padding:10px;
+  width:240px;
+  background:#f3f3f3;
+  overflow-y: auto;
+  padding:10px;
+  box-sizing: border-box;
+  color:#222;
 }
 
 .right-panel{
-flex: 1;
-background:#111;
-position:relative;
+  flex: 1;
+  background:#111;
+  position:relative;
 }
 
 #viewer{
-width:100%;
-height:100%;
+  width:100%;
+  height:100%;
+}
+
+/* ===================================================== */
+/* CONTROLES (label + input + valor), usados dentro de    */
+/* cada grupo desplegable                                 */
+/* ===================================================== */
+
+.control{
+  margin-bottom: 10px;
+}
+
+.control label{
+  display:block;
+  font-size: 12.5px;
+  color:#444;
+  margin-bottom: 3px;
+}
+
+.control input[type="range"]{
+  width: 78%;
+  vertical-align: middle;
+}
+
+.control input[type="checkbox"]{
+  vertical-align: middle;
+}
+
+.control input[type="file"]{
+  width: 100%;
+  font-size: 12px;
+}
+
+.control select{
+  width: 100%;
+  padding: 4px;
+  font-size: 13px;
+}
+
+.control span{
+  display:inline-block;
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  color:#666;
+  vertical-align: middle;
+}
+
+.control button{
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+/* ===================================================== */
+/* GRUPOS DESPLEGABLES (details/summary nativos)          */
+/* ===================================================== */
+
+details.control-group {
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #fafafa;
+}
+
+details.control-group > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-weight: bold;
+  font-size: 15px;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  color:#1a1a1a;
+  border-radius: 8px;
+}
+
+details.control-group > summary::-webkit-details-marker { display: none; }
+
+details.control-group > summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 11px;
+  color: #888;
+  transition: transform 0.15s ease;
+}
+
+details.control-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details.control-group > summary:hover { background: #ececec; }
+
+details.control-group .group-body {
+  padding: 4px 12px 12px 12px;
+}
+
+/* subgrupo anidado (ej. "Ajuste fino por forma" dentro de Modo 2D) */
+details.control-subgroup {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 8px 0;
+  background: #f0f0f0;
+}
+
+details.control-subgroup > summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  list-style: none;
+  user-select: none;
+  color:#333;
+}
+
+details.control-subgroup > summary::-webkit-details-marker { display: none; }
+details.control-subgroup > summary::before { content: '▶ '; font-size: 10px; color:#999; }
+details.control-subgroup[open] > summary::before { content: '▼ '; }
+
+details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
+
+/* ===================================================== */
+/* views (miniaturas de perspectivas) y otros contenedores */
+/* dinámicos que ya existían                               */
+/* ===================================================== */
+
+#views img, #views canvas {
+  width: 100%;
+  display:block;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+#poseControlsContainer h4 {
+  margin: 10px 0 4px 0;
+  font-size: 13px;
+  color:#333;
 }
