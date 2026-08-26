@@ -14,60 +14,6 @@
   }
 }
 </script>
-<style>
-  /* ✅ NUEVO: grupos de controles desplegables (details/summary nativos,
-     sin JS extra). No toca .control ni ningún id existente. */
-  details.control-group {
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    background: #1c1c1c;
-  }
-  details.control-group > summary {
-    cursor: pointer;
-    padding: 10px 12px;
-    font-weight: bold;
-    font-size: 15px;
-    list-style: none;
-    user-select: none;
-    display: flex;
-    align-items: center;
-  }
-  details.control-group > summary::-webkit-details-marker { display: none; }
-  details.control-group > summary::before {
-    content: '▶';
-    display: inline-block;
-    margin-right: 8px;
-    font-size: 11px;
-    transition: transform 0.15s ease;
-  }
-  details.control-group[open] > summary::before {
-    transform: rotate(90deg);
-  }
-  details.control-group > summary:hover { background: #262626; border-radius: 6px; }
-  details.control-group .group-body {
-    padding: 4px 12px 12px 12px;
-  }
-  /* subgrupo anidado dentro de Modo 2D */
-  details.control-subgroup {
-    border: 1px solid #333;
-    border-radius: 6px;
-    margin: 8px 0;
-    background: #202020;
-  }
-  details.control-subgroup > summary {
-    cursor: pointer;
-    padding: 8px 10px;
-    font-weight: 600;
-    font-size: 13.5px;
-    list-style: none;
-    user-select: none;
-  }
-  details.control-subgroup > summary::-webkit-details-marker { display: none; }
-  details.control-subgroup > summary::before { content: '▶ '; font-size: 10px; }
-  details.control-subgroup[open] > summary::before { content: '▼ '; }
-  details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
-</style>
 </head>
 <body>
 <div class="container">
