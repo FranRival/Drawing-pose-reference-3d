@@ -12,7 +12,8 @@ let browParams = {
 
     // --- espesor de la banda ---
     thicknessMult: 0.045, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
-    tailTaper: 0.60,       // 0 = espesor uniforme, 1 = la cola se afina hasta casi un punto
+    tailTaper: 0.60,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
+    headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
 
     // --- arco ---
     archPosition: 0.62, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
@@ -45,9 +46,10 @@ let currentBaseRadius = 0
 // suave (no dos esquinas picudas), asi que la funcion de potencias es la
 // herramienta correcta para esto.
 function archBump(t, archPosition, shapeSum){
-    const a = shapeSum * THREE.MathUtils.clamp(archPosition, 0.05, 0.95)
-    const b = shapeSum * (1 - THREE.MathUtils.clamp(archPosition, 0.05, 0.95))
-    const peak = Math.pow(archPosition, a) * Math.pow(1 - archPosition, b)
+    const clampedPos = THREE.MathUtils.clamp(archPosition, 0.03, 0.97) // antes 0.05/0.95 - ahora sí llega casi a ambos extremos
+    const a = shapeSum * clampedPos
+    const b = shapeSum * (1 - clampedPos)
+    const peak = Math.pow(clampedPos, a) * Math.pow(1 - clampedPos, b)
     if(peak <= 0) return 0
     const raw = Math.pow(t, a) * Math.pow(1 - t, b)
     return raw / peak
@@ -88,7 +90,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     for(let i = 0; i <= segs; i++){
         const t = i / segs
         const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
-        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
+        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
             x: t * outer.x + perpUpX * (arch + halfThickness),
@@ -100,7 +102,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     for(let i = segs; i >= 0; i--){
         const t = i / segs
         const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
-        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t)
+        const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
             x: t * outer.x + perpUpX * (arch - halfThickness),
@@ -176,6 +178,7 @@ export function setBrowAngle(degrees){ browParams.angleDeg = degrees; rebuild() 
 // setters - espesor de la banda
 export function setBrowThickness(mult){ browParams.thicknessMult = mult; rebuild() }
 export function setBrowTailTaper(value){ browParams.tailTaper = value; rebuild() }
+export function setBrowHeadTaper(value){ browParams.headTaper = value; rebuild() }
 
 // setters - arco
 export function setBrowArchPosition(value){ browParams.archPosition = value; rebuild() }
