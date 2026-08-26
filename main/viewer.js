@@ -1,5 +1,6 @@
 import { model, camera, renderer, scene, sunGizmo, setSunAngles, setHelpersVisible } from './core.js'
 import { createEyeGuides, setEyeOcclusion } from './eyes.js'
+import { createEyebrowGuides, setEyebrowOcclusion } from './eyebrows.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -425,6 +426,9 @@ export function createLoomisGuide(radius){
     // así heredan posición/rotación del hueso de cabeza automáticamente.
     createEyeGuides(loomisGroup, localRadius)
 
+    // ✅ NUEVO: guías de cejas (eyebrows.js) — mismo patrón que los ojos.
+    createEyebrowGuides(loomisGroup, localRadius)
+
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
     applyLoomisScale() // aplica también el estiramiento por eje (X/Y/Z) si ya se había ajustado antes
@@ -465,6 +469,7 @@ export function setLoomisRespectOcclusion(respectOcclusion){
         mat.needsUpdate = true
     })
     setEyeOcclusion(respectOcclusion) // los ojos viven en eyes.js, con sus propios materiales
+    setEyebrowOcclusion(respectOcclusion) // las cejas viven en eyebrows.js, con sus propios materiales
 }
 
 // ✅ NUEVO: ajuste en vivo, para afinar la guía sin tener que recalcular
