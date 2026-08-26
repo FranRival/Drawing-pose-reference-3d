@@ -11,7 +11,8 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
-import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY } from './mode2d.js'
+import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY,
+         setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -303,6 +304,69 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setRefOffsetY(value)
             if(refOffsetYValue) refOffsetYValue.textContent = value.toFixed(2)
+        })
+    }
+
+    // --- ajuste fino por forma (solo 2D) ---
+
+    const mode2DTargetSelect = document.getElementById("mode2DTarget")
+    const targetOffsetXSlider = document.getElementById("targetOffsetX")
+    const targetOffsetXValue  = document.getElementById("targetOffsetXValue")
+    const targetOffsetYSlider = document.getElementById("targetOffsetY")
+    const targetOffsetYValue  = document.getElementById("targetOffsetYValue")
+    const targetScaleSlider  = document.getElementById("targetScale")
+    const targetScaleValue   = document.getElementById("targetScaleValue")
+    const targetRotationSlider = document.getElementById("targetRotation")
+    const targetRotationValue  = document.getElementById("targetRotationValue")
+
+    // al cambiar de forma seleccionada, los sliders deben reflejar los
+    // valores YA guardados de esa forma (sin disparar un cambio real)
+    function refreshTargetSliders(){
+        if(!mode2DTargetSelect) return
+        const key = mode2DTargetSelect.value
+        setSelectedTarget(key)
+        const adj = getTargetAdjust(key)
+
+        if(targetOffsetXSlider){ targetOffsetXSlider.value = adj.x; if(targetOffsetXValue) targetOffsetXValue.textContent = adj.x.toFixed(2) }
+        if(targetOffsetYSlider){ targetOffsetYSlider.value = adj.y; if(targetOffsetYValue) targetOffsetYValue.textContent = adj.y.toFixed(2) }
+        if(targetScaleSlider){ targetScaleSlider.value = adj.scale; if(targetScaleValue) targetScaleValue.textContent = adj.scale.toFixed(2) }
+        if(targetRotationSlider){ targetRotationSlider.value = adj.rotationDeg; if(targetRotationValue) targetRotationValue.textContent = adj.rotationDeg.toFixed(0) }
+    }
+
+    if(mode2DTargetSelect){
+        mode2DTargetSelect.addEventListener("change", refreshTargetSliders)
+        refreshTargetSliders() // sincroniza al cargar la página
+    }
+
+    if(targetOffsetXSlider){
+        targetOffsetXSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setTargetOffsetX(value)
+            if(targetOffsetXValue) targetOffsetXValue.textContent = value.toFixed(2)
+        })
+    }
+
+    if(targetOffsetYSlider){
+        targetOffsetYSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setTargetOffsetY(value)
+            if(targetOffsetYValue) targetOffsetYValue.textContent = value.toFixed(2)
+        })
+    }
+
+    if(targetScaleSlider){
+        targetScaleSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setTargetScale(value)
+            if(targetScaleValue) targetScaleValue.textContent = value.toFixed(2)
+        })
+    }
+
+    if(targetRotationSlider){
+        targetRotationSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setTargetRotation(value)
+            if(targetRotationValue) targetRotationValue.textContent = value.toFixed(0)
         })
     }
 
