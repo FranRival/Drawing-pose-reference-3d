@@ -133,8 +133,8 @@ function syncSideProfileToEar(){
     if(onSideProfileAngleChange) onSideProfileAngleChange(sideProfileAngleDeg)
 }
 
-function computeJawPoints(){
-    const R = loomisBaseRadius
+function computeJawPoints(radius = loomisBaseRadius){
+    const R = radius
     const noseBaseY = -R * 0.35 // misma altura que noseLine (el círculo verde)
 
     // ✅ el punto de pómulo ahora queda matemáticamente SOBRE el círculo
@@ -177,6 +177,27 @@ function computeJawPoints(){
         // Y=0) y la línea vertical (centro, X=0) — el punto (0,0,R) al
         // frente de la esfera — y baja hasta el centro de la mandíbula.
         bridge: [new THREE.Vector3(0, 0, R), new THREE.Vector3(0, chinY, chinZ)]
+    }
+}
+
+// ✅ NUEVO: silueta 2D de la mandíbula, para el modo de calibración
+// (mode2d.js) — mismo principio que getEyeOutlines2D/getBrowOutlines2D:
+// reutiliza EXACTAMENTE computeJawPoints, con radio=1 (unidades
+// normalizadas), y descarta la Z (vista frontal). Cada segmento se
+// dibuja como línea abierta, no como lazo cerrado — la mandíbula no es
+// una forma cerrada como el ojo o la ceja.
+export function getJawOutlines2D(){
+    const pts = computeJawPoints(1)
+    const flatten = segment => segment.map(v => ({ x: v.x, y: v.y }))
+
+    return {
+        leftJaw: flatten(pts.leftJaw),
+        rightJaw: flatten(pts.rightJaw),
+        chin: flatten(pts.chin),
+        mouth: flatten(pts.mouth),
+        leftTemple: flatten(pts.leftTemple),
+        rightTemple: flatten(pts.rightTemple),
+        bridge: flatten(pts.bridge)
     }
 }
 
