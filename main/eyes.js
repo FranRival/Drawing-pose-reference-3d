@@ -279,3 +279,23 @@ export function setEyeOcclusion(respectOcclusion){
         mat.needsUpdate = true
     })
 }
+
+// ✅ NUEVO: silueta 2D de los ojos, para el modo de calibracion contra
+// referencia (mode2d.js). Reutiliza EXACTAMENTE la misma funcion de
+// construccion que el 3D (buildEyePoints) con baseRadius=1 (unidades
+// normalizadas, sin depender de si hay un modelo 3D cargado) - asi el 2D
+// y el 3D nunca se desincronizan: cambiar un slider afecta a ambos porque
+// leen del mismo eyeParams. Se descarta la Z (profundidad), que no aplica
+// a una vista frontal plana.
+export function getEyeOutlines2D(){
+    const baseRadius = 1
+    const cantoLength = baseRadius * eyeParams.cantoLengthMult
+    const gap = cantoLength * eyeParams.gapMult
+    const anchorX = gap / 2
+    const anchorY = -baseRadius * eyeParams.vertOffsetMult
+
+    const right = buildEyePoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+
+    return { right, left }
+}
