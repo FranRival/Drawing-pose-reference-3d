@@ -9,7 +9,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
-import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper,
+import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
@@ -697,6 +697,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowTailTaper(value)
             if(browTailTaperValue) browTailTaperValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browHeadTaperSlider = document.getElementById("browHeadTaper")
+    const browHeadTaperValue  = document.getElementById("browHeadTaperValue")
+
+    if(browHeadTaperSlider){
+        browHeadTaperSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowHeadTaper(value)
+            if(browHeadTaperValue) browHeadTaperValue.textContent = value.toFixed(2)
         })
     }
 
