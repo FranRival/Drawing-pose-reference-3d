@@ -9,6 +9,8 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
+import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper,
+         setBrowArchPosition, setBrowArchHeight, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -528,6 +530,98 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setCantoDepth(value)
             if(cantoDepthValue) cantoDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    /* ========================= */
+    /* CEJAS (eyebrows.js) */
+    /* ========================= */
+
+    const browLengthSlider = document.getElementById("browLength")
+    const browLengthValue  = document.getElementById("browLengthValue")
+
+    if(browLengthSlider){
+        browLengthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowLength(value)
+            if(browLengthValue) browLengthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browAngleSlider = document.getElementById("browAngle")
+    const browAngleValue  = document.getElementById("browAngleValue")
+
+    if(browAngleSlider){
+        browAngleSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowAngle(value)
+            if(browAngleValue) browAngleValue.textContent = value.toFixed(0)
+        })
+    }
+
+    const browThicknessSlider = document.getElementById("browThickness")
+    const browThicknessValue  = document.getElementById("browThicknessValue")
+
+    if(browThicknessSlider){
+        browThicknessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowThickness(value)
+            if(browThicknessValue) browThicknessValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const browTailTaperSlider = document.getElementById("browTailTaper")
+    const browTailTaperValue  = document.getElementById("browTailTaperValue")
+
+    if(browTailTaperSlider){
+        browTailTaperSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowTailTaper(value)
+            if(browTailTaperValue) browTailTaperValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browArchPositionSlider = document.getElementById("browArchPosition")
+    const browArchPositionValue  = document.getElementById("browArchPositionValue")
+
+    if(browArchPositionSlider){
+        browArchPositionSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowArchPosition(value)
+            if(browArchPositionValue) browArchPositionValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browArchHeightSlider = document.getElementById("browArchHeight")
+    const browArchHeightValue  = document.getElementById("browArchHeightValue")
+
+    if(browArchHeightSlider){
+        browArchHeightSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowArchHeight(value)
+            if(browArchHeightValue) browArchHeightValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browGapSlider = document.getElementById("browGap")
+    const browGapValue  = document.getElementById("browGapValue")
+
+    if(browGapSlider){
+        browGapSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowGap(value)
+            if(browGapValue) browGapValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browVerticalOffsetSlider = document.getElementById("browVerticalOffset")
+    const browVerticalOffsetValue  = document.getElementById("browVerticalOffsetValue")
+
+    if(browVerticalOffsetSlider){
+        browVerticalOffsetSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowVerticalOffset(value)
+            if(browVerticalOffsetValue) browVerticalOffsetValue.textContent = value.toFixed(2)
         })
     }
 
