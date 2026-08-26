@@ -46,6 +46,17 @@ let rightEyeMat = null
 let leftEyeMat = null
 let currentBaseRadius = 0
 
+// ✅ NUEVO: ajuste POR OJO (antes vivía solo en mode2d.js, como una capa
+// aparte que no tocaba el modelo real — por eso los cambios en 2D no se
+// veían en 3D). Ahora vive AQUÍ, y se aplica dentro de buildEyePoints, que
+// es lo que usan TANTO el 3D (buildEyes) COMO el 2D (getEyeOutlines2D) —
+// una sola fuente de verdad, así que ajustar en cualquiera de los dos
+// modos mueve el mismo dato. Pivotea sobre el propio lagrimal (el ancla).
+let eyeShapeAdjust = {
+    right: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    left:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+}
+
 // Curvas Bezier cubicas de verdad, como los manejadores de la pluma de
 // Illustrator: cada esquina (lagrimal, canto) es un ancla FIJA; de cada una
 // sale un manejador cuya posicion controla la forma:
@@ -173,12 +184,24 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     // mas el ajuste interpolado entre las 3 anclas de profundidad.
     const surfaceR = baseRadius * EYE_SURFACE_OFFSET
 
+    // ✅ NUEVO: ajuste por ojo (compartido con el modo 2D) - pivotea sobre
+    // el lagrimal (origen local, ANTES de sumar el ancla en la cara). Los
+    // offsets se escalan por baseRadius para comportarse igual en 2D
+    // (baseRadius=1) y en 3D (baseRadius=loomisBaseRadius).
+    const adjust = mirrorX ? eyeShapeAdjust.left : eyeShapeAdjust.right
+    const adjRad = THREE.MathUtils.degToRad(adjust.rotationDeg)
+    const cosAdj = Math.cos(adjRad)
+    const sinAdj = Math.sin(adjRad)
+
     return raw.map(({ x, y, axisT }) => {
         const sx = centerX + (x - centerX) * p.horizontalStretch
         const sy = centerY + (y - centerY) * p.verticalStretch
 
-        const worldX = anchorX + sx
-        const worldY = anchorY + sy
+        const ax = (sx * cosAdj - sy * sinAdj) * adjust.scale + adjust.x * baseRadius
+        const ay = (sx * sinAdj + sy * cosAdj) * adjust.scale + adjust.y * baseRadius
+
+        const worldX = anchorX + ax
+        const worldY = anchorY + ay
 
         const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
         const z = naturalZ + depthOffsetAt(axisT) * baseRadius
@@ -261,6 +284,14 @@ export function setEyeHorizontalStretch(mult){ eyeParams.horizontalStretch = mul
 // setters - posicion del par en la cara
 export function setEyeGap(mult){ eyeParams.gapMult = mult; rebuild() }
 export function setEyeVerticalOffset(mult){ eyeParams.vertOffsetMult = mult; rebuild() }
+
+// setters/getter - ajuste POR OJO (derecho/izquierdo), compartido entre
+// el modo 2D y el 3D — side es 'right' o 'left'.
+export function setEyeShapeOffsetX(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].x = value; rebuild() } }
+export function setEyeShapeOffsetY(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].y = value; rebuild() } }
+export function setEyeShapeScale(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].scale = value; rebuild() } }
+export function setEyeShapeRotation(side, degrees){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].rotationDeg = degrees; rebuild() } }
+export function getEyeShapeAdjust(side){ return eyeShapeAdjust[side] || eyeShapeAdjust.right }
 
 // setters - CAPA 4 (profundidad en 3D: lagrimal, centro, canto)
 export function setLagrimalDepth(mult){ eyeParams.lagrimalDepth = mult; rebuild() }
