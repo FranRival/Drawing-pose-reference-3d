@@ -191,3 +191,17 @@ export function setEyebrowOcclusion(respectOcclusion){
         mat.needsUpdate = true
     })
 }
+
+// ✅ NUEVO: silueta 2D de las cejas, para mode2d.js — mismo principio que
+// getEyeOutlines2D en eyes.js: reutiliza buildBrowPoints con baseRadius=1,
+// sin depender del modelo 3D, y descarta la Z.
+export function getBrowOutlines2D(){
+    const baseRadius = 1
+    const anchorX = baseRadius * browParams.gapMult
+    const anchorY = baseRadius * browParams.vertOffsetMult
+
+    const right = buildBrowPoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+    const left = buildBrowPoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+
+    return { right, left }
+}
