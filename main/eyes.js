@@ -53,8 +53,8 @@ let currentBaseRadius = 0
 // una sola fuente de verdad, así que ajustar en cualquiera de los dos
 // modos mueve el mismo dato. Pivotea sobre el propio lagrimal (el ancla).
 let eyeShapeAdjust = {
-    right: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    left:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+    right: { x: 0, y: -0.03, scale: 1.36, rotationDeg: -5 },
+    left:  { x: -0.05, y: -0.05, scale: 1.28, rotationDeg: 0 }
 }
 
 // Curvas Bezier cubicas de verdad, como los manejadores de la pluma de
