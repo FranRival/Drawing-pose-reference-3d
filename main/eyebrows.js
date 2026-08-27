@@ -7,22 +7,22 @@ import * as THREE from 'three'
 
 let browParams = {
     // --- eje: cabeza de la ceja (fija, cerca de la nariz) -> cola ---
-    lengthMult: 0.42,   // largo total, fraccion del radio de cabeza (mas corta = bajar esto)
-    angleDeg: 5,        // inclinacion/rotacion de toda la ceja sobre su ancla (la cabeza)
+    lengthMult: 0.43,   // largo total, fraccion del radio de cabeza (mas corta = bajar esto)
+    angleDeg: -4,       // inclinacion/rotacion de toda la ceja sobre su ancla (la cabeza)
 
     // --- espesor de la banda ---
-    thicknessMult: 0.045, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
-    tailTaper: 0.60,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
+    thicknessMult: 0.040, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
+    tailTaper: 0.85,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
     headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
 
     // --- arco ---
-    archPosition: 0.62, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
-    archHeight: 0.09,   // que tan pronunciado es el arco, fraccion del radio de cabeza
-    archSharpness: 0.30, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
+    archPosition: 0.55, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
+    archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
+    archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
     // --- posicion del par en la cara ---
     gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
-    vertOffsetMult: 0.16 // altura sobre la linea de ojos, fraccion del radio
+    vertOffsetMult: 0.15 // altura sobre la linea de ojos, fraccion del radio
 }
 
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js y en eyes.js
@@ -44,8 +44,8 @@ let currentBaseRadius = 0
 // eyeShapeAdjust en eyes.js. Vive aqui para que sea la unica fuente de
 // verdad entre el 3D (buildBrows) y el 2D (getBrowOutlines2D).
 let browShapeAdjust = {
-    right: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    left:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+    right: { x: -0.32, y: 0.11, scale: 1.22, rotationDeg: 0 },
+    left:  { x: 0.31, y: 0.13, scale: 1.36, rotationDeg: 1 }
 }
 
 // bulto unimodal normalizado (pico = 1), con el pico ubicado exactamente
