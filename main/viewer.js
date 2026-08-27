@@ -101,7 +101,7 @@ let mouthLine = null
 let leftTempleLine = null
 let rightTempleLine = null
 let bridgeLine = null
-let jawParams = { width: 0.70, chinDrop: 1.25, chinForward: 0.5, chinWidth: 0.45 }
+let jawParams = { width: 0.80, chinDrop: 1.25, chinForward: 0.00, chinWidth: 0.25 }
 
 // ✅ NUEVO: ajuste de forma para la mandíbula (posición/escala/rotación) —
 // mismo patrón que eyeShapeAdjust/browShapeAdjust, compartido entre 2D y
@@ -109,7 +109,7 @@ let jawParams = { width: 0.70, chinDrop: 1.25, chinForward: 0.5, chinWidth: 0.45
 // no es una superficie que "abraza" la esfera como ojos/cejas — es una
 // cuña con su propia lógica de profundidad por punto (cheekZ, chinZ, etc),
 // y recalcularla desde una fórmula de esfera genérica la rompería.
-let jawShapeAdjust = { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+let jawShapeAdjust = { x: 0.00, y: 0.19, scale: 1.00, rotationDeg: -1 }
 
 function applyJawAdjust(v, R){
     const rad = THREE.MathUtils.degToRad(jawShapeAdjust.rotationDeg)
