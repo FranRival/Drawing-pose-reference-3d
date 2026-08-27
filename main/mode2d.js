@@ -18,9 +18,9 @@ let active = false
 let rafId = null
 
 let refImage = null
-let refScale = 1
-let refOffsetX = 0 // -1 a 1, fracción del ancho del canvas
-let refOffsetY = 0 // -1 a 1, fracción del alto del canvas
+let refScale = 1.55
+let refOffsetX = 0.07 // -1 a 1, fracción del ancho del canvas
+let refOffsetY = 0.12 // -1 a 1, fracción del alto del canvas
 
 // ✅ el ajuste por forma (offset/escala/rotación de cada ojo/ceja) YA NO
 // vive aquí — vive en eyeShapeAdjust (eyes.js) y browShapeAdjust
