@@ -1,6 +1,6 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
-import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust } from './viewer.js'
+import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
 
 // Modo 2D: un canvas plano donde se carga un model sheet / dibujo de
 // referencia, y se superpone la silueta de ojos y cejas (solo vista
@@ -38,10 +38,10 @@ function resizeCanvas(){
     canvas.height = parent.clientHeight
 }
 
-function project(pt, centerX, centerY, pxPerUnit){
+function project(pt, centerX, centerY, pxPerUnit, stretchX = 1, stretchY = 1){
     return {
-        x: centerX + pt.x * pxPerUnit,
-        y: centerY - pt.y * pxPerUnit // Y invertido: en canvas crece hacia abajo
+        x: centerX + pt.x * pxPerUnit * stretchX,
+        y: centerY - pt.y * pxPerUnit * stretchY // Y invertido: en canvas crece hacia abajo
     }
 }
 
@@ -55,10 +55,14 @@ function project(pt, centerX, centerY, pxPerUnit){
 // comparación concreto, así que la gente escalaba la GUÍA para que
 // calzara con la imagen (sin efecto en 3D) en vez de escalar la IMAGEN
 // para que calzara con este círculo (que sí tiene el tamaño correcto).
-function drawHeadReferenceCircle(cx, cy, pxPerUnit){
+// ✅ ACTUALIZADO: ahora es una ELIPSE, no un círculo — usa el mismo
+// estiramiento no uniforme (stretchX/stretchY) que aplica la guía 3D real
+// (loomisScale × loomisStretch), así representa fielmente la forma
+// calibrada, no una esfera idealizada que nunca existió en 3D.
+function drawHeadReferenceCircle(cx, cy, pxPerUnit, stretchX, stretchY){
     if(!ctx) return
     ctx.beginPath()
-    ctx.arc(cx, cy, pxPerUnit, 0, Math.PI * 2)
+    ctx.ellipse(cx, cy, pxPerUnit * stretchX, pxPerUnit * stretchY, 0, 0, Math.PI * 2)
     ctx.strokeStyle = 'rgba(255,255,255,0.25)'
     ctx.lineWidth = 1
     ctx.setLineDash([4, 4])
@@ -168,18 +172,20 @@ function drawFrame(){
 
     // --- silueta de ojos y cejas, en las mismas unidades normalizadas que
     // usan eyes.js/eyebrows.js (radio de cabeza = 1) — con el transform
-    // FIJO de la guía (centerX/centerY/pxPerUnit), no el de la imagen. ---
-    drawHeadReferenceCircle(centerX, centerY, pxPerUnit)
+    // FIJO de la guía (centerX/centerY/pxPerUnit), no el de la imagen, y
+    // el MISMO estiramiento no uniforme que aplica la guía 3D real. ---
+    const { stretchX, stretchY } = getLoomisTransform2D()
+    drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
 
     const eyeOutlines = getEyeOutlines2D()
     const browOutlines = getBrowOutlines2D()
 
     // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
     // dentro de eyes.js/eyebrows.js), así que se proyectan directo.
-    drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#00ffcc')
-    drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
-    drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffaa00')
+    drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+    drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+    drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+    drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
 
     // ✅ NUEVO: mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
     // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
@@ -188,13 +194,13 @@ function drawFrame(){
     const templeColor = '#66ccff'
     const bridgeColor = '#cccccc'
 
-    drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
-    drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
-    drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit)), jawColor)
-    drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit)), '#ffffff')
-    drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
-    drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit)), templeColor)
-    drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit)), bridgeColor)
+    drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+    drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+    drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+    drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
+    drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+    drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+    drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
 
     // ✅ NUEVO: cruz de referencia, dibujada al final para que quede
     // siempre encima de todo (imagen y guías) y sea fácil de ubicar.
