@@ -63,8 +63,8 @@ function drawHeadReferenceCircle(cx, cy, pxPerUnit, stretchX, stretchY){
     if(!ctx) return
     ctx.beginPath()
     ctx.ellipse(cx, cy, pxPerUnit * stretchX, pxPerUnit * stretchY, 0, 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-    ctx.lineWidth = 1
+    ctx.strokeStyle = '#ffee00'
+    ctx.lineWidth = 1.5
     ctx.setLineDash([4, 4])
     ctx.stroke()
     ctx.setLineDash([])
