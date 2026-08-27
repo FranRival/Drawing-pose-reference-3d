@@ -583,6 +583,19 @@ export function setLoomisStretchZ(multiplier){
     applyLoomisScale()
 }
 
+// ✅ NUEVO: expone el transform REAL que aplica la guía en 3D (escala
+// general × estiramiento no uniforme por eje) — para que mode2d.js pueda
+// replicarlo exactamente sobre el círculo de referencia y las siluetas de
+// ojos/cejas/mandíbula. Antes el 2D usaba un círculo perfecto sin este
+// estiramiento, así que calibrar contra él no correspondía a la forma
+// real que se ve en 3D (que sí está estirada/escalada).
+export function getLoomisTransform2D(){
+    return {
+        stretchX: loomisScaleDefault * loomisStretch.x,
+        stretchY: loomisScaleDefault * loomisStretch.y
+    }
+}
+
 // ✅ NUEVO: radio de los círculos de oreja — clamp entre EAR_RADIUS_MIN y
 // EAR_RADIUS_MAX para que nunca puedan igualar o superar el radio de la
 // esfera craneal, sin importar el valor que llegue del slider. Cada cambio
