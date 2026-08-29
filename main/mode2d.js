@@ -30,12 +30,31 @@ let refOffsetY = 0.12 // -1 a 1, fracción del alto del canvas
 // cambios no se veían al volver a 3D.
 let selectedTarget = 'rightEye'
 
+// ✅ NUEVO: modo de vista — 'front' (como hasta ahora) o 'profile' (perfil:
+// proyecta Z/Y en vez de X/Y, de la forma actualmente seleccionada en
+// "Ajuste fino por forma"). Sirve para calibrar profundidad contra una
+// referencia de perfil, ya que de frente esa dimensión no se ve.
+let viewMode = 'front'
+export function setViewMode(mode){
+    viewMode = (mode === 'profile') ? 'profile' : 'front'
+    drawFrame()
+}
+
 function resizeCanvas(){
     if(!canvas) return
     const parent = canvas.parentElement
     if(!parent) return
     canvas.width = parent.clientWidth
     canvas.height = parent.clientHeight
+}
+
+// ✅ NUEVO: proyección para vista de PERFIL — usa Z (profundidad) como eje
+// horizontal de pantalla en vez de X, y Y se mantiene como vertical.
+function projectProfile(pt, centerX, centerY, pxPerUnit, stretchZ, stretchY){
+    return {
+        x: centerX + pt.z * pxPerUnit * stretchZ,
+        y: centerY - pt.y * pxPerUnit * stretchY
+    }
 }
 
 function project(pt, centerX, centerY, pxPerUnit, stretchX = 1, stretchY = 1){
@@ -170,37 +189,66 @@ function drawFrame(){
         ctx.fillText('Carga una imagen de referencia para calibrar', canvas.width / 2, canvas.height / 2)
     }
 
-    // --- silueta de ojos y cejas, en las mismas unidades normalizadas que
-    // usan eyes.js/eyebrows.js (radio de cabeza = 1) — con el transform
-    // FIJO de la guía (centerX/centerY/pxPerUnit), no el de la imagen, y
-    // el MISMO estiramiento no uniforme que aplica la guía 3D real. ---
-    const { stretchX, stretchY } = getLoomisTransform2D()
-    drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
+    // --- silueta de ojos/cejas/mandíbula. En vista FRONTAL se dibujan
+    // todas (X/Y, como hasta ahora). En vista de PERFIL solo se dibuja la
+    // forma actualmente seleccionada en "Ajuste fino por forma" — no tiene
+    // sentido superponer ambos ojos en un perfil — proyectada con Z/Y, así
+    // se puede calibrar la profundidad contra una referencia de perfil. ---
+    const { stretchX, stretchY, stretchZ } = getLoomisTransform2D()
 
-    const eyeOutlines = getEyeOutlines2D()
-    const browOutlines = getBrowOutlines2D()
+    if(viewMode === 'front'){
+        drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
 
-    // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
-    // dentro de eyes.js/eyebrows.js), así que se proyectan directo.
-    drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-    drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-    drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
-    drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+        const eyeOutlines = getEyeOutlines2D()
+        const browOutlines = getBrowOutlines2D()
 
-    // ✅ NUEVO: mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
-    // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
-    const jawOutlines = getJawOutlines2D()
-    const jawColor = '#ff66cc'
-    const templeColor = '#66ccff'
-    const bridgeColor = '#cccccc'
+        // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
+        // dentro de eyes.js/eyebrows.js), así que se proyectan directo.
+        drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+        drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
 
-    drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-    drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-    drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-    drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
-    drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-    drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-    drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
+        // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
+        // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
+        const jawOutlines = getJawOutlines2D()
+        const jawColor = '#ff66cc'
+        const templeColor = '#66ccff'
+        const bridgeColor = '#cccccc'
+
+        drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+        drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+        drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+        drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
+        drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+        drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+        drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
+    } else {
+        // --- vista de PERFIL: círculo de referencia con Z/Y (el "ancho"
+        // de perfil es la profundidad real de la cabeza, no stretchX) ---
+        drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchZ, stretchY)
+
+        const t = resolveTarget(selectedTarget)
+
+        if(t.kind === 'eye'){
+            const eo = getEyeOutlines2D()
+            drawOutline(eo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+        } else if(t.kind === 'brow'){
+            const bo = getBrowOutlines2D()
+            drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
+        } else {
+            const jo = getJawOutlines2D()
+            const jawColor = '#ff66cc'
+            const templeColor = '#66ccff'
+            drawLine(jo.leftJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+            drawLine(jo.rightJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+            drawLine(jo.chin.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+            drawLine(jo.mouth.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffffff')
+            drawLine(jo.leftTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
+            drawLine(jo.rightTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
+            drawLine(jo.bridge.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#cccccc')
+        }
+    }
 
     // ✅ NUEVO: cruz de referencia, dibujada al final para que quede
     // siempre encima de todo (imagen y guías) y sea fácil de ubicar.
