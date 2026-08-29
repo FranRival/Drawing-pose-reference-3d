@@ -1,6 +1,7 @@
 import { model, camera, renderer, scene, sunGizmo, setSunAngles, setHelpersVisible } from './core.js'
 import { createEyeGuides, setEyeOcclusion } from './eyes.js'
 import { createEyebrowGuides, setEyebrowOcclusion } from './eyebrows.js'
+import { createEyelashGuides, setEyelashOcclusion } from './eyelashes.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -480,6 +481,10 @@ export function createLoomisGuide(radius){
     // así heredan posición/rotación del hueso de cabeza automáticamente.
     createEyeGuides(loomisGroup, localRadius)
 
+    // ✅ NUEVO: pestañas (eyelashes.js) — se apoyan directamente sobre la
+    // curva del párpado superior del ojo, así que van DESPUÉS de crear el ojo.
+    createEyelashGuides(loomisGroup, localRadius)
+
     // ✅ NUEVO: guías de cejas (eyebrows.js) — mismo patrón que los ojos.
     createEyebrowGuides(loomisGroup, localRadius)
 
@@ -523,6 +528,7 @@ export function setLoomisRespectOcclusion(respectOcclusion){
         mat.needsUpdate = true
     })
     setEyeOcclusion(respectOcclusion) // los ojos viven en eyes.js, con sus propios materiales
+    setEyelashOcclusion(respectOcclusion) // las pestañas viven en eyelashes.js
     setEyebrowOcclusion(respectOcclusion) // las cejas viven en eyebrows.js, con sus propios materiales
 }
 
