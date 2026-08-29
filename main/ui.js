@@ -8,7 +8,8 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
-         setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
+         setLagrimalDepth, setCenterDepth, setCantoDepth,
+         setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
@@ -656,6 +657,39 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setCantoDepth(value)
             if(cantoDepthValue) cantoDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const profileUpperDepthSlider = document.getElementById("profileUpperDepth")
+    const profileUpperDepthValue  = document.getElementById("profileUpperDepthValue")
+
+    if(profileUpperDepthSlider){
+        profileUpperDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setProfileUpperDepth(value)
+            if(profileUpperDepthValue) profileUpperDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const profileLowerDepthSlider = document.getElementById("profileLowerDepth")
+    const profileLowerDepthValue  = document.getElementById("profileLowerDepthValue")
+
+    if(profileLowerDepthSlider){
+        profileLowerDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setProfileLowerDepth(value)
+            if(profileLowerDepthValue) profileLowerDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const profileArchPositionSlider = document.getElementById("profileArchPosition")
+    const profileArchPositionValue  = document.getElementById("profileArchPositionValue")
+
+    if(profileArchPositionSlider){
+        profileArchPositionSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setProfileArchPosition(value)
+            if(profileArchPositionValue) profileArchPositionValue.textContent = value.toFixed(2)
         })
     }
 
