@@ -10,8 +10,8 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth } from './eyes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
-         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset } from './eyebrows.js'
-import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY,
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
+import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -258,6 +258,13 @@ export function initUI(){
     /* ========================= */
 
     initMode2D()
+
+    const mode2DViewModeSelect = document.getElementById("mode2DViewMode")
+    if(mode2DViewModeSelect){
+        mode2DViewModeSelect.addEventListener("change",(e)=>{
+            setViewMode(e.target.value)
+        })
+    }
 
     const mode2DToggle = document.getElementById("mode2DToggle")
     if(mode2DToggle){
@@ -763,6 +770,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowVerticalOffset(value)
             if(browVerticalOffsetValue) browVerticalOffsetValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browDepthSlider = document.getElementById("browDepth")
+    const browDepthValue  = document.getElementById("browDepthValue")
+
+    if(browDepthSlider){
+        browDepthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowDepth(value)
+            if(browDepthValue) browDepthValue.textContent = value.toFixed(2)
         })
     }
 
