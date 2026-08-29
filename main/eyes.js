@@ -232,13 +232,6 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     })
 }
 
-        const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
-        const z = naturalZ + depthOffsetAt(axisT) * baseRadius
-
-        return new THREE.Vector3(worldX, worldY, z)
-    })
-}
-
 
 function buildEyes(baseRadius){
     if(!eyesGroup || !baseRadius) return
