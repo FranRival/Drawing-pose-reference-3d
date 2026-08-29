@@ -22,7 +22,10 @@ let browParams = {
 
     // --- posicion del par en la cara ---
     gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
-    vertOffsetMult: 0.15 // altura sobre la linea de ojos, fraccion del radio
+    vertOffsetMult: 0.15, // altura sobre la linea de ojos, fraccion del radio
+
+    // --- profundidad (para calibrar contra una referencia de perfil) ---
+    depthOffset: 0 // 0 = sigue la curvatura natural de la esfera; +/- la mueve adelante/atras
 }
 
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js y en eyes.js
@@ -135,7 +138,8 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
 
         const worldX = anchorX + ax
         const worldY = anchorY + ay
-        const z = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+        const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+        const z = naturalZ + p.depthOffset * baseRadius
         return new THREE.Vector3(worldX, worldY, z)
     })
 }
@@ -207,6 +211,9 @@ export function setBrowArchSharpness(value){ browParams.archSharpness = value; r
 export function setBrowGap(mult){ browParams.gapMult = mult; rebuild() }
 export function setBrowVerticalOffset(mult){ browParams.vertOffsetMult = mult; rebuild() }
 
+// setter - profundidad (para perfil)
+export function setBrowDepth(value){ browParams.depthOffset = value; rebuild() }
+
 // setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
 // el modo 2D y el 3D — side es 'right' o 'left'.
 export function setBrowShapeOffsetX(side, value){ if(browShapeAdjust[side]){ browShapeAdjust[side].x = value; rebuild() } }
@@ -233,8 +240,8 @@ export function getBrowOutlines2D(){
     const anchorX = baseRadius * browParams.gapMult
     const anchorY = baseRadius * browParams.vertOffsetMult
 
-    const right = buildBrowPoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
-    const left = buildBrowPoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+    const right = buildBrowPoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    const left = buildBrowPoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
 
     return { right, left }
 }
