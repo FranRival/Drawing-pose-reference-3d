@@ -33,7 +33,17 @@ let eyeParams = {
     // dejarlo como una calcomania plana.
     lagrimalDepth: 0,
     centerDepth: 0,
-    cantoDepth: 0
+    cantoDepth: 0,
+
+    // --- CAPA 5: volumen de perfil (SOLO afecta la vista de perfil — la
+    // vista frontal ignora Z por completo, así que estos valores nunca se
+    // ven ahí). Antes el párpado superior e inferior compartían la misma
+    // Z en cada punto, así que en perfil el ojo colapsaba casi a una
+    // línea plana. Estos dos valores le dan volumen real a cada párpado
+    // por separado, con un arco posicionable.
+    profileUpperDepth: 0.05, // qué tanto se abulta hacia adelante el párpado superior, fracción del radio
+    profileLowerDepth: 0.03, // qué tanto se abulta el párpado inferior (normalmente menos que el superior)
+    profileArchPosition: 0.5 // dónde se ubica el pico de ese abultamiento (0=lagrimal, 1=canto)
 }
 
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js
@@ -100,6 +110,16 @@ function depthOffsetAt(axisT){
     return THREE.MathUtils.lerp(p.centerDepth, p.cantoDepth, (axisT - 0.5) / 0.5)
 }
 
+// bulto simple (triangular) para el volumen de perfil: 0 en las esquinas,
+// 1 en peakT - a diferencia de depthOffsetAt (que interpola profundidad
+// GENERAL del ojo), este bulto es el que le da a cada párpado su propio
+// abultamiento hacia adelante, con pico posicionable.
+function lidDepthBump(axisT, peakT){
+    const p = THREE.MathUtils.clamp(peakT, 0.02, 0.98)
+    if(axisT <= p) return axisT / p
+    return (1 - axisT) / (1 - p)
+}
+
 // Construye el contorno de UN ojo, ya en coordenadas absolutas dentro de
 // loomisGroup (no relativas a un origen que luego se traduce aparte) -
 // porque cada punto necesita su PROPIA profundidad Z, calculada sobre la
@@ -154,7 +174,7 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     for(let i = 0; i <= segs; i++){
         const t = i / segs // 0 = lagrimal, 1 = canto
         const pt = cubicBezierPoint(inner, upP1, upP2, outer, t)
-        raw.push({ x: pt.x, y: pt.y, axisT: t })
+        raw.push({ x: pt.x, y: pt.y, axisT: t, side: 'upper' })
     }
 
     // --- parpado inferior: Bezier cubica canto (P0) -> lagrimal (P3) ---
@@ -170,7 +190,7 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     for(let i = 0; i <= segs; i++){
         const t = i / segs // aqui 0 = canto, 1 = lagrimal (orden invertido)
         const pt = cubicBezierPoint(outer, loP1, loP2, inner, t)
-        raw.push({ x: pt.x, y: pt.y, axisT: 1 - t }) // se reconvierte a la misma convencion (0=lagrimal, 1=canto)
+        raw.push({ x: pt.x, y: pt.y, axisT: 1 - t, side: 'lower' }) // se reconvierte a la misma convencion (0=lagrimal, 1=canto)
     }
 
     // CAPA 3: estiramiento final, aplicado alrededor del centro del eje
@@ -193,7 +213,7 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const cosAdj = Math.cos(adjRad)
     const sinAdj = Math.sin(adjRad)
 
-    return raw.map(({ x, y, axisT }) => {
+    return raw.map(({ x, y, axisT, side }) => {
         const sx = centerX + (x - centerX) * p.horizontalStretch
         const sy = centerY + (y - centerY) * p.verticalStretch
 
@@ -202,6 +222,15 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
 
         const worldX = anchorX + ax
         const worldY = anchorY + ay
+
+        const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+        const lidAmp = side === 'upper' ? p.profileUpperDepth : p.profileLowerDepth
+        const lidBulge = lidAmp * lidDepthBump(axisT, p.profileArchPosition) * baseRadius
+        const z = naturalZ + depthOffsetAt(axisT) * baseRadius + lidBulge
+
+        return new THREE.Vector3(worldX, worldY, z)
+    })
+}
 
         const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
         const z = naturalZ + depthOffsetAt(axisT) * baseRadius
@@ -297,6 +326,11 @@ export function getEyeShapeAdjust(side){ return eyeShapeAdjust[side] || eyeShape
 export function setLagrimalDepth(mult){ eyeParams.lagrimalDepth = mult; rebuild() }
 export function setCenterDepth(mult){ eyeParams.centerDepth = mult; rebuild() }
 export function setCantoDepth(mult){ eyeParams.cantoDepth = mult; rebuild() }
+
+// setters - CAPA 5 (volumen de perfil: solo se ve en la vista de perfil)
+export function setProfileUpperDepth(mult){ eyeParams.profileUpperDepth = mult; rebuild() }
+export function setProfileLowerDepth(mult){ eyeParams.profileLowerDepth = mult; rebuild() }
+export function setProfileArchPosition(value){ eyeParams.profileArchPosition = value; rebuild() }
 
 // para conectar con el toggle "respetar oclusion" existente en viewer.js -
 // llamar setEyeOcclusion(respectOcclusion) junto con
