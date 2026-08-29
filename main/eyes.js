@@ -337,6 +337,22 @@ export function getEyeUpperLidPoints(baseRadius){
     }
 }
 
+// ✅ NUEVO: expone el contorno COMPLETO del ojo (párpado superior + inferior,
+// el lazo cerrado entero) — para que pupils.js pueda calcular el centro y
+// tamaño del iris a partir de la caja del ojo real, sin duplicar cálculos
+// de eje/ancla.
+export function getEyeFullPoints(baseRadius){
+    const cantoLength = baseRadius * eyeParams.cantoLengthMult
+    const gap = cantoLength * eyeParams.gapMult
+    const anchorX = gap / 2
+    const anchorY = -baseRadius * eyeParams.vertOffsetMult
+
+    return {
+        right: buildEyePoints(baseRadius, false, anchorX, anchorY),
+        left: buildEyePoints(baseRadius, true, -anchorX, anchorY)
+    }
+}
+
 // setters - CAPA 4 (profundidad en 3D: lagrimal, centro, canto)
 export function setLagrimalDepth(mult){ eyeParams.lagrimalDepth = mult; rebuild() }
 export function setCenterDepth(mult){ eyeParams.centerDepth = mult; rebuild() }
