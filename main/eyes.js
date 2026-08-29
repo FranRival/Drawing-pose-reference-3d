@@ -315,6 +315,28 @@ export function setEyeShapeScale(side, value){ if(eyeShapeAdjust[side]){ eyeShap
 export function setEyeShapeRotation(side, degrees){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].rotationDeg = degrees; rebuild() } }
 export function getEyeShapeAdjust(side){ return eyeShapeAdjust[side] || eyeShapeAdjust.right }
 
+// ✅ NUEVO: expone SOLO la curva del párpado superior (los primeros
+// segs+1 puntos de buildEyePoints, antes de que el lazo baje al párpado
+// inferior) — para que eyelashes.js pueda apoyar la pestaña directamente
+// sobre esta curva en vez de construir su propio eje. Ya incluye TODO lo
+// que afecta al ojo (ajuste por ojo, estiramiento, profundidad), así la
+// pestaña queda automáticamente pegada al párpado sin duplicar lógica.
+const EYE_SEGS = 24
+export function getEyeUpperLidPoints(baseRadius){
+    const cantoLength = baseRadius * eyeParams.cantoLengthMult
+    const gap = cantoLength * eyeParams.gapMult
+    const anchorX = gap / 2
+    const anchorY = -baseRadius * eyeParams.vertOffsetMult
+
+    const rightFull = buildEyePoints(baseRadius, false, anchorX, anchorY)
+    const leftFull = buildEyePoints(baseRadius, true, -anchorX, anchorY)
+
+    return {
+        right: rightFull.slice(0, EYE_SEGS + 1),
+        left: leftFull.slice(0, EYE_SEGS + 1)
+    }
+}
+
 // setters - CAPA 4 (profundidad en 3D: lagrimal, centro, canto)
 export function setLagrimalDepth(mult){ eyeParams.lagrimalDepth = mult; rebuild() }
 export function setCenterDepth(mult){ eyeParams.centerDepth = mult; rebuild() }
