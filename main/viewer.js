@@ -592,7 +592,8 @@ export function setLoomisStretchZ(multiplier){
 export function getLoomisTransform2D(){
     return {
         stretchX: loomisScaleDefault * loomisStretch.x,
-        stretchY: loomisScaleDefault * loomisStretch.y
+        stretchY: loomisScaleDefault * loomisStretch.y,
+        stretchZ: loomisScaleDefault * loomisStretch.z
     }
 }
 
