@@ -239,6 +239,9 @@ function drawFrame(){
         if(t.kind === 'eye'){
             const eo = getEyeOutlines2D()
             drawOutline(eo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+
+            const lo = getEyelashOutlines2D()
+            drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#444444')
         } else if(t.kind === 'brow'){
             const bo = getBrowOutlines2D()
             drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
