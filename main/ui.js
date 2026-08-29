@@ -10,6 +10,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
+import { setLashInnerThickness, setLashOuterThickness } from './eyelashes.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
@@ -690,6 +691,28 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setProfileArchPosition(value)
             if(profileArchPositionValue) profileArchPositionValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const lashInnerThicknessSlider = document.getElementById("lashInnerThickness")
+    const lashInnerThicknessValue  = document.getElementById("lashInnerThicknessValue")
+
+    if(lashInnerThicknessSlider){
+        lashInnerThicknessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashInnerThickness(value)
+            if(lashInnerThicknessValue) lashInnerThicknessValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lashOuterThicknessSlider = document.getElementById("lashOuterThickness")
+    const lashOuterThicknessValue  = document.getElementById("lashOuterThicknessValue")
+
+    if(lashOuterThicknessSlider){
+        lashOuterThicknessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashOuterThickness(value)
+            if(lashOuterThicknessValue) lashOuterThicknessValue.textContent = value.toFixed(3)
         })
     }
 
