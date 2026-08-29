@@ -1,4 +1,5 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
+import { getEyelashOutlines2D } from './eyelashes.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
 
@@ -208,6 +209,11 @@ function drawFrame(){
         drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
         drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
         drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+
+        // pestañas — encima del ojo, mismo tono oscuro que en 3D
+        const lashOutlines = getEyelashOutlines2D()
+        drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
+        drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
 
         // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
         // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
