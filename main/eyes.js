@@ -325,8 +325,8 @@ export function getEyeOutlines2D(){
     const anchorX = gap / 2
     const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
-    const right = buildEyePoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
-    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y }))
+    const right = buildEyePoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
 
     return { right, left }
 }
