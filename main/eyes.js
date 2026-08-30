@@ -17,6 +17,14 @@ let eyeParams = {
     innerSharp: 0.30,       // 0 = manejador lejos del lagrimal (redondeado), 1 = manejador cerca (picudo)
     outerSharp: 0.60,       // 0 = manejador lejos del canto (redondeado), 1 = manejador cerca (picudo)
 
+    // ✅ NUEVO: el parpado inferior ya NO comparte obligatoriamente el
+    // lagrimal/canto con el superior - tiene su PROPIO inicio y final,
+    // insertados hacia adentro del eje. 0 = toca la esquina exacta (como
+    // antes); valores mayores lo acortan y lo "sueltan" de la esquina,
+    // como un trazo independiente flotando debajo.
+    lowerLidInnerInset: 0.15, // fraccion del largo lagrimal-canto, desde el lagrimal
+    lowerLidOuterInset: 0.15, // fraccion del largo lagrimal-canto, desde el canto
+
     // --- CAPA 3: estiramiento final, independiente de las otras dos ---
     verticalStretch: 1.0,   // alarga/achica el ojo YA CONSTRUIDO en vertical
     horizontalStretch: 1.0, // alarga/achica el ojo YA CONSTRUIDO en horizontal
@@ -50,8 +58,10 @@ let eyeParams = {
 const EYE_SURFACE_OFFSET = 1.02
 
 let eyesGroup = null
-let rightEyeLine = null
-let leftEyeLine = null
+let rightEyeUpperLine = null
+let rightEyeLowerLine = null
+let leftEyeUpperLine = null
+let leftEyeLowerLine = null
 let rightEyeMat = null
 let leftEyeMat = null
 let currentBaseRadius = 0
@@ -153,16 +163,14 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const perpDownX = -perpUpX
     const perpDownY = -perpUpY
 
-    const innerFrac = handleAxisFraction(p.innerSharp) * cantoLength
-    const outerFrac = handleAxisFraction(p.outerSharp) * cantoLength
     const upperAmp = baseRadius * p.upperLidBulge
     const lowerAmp = baseRadius * p.lowerLidBulge
 
-    // cada punto guarda tambien axisT (0 = lagrimal, 1 = canto), para
-    // luego interpolar la profundidad de las 3 anclas correctamente
-    const raw = []
+    // --- parpado superior: ancho completo, lagrimal (P0) -> canto (P3),
+    // igual que antes ---
+    const innerFrac = handleAxisFraction(p.innerSharp) * cantoLength
+    const outerFrac = handleAxisFraction(p.outerSharp) * cantoLength
 
-    // --- parpado superior: Bezier cubica lagrimal (P0) -> canto (P3) ---
     const upP1 = {
         x: dx * innerFrac + perpUpX * upperAmp,
         y: dy * innerFrac + perpUpY * upperAmp
@@ -171,26 +179,46 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         x: outer.x - dx * outerFrac + perpUpX * upperAmp,
         y: outer.y - dy * outerFrac + perpUpY * upperAmp
     }
+
+    const upperRaw = []
     for(let i = 0; i <= segs; i++){
         const t = i / segs // 0 = lagrimal, 1 = canto
         const pt = cubicBezierPoint(inner, upP1, upP2, outer, t)
-        raw.push({ x: pt.x, y: pt.y, axisT: t, side: 'upper' })
+        upperRaw.push({ x: pt.x, y: pt.y, axisT: t, side: 'upper' })
     }
 
-    // --- parpado inferior: Bezier cubica canto (P0) -> lagrimal (P3) ---
-    // (arranca donde termino el parpado superior, para cerrar el lazo)
+    // --- parpado inferior: YA NO comparte el lagrimal/canto exactos - su
+    // propio inicio (inner2) y final (outer2) quedan insertados hacia
+    // adentro del eje, según lowerLidInnerInset/lowerLidOuterInset. Un
+    // trazo mas corto, independiente, en vez de la segunda mitad del
+    // mismo lazo. ---
+    const innerInsetLen = THREE.MathUtils.clamp(p.lowerLidInnerInset, 0, 0.45) * cantoLength
+    const outerInsetLen = THREE.MathUtils.clamp(p.lowerLidOuterInset, 0, 0.45) * cantoLength
+    const inner2 = { x: dx * innerInsetLen, y: dy * innerInsetLen }
+    const outer2 = { x: outer.x - dx * outerInsetLen, y: outer.y - dy * outerInsetLen }
+    const lowerAxisLen = Math.max(cantoLength - innerInsetLen - outerInsetLen, 0.0001)
+
+    const lowerInnerFrac = handleAxisFraction(p.innerSharp) * lowerAxisLen
+    const lowerOuterFrac = handleAxisFraction(p.outerSharp) * lowerAxisLen
+
     const loP1 = {
-        x: outer.x - dx * outerFrac + perpDownX * lowerAmp,
-        y: outer.y - dy * outerFrac + perpDownY * lowerAmp
+        x: outer2.x - dx * lowerOuterFrac + perpDownX * lowerAmp,
+        y: outer2.y - dy * lowerOuterFrac + perpDownY * lowerAmp
     }
     const loP2 = {
-        x: dx * innerFrac + perpDownX * lowerAmp,
-        y: dy * innerFrac + perpDownY * lowerAmp
+        x: inner2.x + dx * lowerInnerFrac + perpDownX * lowerAmp,
+        y: inner2.y + dy * lowerInnerFrac + perpDownY * lowerAmp
     }
+
+    const lowerRaw = []
     for(let i = 0; i <= segs; i++){
-        const t = i / segs // aqui 0 = canto, 1 = lagrimal (orden invertido)
-        const pt = cubicBezierPoint(outer, loP1, loP2, inner, t)
-        raw.push({ x: pt.x, y: pt.y, axisT: 1 - t, side: 'lower' }) // se reconvierte a la misma convencion (0=lagrimal, 1=canto)
+        const t = i / segs // 0 = canto2, 1 = lagrimal2 (orden invertido)
+        const pt = cubicBezierPoint(outer2, loP1, loP2, inner2, t)
+        // axisT se recalcula en la escala ORIGINAL (0=lagrimal real,
+        // 1=canto real) para que depthOffsetAt/lidDepthBump sigan
+        // interpolando correctamente contra las anclas de profundidad.
+        const realAxisT = (cantoLength - outerInsetLen - t * lowerAxisLen) / cantoLength
+        lowerRaw.push({ x: pt.x, y: pt.y, axisT: realAxisT, side: 'lower' })
     }
 
     // CAPA 3: estiramiento final, aplicado alrededor del centro del eje
@@ -204,7 +232,7 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     // mas el ajuste interpolado entre las 3 anclas de profundidad.
     const surfaceR = baseRadius * EYE_SURFACE_OFFSET
 
-    // ✅ NUEVO: ajuste por ojo (compartido con el modo 2D) - pivotea sobre
+    // ✅ ajuste por ojo (compartido con el modo 2D) - pivotea sobre
     // el lagrimal (origen local, ANTES de sumar el ancla en la cara). Los
     // offsets se escalan por baseRadius para comportarse igual en 2D
     // (baseRadius=1) y en 3D (baseRadius=loomisBaseRadius).
@@ -213,7 +241,7 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const cosAdj = Math.cos(adjRad)
     const sinAdj = Math.sin(adjRad)
 
-    return raw.map(({ x, y, axisT, side }) => {
+    function transformPoint({ x, y, axisT, side }){
         const sx = centerX + (x - centerX) * p.horizontalStretch
         const sy = centerY + (y - centerY) * p.verticalStretch
 
@@ -229,7 +257,12 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         const z = naturalZ + depthOffsetAt(axisT) * baseRadius + lidBulge
 
         return new THREE.Vector3(worldX, worldY, z)
-    })
+    }
+
+    return {
+        upper: upperRaw.map(transformPoint),
+        lower: lowerRaw.map(transformPoint)
+    }
 }
 
 
@@ -246,20 +279,27 @@ function buildEyes(baseRadius){
     const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
     // ✅ cada punto ya trae su X/Y/Z absolutos (ver buildEyePoints), así que
-    // la línea se agrega sin traducción extra - la profundidad ya no es un
-    // solo valor para todo el ojo, sino que varía punto a punto siguiendo
-    // la curvatura real de la cara + las 3 anclas de profundidad.
+    // las líneas se agregan sin traducción extra. El párpado superior e
+    // inferior son AHORA DOS trazos abiertos independientes (no un lazo
+    // cerrado) — comparten material por ojo, ya que se ocultan/muestran
+    // juntos con el mismo toggle de oclusión.
     rightEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
     const rightPts = buildEyePoints(baseRadius, false, anchorX, anchorY)
-    rightEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightEyeMat)
-    rightEyeLine.renderOrder = 999
-    eyesGroup.add(rightEyeLine)
+    rightEyeUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts.upper), rightEyeMat)
+    rightEyeUpperLine.renderOrder = 999
+    eyesGroup.add(rightEyeUpperLine)
+    rightEyeLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts.lower), rightEyeMat)
+    rightEyeLowerLine.renderOrder = 999
+    eyesGroup.add(rightEyeLowerLine)
 
     leftEyeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, depthTest: true, depthWrite: false })
     const leftPts = buildEyePoints(baseRadius, true, -anchorX, anchorY)
-    leftEyeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftEyeMat)
-    leftEyeLine.renderOrder = 999
-    eyesGroup.add(leftEyeLine)
+    leftEyeUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts.upper), leftEyeMat)
+    leftEyeUpperLine.renderOrder = 999
+    eyesGroup.add(leftEyeUpperLine)
+    leftEyeLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts.lower), leftEyeMat)
+    leftEyeLowerLine.renderOrder = 999
+    eyesGroup.add(leftEyeLowerLine)
 }
 
 // Llamar desde viewer.js, dentro/despues de createLoomisGuide, pasando el
@@ -279,8 +319,10 @@ export function createEyeGuides(loomisGroup, loomisBaseRadius){
 export function removeEyeGuides(){
     if(eyesGroup && eyesGroup.parent) eyesGroup.parent.remove(eyesGroup)
     eyesGroup = null
-    rightEyeLine = null
-    leftEyeLine = null
+    rightEyeUpperLine = null
+    rightEyeLowerLine = null
+    leftEyeUpperLine = null
+    leftEyeLowerLine = null
     rightEyeMat = null
     leftEyeMat = null
 }
@@ -298,6 +340,8 @@ export function setUpperLidBulge(mult){ eyeParams.upperLidBulge = mult; rebuild(
 export function setLowerLidBulge(mult){ eyeParams.lowerLidBulge = mult; rebuild() }
 export function setInnerSharp(value){ eyeParams.innerSharp = value; rebuild() }
 export function setOuterSharp(value){ eyeParams.outerSharp = value; rebuild() }
+export function setLowerLidInnerInset(value){ eyeParams.lowerLidInnerInset = value; rebuild() }
+export function setLowerLidOuterInset(value){ eyeParams.lowerLidOuterInset = value; rebuild() }
 
 // setters - CAPA 3 (estiramiento final)
 export function setEyeVerticalStretch(mult){ eyeParams.verticalStretch = mult; rebuild() }
@@ -315,13 +359,11 @@ export function setEyeShapeScale(side, value){ if(eyeShapeAdjust[side]){ eyeShap
 export function setEyeShapeRotation(side, degrees){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].rotationDeg = degrees; rebuild() } }
 export function getEyeShapeAdjust(side){ return eyeShapeAdjust[side] || eyeShapeAdjust.right }
 
-// ✅ NUEVO: expone SOLO la curva del párpado superior (los primeros
-// segs+1 puntos de buildEyePoints, antes de que el lazo baje al párpado
-// inferior) — para que eyelashes.js pueda apoyar la pestaña directamente
-// sobre esta curva en vez de construir su propio eje. Ya incluye TODO lo
-// que afecta al ojo (ajuste por ojo, estiramiento, profundidad), así la
-// pestaña queda automáticamente pegada al párpado sin duplicar lógica.
-const EYE_SEGS = 24
+// expone SOLO la curva del párpado superior — para que eyelashes.js pueda
+// apoyar la pestaña directamente sobre esta curva en vez de construir su
+// propio eje. Ya incluye TODO lo que afecta al ojo (ajuste por ojo,
+// estiramiento, profundidad), así la pestaña queda automáticamente pegada
+// al párpado sin duplicar lógica.
 export function getEyeUpperLidPoints(baseRadius){
     const cantoLength = baseRadius * eyeParams.cantoLengthMult
     const gap = cantoLength * eyeParams.gapMult
@@ -332,24 +374,26 @@ export function getEyeUpperLidPoints(baseRadius){
     const leftFull = buildEyePoints(baseRadius, true, -anchorX, anchorY)
 
     return {
-        right: rightFull.slice(0, EYE_SEGS + 1),
-        left: leftFull.slice(0, EYE_SEGS + 1)
+        right: rightFull.upper,
+        left: leftFull.upper
     }
 }
 
-// ✅ NUEVO: expone el contorno COMPLETO del ojo (párpado superior + inferior,
-// el lazo cerrado entero) — para que pupils.js pueda calcular el centro y
-// tamaño del iris a partir de la caja del ojo real, sin duplicar cálculos
-// de eje/ancla.
+// expone el contorno COMPLETO del ojo (párpado superior + inferior juntos,
+// aunque ya no sean un lazo cerrado) — para que pupils.js pueda calcular
+// el centro y tamaño del iris a partir de la caja del ojo real.
 export function getEyeFullPoints(baseRadius){
     const cantoLength = baseRadius * eyeParams.cantoLengthMult
     const gap = cantoLength * eyeParams.gapMult
     const anchorX = gap / 2
     const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
+    const right = buildEyePoints(baseRadius, false, anchorX, anchorY)
+    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY)
+
     return {
-        right: buildEyePoints(baseRadius, false, anchorX, anchorY),
-        left: buildEyePoints(baseRadius, true, -anchorX, anchorY)
+        right: [...right.upper, ...right.lower],
+        left: [...left.upper, ...left.lower]
     }
 }
 
@@ -376,13 +420,13 @@ export function setEyeOcclusion(respectOcclusion){
     })
 }
 
-// ✅ NUEVO: silueta 2D de los ojos, para el modo de calibracion contra
+// ✅ silueta 2D de los ojos, para el modo de calibracion contra
 // referencia (mode2d.js). Reutiliza EXACTAMENTE la misma funcion de
 // construccion que el 3D (buildEyePoints) con baseRadius=1 (unidades
 // normalizadas, sin depender de si hay un modelo 3D cargado) - asi el 2D
-// y el 3D nunca se desincronizan: cambiar un slider afecta a ambos porque
-// leen del mismo eyeParams. Se descarta la Z (profundidad), que no aplica
-// a una vista frontal plana.
+// y el 3D nunca se desincronizan. Devuelve upper/lower POR SEPARADO (ya
+// no es un lazo cerrado) — quien dibuje esto debe trazar dos líneas
+// abiertas, no una forma cerrada.
 export function getEyeOutlines2D(){
     const baseRadius = 1
     const cantoLength = baseRadius * eyeParams.cantoLengthMult
@@ -390,8 +434,13 @@ export function getEyeOutlines2D(){
     const anchorX = gap / 2
     const anchorY = -baseRadius * eyeParams.vertOffsetMult
 
-    const right = buildEyePoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
-    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    const right = buildEyePoints(baseRadius, false, anchorX, anchorY)
+    const left = buildEyePoints(baseRadius, true, -anchorX, anchorY)
 
-    return { right, left }
+    const flat = v => ({ x: v.x, y: v.y, z: v.z })
+
+    return {
+        right: { upper: right.upper.map(flat), lower: right.lower.map(flat) },
+        left: { upper: left.upper.map(flat), lower: left.lower.map(flat) }
+    }
 }
