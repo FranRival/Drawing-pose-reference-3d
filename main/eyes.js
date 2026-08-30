@@ -25,6 +25,18 @@ let eyeParams = {
     lowerLidInnerInset: 0.15, // fraccion del largo lagrimal-canto, desde el lagrimal
     lowerLidOuterInset: 0.15, // fraccion del largo lagrimal-canto, desde el canto
 
+    // ✅ NUEVO: base plana del párpado inferior - en 0 el ojo es una
+    // almendra (la curva actual, sin tramo recto). Al subir el valor se
+    // inserta un tramo horizontal en el medio de la curva, "aplanando"
+    // la base y alejándose de la forma almendrada.
+    lowerLidBaseWidth: 0,
+
+    // ✅ NUEVO: "flick" del canto - el párpado superior sigue de largo más
+    // allá del punto donde el inferior termina, como un trazo de
+    // delineador que no cierra justo en la esquina. En 0 no hay flick
+    // (cierra exacto en el canto, como antes).
+    outerFlickLength: 0,
+
     // --- CAPA 3: estiramiento final, independiente de las otras dos ---
     verticalStretch: 1.0,   // alarga/achica el ojo YA CONSTRUIDO en vertical
     horizontalStretch: 1.0, // alarga/achica el ojo YA CONSTRUIDO en horizontal
@@ -187,6 +199,25 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         upperRaw.push({ x: pt.x, y: pt.y, axisT: t, side: 'upper' })
     }
 
+    // ✅ NUEVO: "flick" del canto - continúa el párpado superior en línea
+    // recta más allá de "outer", siguiendo la tangente de la curva en ese
+    // punto (la dirección en la que ya venía "saliendo"), en vez de cerrar
+    // justo en la esquina donde termina el párpado inferior.
+    if(p.outerFlickLength > 0){
+        let tanX = outer.x - upP2.x
+        let tanY = outer.y - upP2.y
+        const tanLen = Math.sqrt(tanX * tanX + tanY * tanY) || 1
+        tanX /= tanLen
+        tanY /= tanLen
+        const flickLen = p.outerFlickLength * cantoLength
+        upperRaw.push({
+            x: outer.x + tanX * flickLen,
+            y: outer.y + tanY * flickLen,
+            axisT: 1,
+            side: 'upper'
+        })
+    }
+
     // --- parpado inferior: YA NO comparte el lagrimal/canto exactos - su
     // propio inicio (inner2) y final (outer2) quedan insertados hacia
     // adentro del eje, según lowerLidInnerInset/lowerLidOuterInset. Un
@@ -219,6 +250,19 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         // interpolando correctamente contra las anclas de profundidad.
         const realAxisT = (cantoLength - outerInsetLen - t * lowerAxisLen) / cantoLength
         lowerRaw.push({ x: pt.x, y: pt.y, axisT: realAxisT, side: 'lower' })
+    }
+
+    // ✅ NUEVO: base plana - inserta un tramo recto justo en el punto medio
+    // de la curva (índice segs/2, que corresponde exactamente a t=0.5),
+    // SIN tocar los extremos (inner2/outer2 quedan intactos). En 0 los dos
+    // puntos insertados coinciden (sin efecto visible = almendra actual).
+    if(p.lowerLidBaseWidth > 0){
+        const midIdx = Math.round(segs / 2)
+        const midPoint = lowerRaw[midIdx]
+        const halfBase = (p.lowerLidBaseWidth * cantoLength) / 2
+        const baseNear = { x: midPoint.x + dx * halfBase, y: midPoint.y + dy * halfBase, axisT: midPoint.axisT, side: 'lower' } // lado canto
+        const baseFar = { x: midPoint.x - dx * halfBase, y: midPoint.y - dy * halfBase, axisT: midPoint.axisT, side: 'lower' } // lado lagrimal
+        lowerRaw.splice(midIdx, 1, baseNear, baseFar)
     }
 
     // CAPA 3: estiramiento final, aplicado alrededor del centro del eje
@@ -342,6 +386,8 @@ export function setInnerSharp(value){ eyeParams.innerSharp = value; rebuild() }
 export function setOuterSharp(value){ eyeParams.outerSharp = value; rebuild() }
 export function setLowerLidInnerInset(value){ eyeParams.lowerLidInnerInset = value; rebuild() }
 export function setLowerLidOuterInset(value){ eyeParams.lowerLidOuterInset = value; rebuild() }
+export function setLowerLidBaseWidth(value){ eyeParams.lowerLidBaseWidth = value; rebuild() }
+export function setOuterFlickLength(value){ eyeParams.outerFlickLength = value; rebuild() }
 
 // setters - CAPA 3 (estiramiento final)
 export function setEyeVerticalStretch(mult){ eyeParams.verticalStretch = mult; rebuild() }
