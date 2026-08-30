@@ -7,7 +7,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          deselectBone,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
-         setLowerLidInnerInset, setLowerLidOuterInset,
+         setLowerLidInnerInset, setLowerLidOuterInset, setLowerLidBaseWidth, setOuterFlickLength,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
@@ -605,6 +605,28 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLowerLidOuterInset(value)
             if(lowerLidOuterInsetValue) lowerLidOuterInsetValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const lowerLidBaseWidthSlider = document.getElementById("lowerLidBaseWidth")
+    const lowerLidBaseWidthValue  = document.getElementById("lowerLidBaseWidthValue")
+
+    if(lowerLidBaseWidthSlider){
+        lowerLidBaseWidthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLowerLidBaseWidth(value)
+            if(lowerLidBaseWidthValue) lowerLidBaseWidthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const outerFlickLengthSlider = document.getElementById("outerFlickLength")
+    const outerFlickLengthValue  = document.getElementById("outerFlickLengthValue")
+
+    if(outerFlickLengthSlider){
+        outerFlickLengthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setOuterFlickLength(value)
+            if(outerFlickLengthValue) outerFlickLengthValue.textContent = value.toFixed(2)
         })
     }
 
