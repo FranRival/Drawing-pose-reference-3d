@@ -160,3 +160,22 @@ export function getPupilOutlines2D(){
         leftPupil: leftDisks.pupilPts.map(v => ({ x: v.x, y: v.y }))
     }
 }
+
+// ✅ NUEVO: para la vista de PERFIL — el iris/pupila son discos planos que
+// miran de frente a cámara, así que en perfil no tiene sentido dibujar el
+// círculo completo (se vería como una línea sin información). Lo útil ahí
+// es mostrar DÓNDE sobresale el globo ocular en profundidad: un punto
+// (z, y) más el radio del iris, para dibujar un pequeño indicador vertical
+// en esa posición Z real.
+export function getPupilProfileMark(side){
+    const { right, left } = getEyeFullPoints(1)
+    const points = side === 'left' ? left : right
+    const disks = buildEyeDisks(1, points)
+    // el centro de todos los puntos del iris es el mismo (cx,cy,cz) - basta leer uno
+    const center = disks.irisPts[0]
+    const box = computeEyeBox(points)
+    const cx = box.cx + pupilParams.horizontalBias * box.halfWidth * 2
+    const cy = box.cy + pupilParams.verticalBias * box.halfHeight * 2
+    const irisRadius = box.halfWidth * pupilParams.irisRadiusMult
+    return { z: center.z, y: cy, radius: irisRadius }
+}
