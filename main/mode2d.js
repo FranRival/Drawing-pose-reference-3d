@@ -1,6 +1,6 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getEyelashOutlines2D } from './eyelashes.js'
-import { getPupilOutlines2D } from './pupils.js'
+import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
 
@@ -144,6 +144,28 @@ function drawLine(points, color){
     ctx.stroke()
 }
 
+// ✅ NUEVO: pequeño indicador vertical (para el globo ocular en perfil) —
+// una línea vertical del alto del iris, en su posición Z real, más un
+// punto en el centro para marcar dónde está exactamente.
+function drawVerticalTick(pt, centerX, centerY, pxPerUnit, stretchZ, stretchY, color){
+    if(!ctx) return
+    const top = projectProfile({ z: pt.z, y: pt.y + pt.radius }, centerX, centerY, pxPerUnit, stretchZ, stretchY)
+    const bottom = projectProfile({ z: pt.z, y: pt.y - pt.radius }, centerX, centerY, pxPerUnit, stretchZ, stretchY)
+    const mid = projectProfile({ z: pt.z, y: pt.y }, centerX, centerY, pxPerUnit, stretchZ, stretchY)
+
+    ctx.beginPath()
+    ctx.moveTo(top.x, top.y)
+    ctx.lineTo(bottom.x, bottom.y)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.arc(mid.x, mid.y, 3, 0, Math.PI * 2)
+    ctx.fillStyle = color
+    ctx.fill()
+}
+
 function drawFrame(){
     if(!ctx || !canvas) return
 
@@ -250,6 +272,9 @@ function drawFrame(){
 
             const lo = getEyelashOutlines2D()
             drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#444444')
+
+            const pupilMark = getPupilProfileMark(t.side)
+            drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
         } else if(t.kind === 'brow'){
             const bo = getBrowOutlines2D()
             drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
