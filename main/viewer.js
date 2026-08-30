@@ -1,5 +1,6 @@
 import { model, camera, renderer, scene, sunGizmo, setSunAngles, setHelpersVisible } from './core.js'
 import { createEyeGuides, setEyeOcclusion } from './eyes.js'
+import { createPupilGuides, setPupilOcclusion } from './pupils.js'
 import { createEyebrowGuides, setEyebrowOcclusion } from './eyebrows.js'
 import { createEyelashGuides, setEyelashOcclusion } from './eyelashes.js'
 import * as THREE from 'three'
@@ -481,6 +482,10 @@ export function createLoomisGuide(radius){
     // así heredan posición/rotación del hueso de cabeza automáticamente.
     createEyeGuides(loomisGroup, localRadius)
 
+    // ✅ NUEVO: iris + pupila (pupils.js) — se calculan a partir de la caja
+    // real del ojo, así que van DESPUÉS de crear el ojo.
+    createPupilGuides(loomisGroup, localRadius)
+
     // ✅ NUEVO: pestañas (eyelashes.js) — se apoyan directamente sobre la
     // curva del párpado superior del ojo, así que van DESPUÉS de crear el ojo.
     createEyelashGuides(loomisGroup, localRadius)
@@ -528,6 +533,7 @@ export function setLoomisRespectOcclusion(respectOcclusion){
         mat.needsUpdate = true
     })
     setEyeOcclusion(respectOcclusion) // los ojos viven en eyes.js, con sus propios materiales
+    setPupilOcclusion(respectOcclusion) // iris/pupila viven en pupils.js
     setEyelashOcclusion(respectOcclusion) // las pestañas viven en eyelashes.js
     setEyebrowOcclusion(respectOcclusion) // las cejas viven en eyebrows.js, con sus propios materiales
 }
