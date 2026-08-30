@@ -37,6 +37,12 @@ let eyeParams = {
     // (cierra exacto en el canto, como antes).
     outerFlickLength: 0,
 
+    // ✅ NUEVO: lagrimal superior - separarlo del lagrimal inferior (para
+    // que no se toquen/crucen) y, desde ese punto ya elevado, ir borrando
+    // el trazo hacia adentro con un slider.
+    upperInnerLift: 0,  // eleva el inicio del párpado superior, fracción del radio de cabeza
+    upperInnerErase: 0, // 0 = trazo completo; 1 = casi todo borrado desde el lagrimal
+
     // --- CAPA 3: estiramiento final, independiente de las otras dos ---
     verticalStretch: 1.0,   // alarga/achica el ojo YA CONSTRUIDO en vertical
     horizontalStretch: 1.0, // alarga/achica el ojo YA CONSTRUIDO en horizontal
@@ -183,19 +189,33 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const innerFrac = handleAxisFraction(p.innerSharp) * cantoLength
     const outerFrac = handleAxisFraction(p.outerSharp) * cantoLength
 
+    // ✅ NUEVO: el lagrimal superior se eleva (separado del lagrimal
+    // inferior) desplazando P0 Y su manejador P1 por igual en la
+    // perpendicular "hacia arriba" - así la curva sigue lisa, solo que
+    // arranca más alto.
+    const innerLift = baseRadius * p.upperInnerLift
+    const innerLifted = { x: perpUpX * innerLift, y: perpUpY * innerLift }
+
     const upP1 = {
-        x: dx * innerFrac + perpUpX * upperAmp,
-        y: dy * innerFrac + perpUpY * upperAmp
+        x: dx * innerFrac + perpUpX * upperAmp + perpUpX * innerLift,
+        y: dy * innerFrac + perpUpY * upperAmp + perpUpY * innerLift
     }
     const upP2 = {
         x: outer.x - dx * outerFrac + perpUpX * upperAmp,
         y: outer.y - dy * outerFrac + perpUpY * upperAmp
     }
 
+    // ✅ NUEVO: borrado progresivo desde el lagrimal - en vez de muestrear
+    // t de 0 a 1, se muestrea desde eraseFrac a 1, así el trazo "empieza
+    // más tarde" (más cerca del canto) y la porción cercana al lagrimal
+    // simplemente no se dibuja.
+    const eraseFrac = THREE.MathUtils.clamp(p.upperInnerErase, 0, 0.95)
+
     const upperRaw = []
     for(let i = 0; i <= segs; i++){
-        const t = i / segs // 0 = lagrimal, 1 = canto
-        const pt = cubicBezierPoint(inner, upP1, upP2, outer, t)
+        const tRaw = i / segs
+        const t = eraseFrac + tRaw * (1 - eraseFrac) // 0 = lagrimal (ya elevado), 1 = canto
+        const pt = cubicBezierPoint(innerLifted, upP1, upP2, outer, t)
         upperRaw.push({ x: pt.x, y: pt.y, axisT: t, side: 'upper' })
     }
 
@@ -396,6 +416,8 @@ export function setLowerLidInnerInset(value){ eyeParams.lowerLidInnerInset = val
 export function setLowerLidOuterInset(value){ eyeParams.lowerLidOuterInset = value; rebuild() }
 export function setLowerLidBaseWidth(value){ eyeParams.lowerLidBaseWidth = value; rebuild() }
 export function setOuterFlickLength(value){ eyeParams.outerFlickLength = value; rebuild() }
+export function setUpperInnerLift(value){ eyeParams.upperInnerLift = value; rebuild() }
+export function setUpperInnerErase(value){ eyeParams.upperInnerErase = value; rebuild() }
 
 // setters - CAPA 3 (estiramiento final)
 export function setEyeVerticalStretch(mult){ eyeParams.verticalStretch = mult; rebuild() }
