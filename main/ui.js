@@ -8,6 +8,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setLowerLidInnerInset, setLowerLidOuterInset, setLowerLidBaseWidth, setOuterFlickLength,
+         setUpperInnerLift, setUpperInnerErase,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
@@ -627,6 +628,28 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setOuterFlickLength(value)
             if(outerFlickLengthValue) outerFlickLengthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const upperInnerLiftSlider = document.getElementById("upperInnerLift")
+    const upperInnerLiftValue  = document.getElementById("upperInnerLiftValue")
+
+    if(upperInnerLiftSlider){
+        upperInnerLiftSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setUpperInnerLift(value)
+            if(upperInnerLiftValue) upperInnerLiftValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const upperInnerEraseSlider = document.getElementById("upperInnerErase")
+    const upperInnerEraseValue  = document.getElementById("upperInnerEraseValue")
+
+    if(upperInnerEraseSlider){
+        upperInnerEraseSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setUpperInnerErase(value)
+            if(upperInnerEraseValue) upperInnerEraseValue.textContent = value.toFixed(2)
         })
     }
 
