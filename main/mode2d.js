@@ -1,5 +1,6 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getEyelashOutlines2D } from './eyelashes.js'
+import { getPupilOutlines2D } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
 
@@ -214,6 +215,13 @@ function drawFrame(){
         const lashOutlines = getEyelashOutlines2D()
         drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
         drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
+
+        // iris y pupila
+        const pupilOutlines = getPupilOutlines2D()
+        drawOutline(pupilOutlines.rightIris.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+        drawOutline(pupilOutlines.leftIris.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+        drawOutline(pupilOutlines.rightPupil.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+        drawOutline(pupilOutlines.leftPupil.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
 
         // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
         // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
