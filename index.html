@@ -302,14 +302,31 @@
           <span id="profileArchPositionValue">0.50</span>
         </div>
         <div class="control">
-          <label for="lashInnerThickness">Pestañas - grosor lagrimal</label>
+          <label for="lashStyle">Pestañas - estilo</label>
+          <select id="lashStyle">
+            <option value="shadow" selected>Sombra (banda actual)</option>
+            <option value="spikes">Pico de canto (anime)</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="lashInnerThickness">Pestañas - grosor lagrimal (sombra)</label>
           <input type="range" id="lashInnerThickness" min="0.00" max="0.10" step="0.005" value="0.02">
           <span id="lashInnerThicknessValue">0.02</span>
         </div>
         <div class="control">
-          <label for="lashOuterThickness">Pestañas - grosor canto</label>
+          <label for="lashOuterThickness">Pestañas - grosor canto (sombra)</label>
           <input type="range" id="lashOuterThickness" min="0.00" max="0.15" step="0.005" value="0.05">
           <span id="lashOuterThicknessValue">0.05</span>
+        </div>
+        <div class="control">
+          <label for="cantoSpikeLength">Pestañas - largo del pico (canto)</label>
+          <input type="range" id="cantoSpikeLength" min="0.02" max="0.25" step="0.005" value="0.09">
+          <span id="cantoSpikeLengthValue">0.09</span>
+        </div>
+        <div class="control">
+          <label for="cantoSpikeWidth">Pestañas - ancho del pico (canto)</label>
+          <input type="range" id="cantoSpikeWidth" min="0.005" max="0.05" step="0.002" value="0.012">
+          <span id="cantoSpikeWidthValue">0.012</span>
         </div>
       </div>
     </details>
