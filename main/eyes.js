@@ -241,28 +241,36 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         y: inner2.y + dy * lowerInnerFrac + perpDownY * lowerAmp
     }
 
+    // ✅ CORREGIDO: la base plana NACE en el lagrimal (inner2) y, a medida
+    // que crece, "se come" la curva hacia el lado del canto — no es un
+    // tramo simétrico desde el centro. En baseWidth=0 es la curva normal
+    // completa (almendra actual); en baseWidth=1 toda la curva se vuelve
+    // una línea recta de outer2 a inner2.
+    const cutFraction = lowerAxisLen > 0
+        ? THREE.MathUtils.clamp((p.lowerLidBaseWidth * cantoLength) / lowerAxisLen, 0, 1)
+        : 0
+    const tCut = 1 - cutFraction
+    const cutPoint = cutFraction > 0 ? cubicBezierPoint(outer2, loP1, loP2, inner2, tCut) : null
+
     const lowerRaw = []
     for(let i = 0; i <= segs; i++){
         const t = i / segs // 0 = canto2, 1 = lagrimal2 (orden invertido)
-        const pt = cubicBezierPoint(outer2, loP1, loP2, inner2, t)
+        let pt
+        if(cutFraction > 0 && t > tCut){
+            // más allá del punto de corte: línea recta hasta el lagrimal
+            const localT = (t - tCut) / (1 - tCut)
+            pt = {
+                x: cutPoint.x + (inner2.x - cutPoint.x) * localT,
+                y: cutPoint.y + (inner2.y - cutPoint.y) * localT
+            }
+        } else {
+            pt = cubicBezierPoint(outer2, loP1, loP2, inner2, t)
+        }
         // axisT se recalcula en la escala ORIGINAL (0=lagrimal real,
         // 1=canto real) para que depthOffsetAt/lidDepthBump sigan
         // interpolando correctamente contra las anclas de profundidad.
         const realAxisT = (cantoLength - outerInsetLen - t * lowerAxisLen) / cantoLength
         lowerRaw.push({ x: pt.x, y: pt.y, axisT: realAxisT, side: 'lower' })
-    }
-
-    // ✅ NUEVO: base plana - inserta un tramo recto justo en el punto medio
-    // de la curva (índice segs/2, que corresponde exactamente a t=0.5),
-    // SIN tocar los extremos (inner2/outer2 quedan intactos). En 0 los dos
-    // puntos insertados coinciden (sin efecto visible = almendra actual).
-    if(p.lowerLidBaseWidth > 0){
-        const midIdx = Math.round(segs / 2)
-        const midPoint = lowerRaw[midIdx]
-        const halfBase = (p.lowerLidBaseWidth * cantoLength) / 2
-        const baseNear = { x: midPoint.x + dx * halfBase, y: midPoint.y + dy * halfBase, axisT: midPoint.axisT, side: 'lower' } // lado canto
-        const baseFar = { x: midPoint.x - dx * halfBase, y: midPoint.y - dy * halfBase, axisT: midPoint.axisT, side: 'lower' } // lado lagrimal
-        lowerRaw.splice(midIdx, 1, baseNear, baseFar)
     }
 
     // CAPA 3: estiramiento final, aplicado alrededor del centro del eje
