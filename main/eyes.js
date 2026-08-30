@@ -455,6 +455,23 @@ export function getEyeUpperLidPoints(baseRadius){
     }
 }
 
+// ✅ NUEVO: expone SOLO la curva del párpado inferior — para el pico de
+// pestaña del canto, que necesita ubicarse justo entre ambos párpados.
+export function getEyeLowerLidPoints(baseRadius){
+    const cantoLength = baseRadius * eyeParams.cantoLengthMult
+    const gap = cantoLength * eyeParams.gapMult
+    const anchorX = gap / 2
+    const anchorY = -baseRadius * eyeParams.vertOffsetMult
+
+    const rightFull = buildEyePoints(baseRadius, false, anchorX, anchorY)
+    const leftFull = buildEyePoints(baseRadius, true, -anchorX, anchorY)
+
+    return {
+        right: rightFull.lower,
+        left: leftFull.lower
+    }
+}
+
 // expone el contorno COMPLETO del ojo (párpado superior + inferior juntos,
 // aunque ya no sean un lazo cerrado) — para que pupils.js pueda calcular
 // el centro y tamaño del iris a partir de la caja del ojo real.
