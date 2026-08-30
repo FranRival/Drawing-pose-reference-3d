@@ -59,11 +59,19 @@
           <div class="group-body">
             <div class="control">
               <select id="mode2DTarget">
-                <option value="rightEye" selected>Ojo derecho</option>
-                <option value="leftEye">Ojo izquierdo</option>
-                <option value="rightBrow">Ceja derecha</option>
-                <option value="leftBrow">Ceja izquierda</option>
-                <option value="jaw">Mandíbula (completa, simétrica)</option>
+                <optgroup label="Compartido con 3D">
+                  <option value="rightEye" selected>Ojo derecho</option>
+                  <option value="leftEye">Ojo izquierdo</option>
+                  <option value="rightBrow">Ceja derecha</option>
+                  <option value="leftBrow">Ceja izquierda</option>
+                  <option value="jaw">Mandíbula (completa, simétrica)</option>
+                </optgroup>
+                <optgroup label="Solo 2D frontal (no afecta 3D)">
+                  <option value="rightIris">Iris derecho</option>
+                  <option value="leftIris">Iris izquierdo</option>
+                  <option value="rightPupil">Pupila derecha</option>
+                  <option value="leftPupil">Pupila izquierda</option>
+                </optgroup>
               </select>
             </div>
             <div class="control">
@@ -273,6 +281,12 @@
           <input type="range" id="lashOuterThickness" min="0.00" max="0.15" step="0.005" value="0.05">
           <span id="lashOuterThicknessValue">0.05</span>
         </div>
+      </div>
+    </details>
+
+    <details class="control-group">
+      <summary>Iris y Pupila</summary>
+      <div class="group-body">
         <div class="control">
           <label for="irisRadius">Iris - tamaño</label>
           <input type="range" id="irisRadius" min="0.15" max="0.60" step="0.01" value="0.42">
