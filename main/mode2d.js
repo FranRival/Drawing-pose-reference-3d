@@ -253,9 +253,13 @@ function drawFrame(){
         const browOutlines = getBrowOutlines2D()
 
         // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
-        // dentro de eyes.js/eyebrows.js), así que se proyectan directo.
-        drawOutline(eyeOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-        drawOutline(eyeOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        // dentro de eyes.js/eyebrows.js). El ojo ahora son DOS trazos
+        // abiertos independientes (párpado superior + inferior), no un
+        // lazo cerrado, así que se dibujan con drawLine, no drawOutline.
+        drawLine(eyeOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        drawLine(eyeOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        drawLine(eyeOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        drawLine(eyeOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
         drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
         drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
 
@@ -294,7 +298,8 @@ function drawFrame(){
 
         if(t.kind === 'eye'){
             const eo = getEyeOutlines2D()
-            drawOutline(eo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+            drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+            drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
 
             const lo = getEyelashOutlines2D()
             drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#444444')
