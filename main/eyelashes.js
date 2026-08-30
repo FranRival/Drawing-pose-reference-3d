@@ -1,15 +1,22 @@
 import * as THREE from 'three'
-import { getEyeUpperLidPoints } from './eyes.js'
+import { getEyeUpperLidPoints, getEyeLowerLidPoints } from './eyes.js'
 
-// Pestañas: una banda de espesor variable apoyada DIRECTAMENTE sobre la
-// curva del párpado superior del ojo (no un eje propio) — la pestaña es
-// literalmente la sombra que corre justo encima de esa línea. Fina cerca
-// del lagrimal, gruesa hacia el canto, como en la referencia (model sheet).
-// Mismo patrón que eyes.js/eyebrows.js: cuelga del mismo loomisGroup.
+// Pestañas: dos estilos posibles.
+//   'shadow' (el que ya tenías) - banda de espesor variable apoyada sobre
+//   la curva del párpado superior, fina en el lagrimal, gruesa en el canto.
+//   'spikes' (nuevo, estilo anime) - por ahora solo el pico del canto: un
+//   trazo largo y fino que nace justo entre donde terminan el párpado
+//   superior e inferior, apuntando hacia afuera. La cantidad/aleatoriedad
+//   de pestañas a lo largo del ojo (punto 1) queda pendiente.
 
 let lashParams = {
-    innerThickness: 0.02, // espesor cerca del lagrimal, fracción del radio de cabeza
-    outerThickness: 0.05  // espesor cerca del canto (más grueso — así se ve en la referencia)
+    style: 'shadow', // 'shadow' | 'spikes'
+    innerThickness: 0.02, // espesor cerca del lagrimal, fracción del radio de cabeza (estilo 'shadow')
+    outerThickness: 0.05, // espesor cerca del canto (estilo 'shadow')
+
+    // --- estilo 'spikes': pico del canto ---
+    cantoSpikeLength: 0.09, // largo del pico, fracción del radio de cabeza
+    cantoSpikeWidth: 0.012  // ancho de la base del pico, fracción del radio de cabeza
 }
 
 let lashGroup = null
@@ -56,6 +63,44 @@ function buildLashPoints(baseRadius, lidPoints){
     return pts
 }
 
+// ✅ NUEVO: pico de pestaña del canto (estilo 'spikes') — nace justo en
+// medio de donde terminan el párpado superior e inferior (el canto), y
+// apunta hacia afuera siguiendo la misma dirección con la que ya venía
+// saliendo el párpado superior en ese punto (su tangente final).
+function buildCantoSpike(baseRadius, upperPts, lowerPts){
+    if(upperPts.length < 2 || lowerPts.length < 1) return []
+
+    const upperCanto = upperPts[upperPts.length - 1] // extremo del párpado superior (canto, o punta del flick si hay)
+    const lowerCanto = lowerPts[0]                    // extremo del párpado inferior en el canto (t=0 en su convención)
+
+    const origin = {
+        x: (upperCanto.x + lowerCanto.x) / 2,
+        y: (upperCanto.y + lowerCanto.y) / 2,
+        z: (upperCanto.z + lowerCanto.z) / 2
+    }
+
+    // dirección: la tangente del párpado superior en su extremo, para que
+    // el pico "siga de largo" en la misma dirección natural de esa curva
+    const prevPt = upperPts[upperPts.length - 2]
+    let dirX = upperCanto.x - prevPt.x
+    let dirY = upperCanto.y - prevPt.y
+    const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
+    dirX /= dirLen
+    dirY /= dirLen
+
+    const perpX = -dirY
+    const perpY = dirX
+
+    const halfWidth = (baseRadius * lashParams.cantoSpikeWidth) / 2
+    const length = baseRadius * lashParams.cantoSpikeLength
+
+    const baseA = new THREE.Vector3(origin.x + perpX * halfWidth, origin.y + perpY * halfWidth, origin.z)
+    const baseB = new THREE.Vector3(origin.x - perpX * halfWidth, origin.y - perpY * halfWidth, origin.z)
+    const tip = new THREE.Vector3(origin.x + dirX * length, origin.y + dirY * length, origin.z)
+
+    return [baseA, tip, baseB, baseA] // triángulo cerrado (fino, tipo pestaña)
+}
+
 function buildLashes(baseRadius){
     if(!lashGroup || !baseRadius) return
 
@@ -63,16 +108,34 @@ function buildLashes(baseRadius){
         lashGroup.remove(lashGroup.children[0])
     }
 
-    const { right, left } = getEyeUpperLidPoints(baseRadius)
+    const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(baseRadius)
 
+    if(lashParams.style === 'spikes'){
+        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(baseRadius)
+
+        rightLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+        const rightSpike = buildCantoSpike(baseRadius, upperRight, lowerRight)
+        rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightSpike), rightLashMat)
+        rightLashLine.renderOrder = 999
+        lashGroup.add(rightLashLine)
+
+        leftLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+        const leftSpike = buildCantoSpike(baseRadius, upperLeft, lowerLeft)
+        leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftSpike), leftLashMat)
+        leftLashLine.renderOrder = 999
+        lashGroup.add(leftLashLine)
+        return
+    }
+
+    // estilo 'shadow' (el original)
     rightLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
-    const rightPts = buildLashPoints(baseRadius, right)
+    const rightPts = buildLashPoints(baseRadius, upperRight)
     rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightLashMat)
     rightLashLine.renderOrder = 999
     lashGroup.add(rightLashLine)
 
     leftLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
-    const leftPts = buildLashPoints(baseRadius, left)
+    const leftPts = buildLashPoints(baseRadius, upperLeft)
     leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftLashMat)
     leftLashLine.renderOrder = 999
     lashGroup.add(leftLashLine)
@@ -106,6 +169,9 @@ function rebuild(){
 
 export function setLashInnerThickness(value){ lashParams.innerThickness = value; rebuild() }
 export function setLashOuterThickness(value){ lashParams.outerThickness = value; rebuild() }
+export function setLashStyle(style){ lashParams.style = (style === 'spikes') ? 'spikes' : 'shadow'; rebuild() }
+export function setCantoSpikeLength(value){ lashParams.cantoSpikeLength = value; rebuild() }
+export function setCantoSpikeWidth(value){ lashParams.cantoSpikeWidth = value; rebuild() }
 
 export function setEyelashOcclusion(respectOcclusion){
     ;[rightLashMat, leftLashMat].forEach(mat => {
@@ -116,12 +182,21 @@ export function setEyelashOcclusion(respectOcclusion){
     })
 }
 
-// ✅ silueta 2D, mismo patrón que getEyeOutlines2D/getBrowOutlines2D —
-// reutiliza getEyeUpperLidPoints con baseRadius=1.
+// ✅ silueta 2D (vista frontal) — mismo patrón que el resto. Respeta el
+// estilo elegido (sombra o pico de canto).
 export function getEyelashOutlines2D(){
-    const { right, left } = getEyeUpperLidPoints(1)
+    const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(1)
+
+    if(lashParams.style === 'spikes'){
+        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(1)
+        return {
+            right: buildCantoSpike(1, upperRight, lowerRight).map(v => ({ x: v.x, y: v.y, z: v.z })),
+            left: buildCantoSpike(1, upperLeft, lowerLeft).map(v => ({ x: v.x, y: v.y, z: v.z }))
+        }
+    }
+
     return {
-        right: buildLashPoints(1, right).map(v => ({ x: v.x, y: v.y, z: v.z })),
-        left: buildLashPoints(1, left).map(v => ({ x: v.x, y: v.y, z: v.z }))
+        right: buildLashPoints(1, upperRight).map(v => ({ x: v.x, y: v.y, z: v.z })),
+        left: buildLashPoints(1, upperLeft).map(v => ({ x: v.x, y: v.y, z: v.z }))
     }
 }
