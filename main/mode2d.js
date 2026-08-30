@@ -32,6 +32,32 @@ let refOffsetY = 0.12 // -1 a 1, fracción del alto del canvas
 // cambios no se veían al volver a 3D.
 let selectedTarget = 'rightEye'
 
+// ✅ NUEVO: ajuste de iris/pupila — a diferencia de ojo/ceja/mandíbula,
+// este vive SOLO AQUÍ (mode2d.js), nunca en eyes.js/pupils.js, y por lo
+// tanto NUNCA toca el 3D — solo afecta el dibujo en la vista frontal del
+// modo 2D. Cada uno se ajusta por separado (iris y pupila no se mueven
+// juntos), pivoteando sobre su propio centro.
+const PUPIL_TARGET_KEYS = ['rightIris', 'leftIris', 'rightPupil', 'leftPupil']
+let pupilAdjust2D = {
+    rightIris:  { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    leftIris:   { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    rightPupil: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    leftPupil:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+}
+
+function applyPupilAdjust2D(points, adjust){
+    if(!points || points.length === 0) return points
+    let sx = 0, sy = 0
+    points.forEach(p => { sx += p.x; sy += p.y })
+    const cx = sx / points.length
+    const cy = sy / points.length
+
+    return points.map(p => ({
+        x: cx + (p.x - cx) * adjust.scale + adjust.x,
+        y: cy + (p.y - cy) * adjust.scale + adjust.y
+    }))
+}
+
 // ✅ NUEVO: modo de vista — 'front' (como hasta ahora) o 'profile' (perfil:
 // proyecta Z/Y en vez de X/Y, de la forma actualmente seleccionada en
 // "Ajuste fino por forma"). Sirve para calibrar profundidad contra una
@@ -238,12 +264,12 @@ function drawFrame(){
         drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
         drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
 
-        // iris y pupila
+        // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
         const pupilOutlines = getPupilOutlines2D()
-        drawOutline(pupilOutlines.rightIris.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-        drawOutline(pupilOutlines.leftIris.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-        drawOutline(pupilOutlines.rightPupil.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
-        drawOutline(pupilOutlines.leftPupil.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+        drawOutline(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+        drawOutline(applyPupilAdjust2D(pupilOutlines.leftIris, pupilAdjust2D.leftIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+        drawOutline(applyPupilAdjust2D(pupilOutlines.rightPupil, pupilAdjust2D.rightPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+        drawOutline(applyPupilAdjust2D(pupilOutlines.leftPupil, pupilAdjust2D.leftPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
 
         // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
         // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
@@ -389,8 +415,10 @@ function resolveTarget(key){
 
 // ✅ para que ui.js pueda leer los valores actuales al cambiar de
 // objetivo, y así sincronizar la posición de los sliders sin disparar
-// un cambio real. Lee directo de eyes.js/eyebrows.js/viewer.js — no hay copia local.
+// un cambio real. Lee directo de eyes.js/eyebrows.js/viewer.js — no hay
+// copia local (salvo iris/pupila, que sí vive aquí — ver PUPIL_TARGET_KEYS).
 export function getTargetAdjust(key){
+    if(PUPIL_TARGET_KEYS.includes(key)) return pupilAdjust2D[key]
     const t = resolveTarget(key)
     if(t.kind === 'eye') return getEyeShapeAdjust(t.side)
     if(t.kind === 'brow') return getBrowShapeAdjust(t.side)
@@ -398,9 +426,11 @@ export function getTargetAdjust(key){
 }
 
 // ✅ conectar a los 4 sliders de ajuste fino — todos operan sobre el
-// objetivo actualmente seleccionado, escribiendo DIRECTO en eyes.js,
-// eyebrows.js o viewer.js (según corresponda), que es lo que también usa el 3D.
+// objetivo actualmente seleccionado. Para ojo/ceja/mandíbula escriben
+// DIRECTO en eyes.js/eyebrows.js/viewer.js (también usado por el 3D).
+// Para iris/pupila escriben en pupilAdjust2D (solo aquí, solo 2D frontal).
 export function setTargetOffsetX(value){
+    if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].x = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeOffsetX(t.side, value)
     else if(t.kind === 'brow') setBrowShapeOffsetX(t.side, value)
@@ -409,6 +439,7 @@ export function setTargetOffsetX(value){
 }
 
 export function setTargetOffsetY(value){
+    if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].y = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeOffsetY(t.side, value)
     else if(t.kind === 'brow') setBrowShapeOffsetY(t.side, value)
@@ -417,6 +448,7 @@ export function setTargetOffsetY(value){
 }
 
 export function setTargetScale(value){
+    if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].scale = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeScale(t.side, value)
     else if(t.kind === 'brow') setBrowShapeScale(t.side, value)
@@ -425,6 +457,9 @@ export function setTargetScale(value){
 }
 
 export function setTargetRotation(degrees){
+    // la rotación no cambia visualmente un círculo — se guarda por
+    // consistencia con el resto del panel, pero no tiene efecto.
+    if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].rotationDeg = degrees; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeRotation(t.side, degrees)
     else if(t.kind === 'brow') setBrowShapeRotation(t.side, degrees)
