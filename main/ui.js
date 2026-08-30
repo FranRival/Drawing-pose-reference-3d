@@ -11,6 +11,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
 import { setLashInnerThickness, setLashOuterThickness } from './eyelashes.js'
+import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
@@ -713,6 +714,50 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLashOuterThickness(value)
             if(lashOuterThicknessValue) lashOuterThicknessValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const irisRadiusSlider = document.getElementById("irisRadius")
+    const irisRadiusValue  = document.getElementById("irisRadiusValue")
+
+    if(irisRadiusSlider){
+        irisRadiusSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setIrisRadius(value)
+            if(irisRadiusValue) irisRadiusValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const pupilRadiusSlider = document.getElementById("pupilRadius")
+    const pupilRadiusValue  = document.getElementById("pupilRadiusValue")
+
+    if(pupilRadiusSlider){
+        pupilRadiusSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setPupilRadius(value)
+            if(pupilRadiusValue) pupilRadiusValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const irisHorizontalBiasSlider = document.getElementById("irisHorizontalBias")
+    const irisHorizontalBiasValue  = document.getElementById("irisHorizontalBiasValue")
+
+    if(irisHorizontalBiasSlider){
+        irisHorizontalBiasSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setIrisHorizontalBias(value)
+            if(irisHorizontalBiasValue) irisHorizontalBiasValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const irisVerticalBiasSlider = document.getElementById("irisVerticalBias")
+    const irisVerticalBiasValue  = document.getElementById("irisVerticalBiasValue")
+
+    if(irisVerticalBiasSlider){
+        irisVerticalBiasSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setIrisVerticalBias(value)
+            if(irisVerticalBiasValue) irisVerticalBiasValue.textContent = value.toFixed(2)
         })
     }
 
