@@ -12,7 +12,8 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
-import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength,
+import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThickness, setLowerLashOuterThickness,
+         setLashStyle, setCantoSpikeLength,
          setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation,
          setLashSpikeCount, setLashSpikeAmplitude } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
@@ -791,6 +792,28 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLashOuterThickness(value)
             if(lashOuterThicknessValue) lashOuterThicknessValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lowerLashInnerThicknessSlider = document.getElementById("lowerLashInnerThickness")
+    const lowerLashInnerThicknessValue  = document.getElementById("lowerLashInnerThicknessValue")
+
+    if(lowerLashInnerThicknessSlider){
+        lowerLashInnerThicknessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLowerLashInnerThickness(value)
+            if(lowerLashInnerThicknessValue) lowerLashInnerThicknessValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lowerLashOuterThicknessSlider = document.getElementById("lowerLashOuterThickness")
+    const lowerLashOuterThicknessValue  = document.getElementById("lowerLashOuterThicknessValue")
+
+    if(lowerLashOuterThicknessSlider){
+        lowerLashOuterThicknessSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLowerLashOuterThickness(value)
+            if(lowerLashOuterThicknessValue) lowerLashOuterThicknessValue.textContent = value.toFixed(3)
         })
     }
 
