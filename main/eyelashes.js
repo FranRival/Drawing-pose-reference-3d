@@ -106,7 +106,9 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
 
     if(useSpike){
         const cantoBase = offsetPts[offsetPts.length - 1]
+        const prevOffset = offsetPts[offsetPts.length - 2] || cantoBase
         const trueCanto = lidPoints[n - 1]
+        const prevTrueCanto = lidPoints[n - 2] || trueCanto
 
         // ✅ CORREGIDO: orientación ABSOLUTA, no relativa a la tangente del
         // párpado (eso era lo que causaba el cruce de líneas). 0° = hacia
@@ -125,18 +127,39 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
 
         const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length }
 
-        const controlTop = {
-            x: (cantoBase.x + tip.x) / 2 + perpX * curve,
-            y: (cantoBase.y + tip.y) / 2 + perpY * curve
-        }
-        const controlBottom = {
-            x: (tip.x + trueCanto.x) / 2 - perpX * curve,
-            y: (tip.y + trueCanto.y) / 2 - perpY * curve
-        }
+        // ✅ CORREGIDO: los dos tramos ahora son Bezier CÚBICAS (dos
+        // manejadores cada una), con la tangente de llegada/salida
+        // alineada a la dirección REAL del trazo en cada extremo — mismo
+        // principio que ya usa la bajada de la pestaña inferior. Así la
+        // curva nunca "entra" en ángulo raro, sin importar qué tan
+        // distinta sea la orientación absoluta de la punta.
+        const gap1 = Math.sqrt((tip.x - cantoBase.x) ** 2 + (tip.y - cantoBase.y) ** 2)
+        const handleLen1 = gap1 * 0.4
+
+        let bandTanX = cantoBase.x - prevOffset.x
+        let bandTanY = cantoBase.y - prevOffset.y
+        const bandTanLen = Math.sqrt(bandTanX * bandTanX + bandTanY * bandTanY) || 1
+        bandTanX /= bandTanLen
+        bandTanY /= bandTanLen
+
+        const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1 }
+        const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve }
+
+        const gap2 = Math.sqrt((trueCanto.x - tip.x) ** 2 + (trueCanto.y - tip.y) ** 2)
+        const handleLen2 = gap2 * 0.4
+
+        let closeTanX = trueCanto.x - prevTrueCanto.x
+        let closeTanY = trueCanto.y - prevTrueCanto.y
+        const closeTanLen = Math.sqrt(closeTanX * closeTanX + closeTanY * closeTanY) || 1
+        closeTanX /= closeTanLen
+        closeTanY /= closeTanLen
+
+        const handleOut2 = { x: tip.x + tipDirX * handleLen2 - perpX * curve, y: tip.y + tipDirY * handleLen2 - perpY * curve }
+        const handleIn2 = { x: trueCanto.x - closeTanX * handleLen2, y: trueCanto.y - closeTanY * handleLen2 }
 
         const segs = 8
-        for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(cantoBase, controlTop, tip, i / segs))
-        for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(tip, controlBottom, trueCanto, i / segs))
+        for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(cantoBase, handleOut1, handleIn1, tip, i / segs))
+        for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(tip, handleOut2, handleIn2, trueCanto, i / segs))
     }
 
     for(let i = n - 1; i >= 0; i--) pts.push(lidPoints[i])
@@ -144,16 +167,34 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
     return pts.map(p => new THREE.Vector3(p.x, p.y, p.z))
 }
 
-// ✅ Pestaña INFERIOR autosuficiente (estilos 'shadow' y 'spikes').
+// ✅ Pestaña INFERIOR autosuficiente (estilos 'shadow' y 'spikes'). Aun
+// así, NO es 100% independiente: si el pico superior tiene una
+// orientación distinta a 0° (hacia la oreja), la pestaña inferior se
+// inclina un poco en simpatía (acoplamiento débil) — más fuerte cerca del
+// canto, desvaneciéndose hacia el lagrimal. Así "coexisten": mover una
+// afecta un poco a la otra, sin quedar rígidamente ligadas.
+const LOWER_LASH_COUPLING = 0.3 // fracción de la rotación del pico que se contagia
+
 function buildLowerLashPoints(baseRadius, lidPoints){
     const n = lidPoints.length
     if(n < 2) return []
+
+    const couplingDeg = lashParams.style === 'spikes' ? lashParams.cantoSpikeTipRotation * LOWER_LASH_COUPLING : 0
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpUp(lidPoints, i)
         const t = i / (n - 1) // 0 = canto, 1 = lagrimal
         const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
-        return { x: p.x - px * thickness, y: p.y - py * thickness, z: p.z }
+
+        // influencia máxima en el canto (t=0), se desvanece hacia el lagrimal (t=1)
+        const influence = 1 - t
+        const rot = THREE.MathUtils.degToRad(couplingDeg * influence)
+        const cosR = Math.cos(rot)
+        const sinR = Math.sin(rot)
+        const rpx = px * cosR - py * sinR
+        const rpy = px * sinR + py * cosR
+
+        return { x: p.x - rpx * thickness, y: p.y - rpy * thickness, z: p.z }
     })
 
     const pts = [...offsetPts]
