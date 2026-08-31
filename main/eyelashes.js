@@ -47,6 +47,18 @@ function quadraticBezierPoint(p0, p1, p2, t){
     }
 }
 
+function cubicBezierPoint(p0, p1, p2, p3, t){
+    const mt = 1 - t
+    const a = mt * mt * mt
+    const b = 3 * mt * mt * t
+    const c = 3 * mt * t * t
+    const d = t * t * t
+    return {
+        x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+        y: a * p0.y + b * p1.y + c * p2.y + d * p3.y
+    }
+}
+
 function spikeModulation(t, count){
     const phase = (t * count) % 1
     const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2
@@ -210,9 +222,32 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
         x: (cantoBase.x + tip.x) / 2 + perpX * curve,
         y: (cantoBase.y + tip.y) / 2 + perpY * curve
     }
-    const controlBottom = {
-        x: (tip.x + lowerOuter[0].x) / 2 - perpX * curve,
-        y: (tip.y + lowerOuter[0].y) / 2 - perpY * curve
+
+    // ✅ CORREGIDO: la bajada de la punta hacia la pestaña inferior ahora
+    // es una Bezier CÚBICA (dos manejadores), no una cuadrática con un
+    // solo punto de control fijo. El manejador de llegada se alinea con
+    // la dirección REAL en la que continúa la pestaña inferior (hacia
+    // lowerOuter[1]) — eso es lo que garantiza que no haya un ángulo
+    // recto ahí: la curva "entra" ya apuntando hacia donde sigue el trazo.
+    let lowerTanX = lowerOuter[1].x - lowerOuter[0].x
+    let lowerTanY = lowerOuter[1].y - lowerOuter[0].y
+    const lowerTanLen = Math.sqrt(lowerTanX * lowerTanX + lowerTanY * lowerTanY) || 1
+    lowerTanX /= lowerTanLen
+    lowerTanY /= lowerTanLen
+
+    const gapDist = Math.sqrt(
+        (tip.x - lowerOuter[0].x) * (tip.x - lowerOuter[0].x) +
+        (tip.y - lowerOuter[0].y) * (tip.y - lowerOuter[0].y)
+    )
+    const handleLen = gapDist * 0.4
+
+    const handleOut = {
+        x: tip.x + tipDirX * handleLen + perpX * curve,
+        y: tip.y + tipDirY * handleLen + perpY * curve
+    }
+    const handleIn = {
+        x: lowerOuter[0].x - lowerTanX * handleLen - perpX * curve,
+        y: lowerOuter[0].y - lowerTanY * handleLen - perpY * curve
     }
 
     const pts = [...upperOuter]
@@ -220,8 +255,8 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
     const segs = 8
     // cantoBase → punta
     for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(cantoBase, controlTop, tip, i / segs))
-    // punta → borde exterior inferior, lado canto (sin duplicar el punto 0)
-    for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(tip, controlBottom, lowerOuter[0], i / segs))
+    // punta → borde exterior inferior, lado canto (cúbica, tangente alineada)
+    for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(tip, handleOut, handleIn, lowerOuter[0], i / segs))
 
     // borde exterior inferior completo (ya empieza en lowerOuter[0])
     pts.push(...lowerOuter.slice(1))
