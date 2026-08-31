@@ -12,7 +12,8 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
-import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength, setCantoSpikeWidth } from './eyelashes.js'
+import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength, setCantoSpikeWidth,
+         setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -811,6 +812,39 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setCantoSpikeWidth(value)
             if(cantoSpikeWidthValue) cantoSpikeWidthValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const cantoSpikeCurveSlider = document.getElementById("cantoSpikeCurve")
+    const cantoSpikeCurveValue  = document.getElementById("cantoSpikeCurveValue")
+
+    if(cantoSpikeCurveSlider){
+        cantoSpikeCurveSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setCantoSpikeCurve(value)
+            if(cantoSpikeCurveValue) cantoSpikeCurveValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const cantoSpikeScaleSlider = document.getElementById("cantoSpikeScale")
+    const cantoSpikeScaleValue  = document.getElementById("cantoSpikeScaleValue")
+
+    if(cantoSpikeScaleSlider){
+        cantoSpikeScaleSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setCantoSpikeScale(value)
+            if(cantoSpikeScaleValue) cantoSpikeScaleValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const cantoSpikeTipRotationSlider = document.getElementById("cantoSpikeTipRotation")
+    const cantoSpikeTipRotationValue  = document.getElementById("cantoSpikeTipRotationValue")
+
+    if(cantoSpikeTipRotationSlider){
+        cantoSpikeTipRotationSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setCantoSpikeTipRotation(value)
+            if(cantoSpikeTipRotationValue) cantoSpikeTipRotationValue.textContent = value.toFixed(0)
         })
     }
 
