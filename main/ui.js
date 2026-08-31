@@ -15,7 +15,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
 import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThickness, setLowerLashOuterThickness,
          setLashStyle, setCantoSpikeLength,
          setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation,
-         setLashSpikeCount, setLashSpikeAmplitude } from './eyelashes.js'
+         setLashSpikeCount, setLashSpikeAmplitude, setLashBalance } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -880,6 +880,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLashSpikeAmplitude(value)
             if(lashSpikeAmplitudeValue) lashSpikeAmplitudeValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lashBalanceSlider = document.getElementById("lashBalance")
+    const lashBalanceValue  = document.getElementById("lashBalanceValue")
+
+    if(lashBalanceSlider){
+        lashBalanceSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashBalance(value)
+            if(lashBalanceValue) lashBalanceValue.textContent = value.toFixed(2)
         })
     }
 
