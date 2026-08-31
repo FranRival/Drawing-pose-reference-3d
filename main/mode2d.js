@@ -265,8 +265,8 @@ function drawFrame(){
 
         // pestañas — encima del ojo, mismo tono oscuro que en 3D
         const lashOutlines = getEyelashOutlines2D()
-        drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
-        drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#444444')
+        drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+        drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
 
         // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
         const pupilOutlines = getPupilOutlines2D()
@@ -302,7 +302,7 @@ function drawFrame(){
             drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
 
             const lo = getEyelashOutlines2D()
-            drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#444444')
+            drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
 
             const pupilMark = getPupilProfileMark(t.side)
             drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
