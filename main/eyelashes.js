@@ -19,7 +19,13 @@ let lashParams = {
     cantoSpikeWidth: 0.012,  // ancho de la base del pico, fracción del radio de cabeza
     cantoSpikeCurve: 0.02,   // curvatura de los bordes superior/inferior (0 = triángulo recto)
     cantoSpikeScale: 1.0,    // escala general del pico completo ("agrandar")
-    cantoSpikeTipRotation: 0 // rota la punta respecto a la dirección natural, en grados
+    cantoSpikeTipRotation: 0, // rota la punta respecto a la dirección natural, en grados
+
+    // --- estilo 'spikes': dentado a lo largo de toda la banda (además
+    // del pico grande del canto) - "la pestaña existe alrededor del ojo,
+    // aún cuando está en punta" ---
+    lashSpikeCount: 5,      // cuántos picos entran a lo largo del párpado superior
+    lashSpikeAmplitude: 0.03 // qué tanto sobresalen los picos, fracción del radio de cabeza
 }
 
 let lashGroup = null
@@ -27,6 +33,8 @@ let rightLashLine = null
 let leftLashLine = null
 let rightLashMat = null
 let leftLashMat = null
+let rightCantoSpikeLine = null // solo se usa en estilo 'spikes', junto con la banda
+let leftCantoSpikeLine = null
 let currentBaseRadius = 0
 
 // Construye la banda: el borde INTERNO es la propia curva del párpado
@@ -34,9 +42,23 @@ let currentBaseRadius = 0
 // desplazada hacia afuera por el espesor en cada punto, usando la
 // perpendicular local a la curva (no una dirección fija), para que la
 // banda se doble naturalmente en las esquinas del ojo.
+// modulación en zigzag: crea `count` picos a lo largo de t (0 a 1), con
+// un triángulo por pico (sube y baja), sesgado para que sean más
+// pronunciados hacia el canto (t=1) que hacia el lagrimal (t=0) — igual
+// que en la referencia.
+function spikeModulation(t, count){
+    const phase = (t * count) % 1
+    const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2 // triángulo 0→1→0 por pico
+    const bias = THREE.MathUtils.lerp(0.25, 1.0, t) // picos chicos cerca del lagrimal, grandes cerca del canto
+    return tri * bias
+}
+
 function buildLashPoints(baseRadius, lidPoints){
     const n = lidPoints.length
     if(n < 2) return []
+
+    const useSpikes = lashParams.style === 'spikes'
+    const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
 
     const offsetPts = lidPoints.map((p, i) => {
         const prev = lidPoints[Math.max(i - 1, 0)]
@@ -54,7 +76,14 @@ function buildLashPoints(baseRadius, lidPoints){
         if(py < 0){ px = -px; py = -py }
 
         const t = i / (n - 1) // 0 = lagrimal, 1 = canto
-        const thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
+        let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
+
+        // ✅ NUEVO: el dentado se SUMA al espesor base, así la pestaña
+        // sigue existiendo "alrededor del ojo" (banda continua) aún
+        // cuando cada pico sobresale en punta.
+        if(useSpikes){
+            thickness += spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
+        }
 
         return new THREE.Vector3(p.x + px * thickness, p.y + py * thickness, p.z)
     })
@@ -155,35 +184,40 @@ function buildLashes(baseRadius){
 
     const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(baseRadius)
 
-    if(lashParams.style === 'spikes'){
-        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(baseRadius)
-
-        rightLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
-        const rightSpike = buildCantoSpike(baseRadius, upperRight, lowerRight)
-        rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightSpike), rightLashMat)
-        rightLashLine.renderOrder = 999
-        lashGroup.add(rightLashLine)
-
-        leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
-        const leftSpike = buildCantoSpike(baseRadius, upperLeft, lowerLeft)
-        leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftSpike), leftLashMat)
-        leftLashLine.renderOrder = 999
-        lashGroup.add(leftLashLine)
-        return
-    }
-
-    // estilo 'shadow' (el original)
     rightLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
+    leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
+
+    // ✅ la banda (con dentado si el estilo es 'spikes') SIEMPRE se dibuja
+    // — "la pestaña existe alrededor del ojo, aún cuando está en punta".
     const rightPts = buildLashPoints(baseRadius, upperRight)
     rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightLashMat)
     rightLashLine.renderOrder = 999
     lashGroup.add(rightLashLine)
 
-    leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
     const leftPts = buildLashPoints(baseRadius, upperLeft)
     leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftLashMat)
     leftLashLine.renderOrder = 999
     lashGroup.add(leftLashLine)
+
+    // ✅ en estilo 'spikes', además el pico grande y largo del canto,
+    // compartiendo el mismo material (así el toggle de oclusión afecta a
+    // ambas piezas juntas).
+    if(lashParams.style === 'spikes'){
+        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(baseRadius)
+
+        const rightSpike = buildCantoSpike(baseRadius, upperRight, lowerRight)
+        rightCantoSpikeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightSpike), rightLashMat)
+        rightCantoSpikeLine.renderOrder = 999
+        lashGroup.add(rightCantoSpikeLine)
+
+        const leftSpike = buildCantoSpike(baseRadius, upperLeft, lowerLeft)
+        leftCantoSpikeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftSpike), leftLashMat)
+        leftCantoSpikeLine.renderOrder = 999
+        lashGroup.add(leftCantoSpikeLine)
+    } else {
+        rightCantoSpikeLine = null
+        leftCantoSpikeLine = null
+    }
 }
 
 // Llamar desde viewer.js, después de createEyeGuides (necesita que el ojo
@@ -206,6 +240,8 @@ export function removeEyelashGuides(){
     leftLashLine = null
     rightLashMat = null
     leftLashMat = null
+    rightCantoSpikeLine = null
+    leftCantoSpikeLine = null
 }
 
 function rebuild(){
@@ -220,6 +256,8 @@ export function setCantoSpikeWidth(value){ lashParams.cantoSpikeWidth = value; r
 export function setCantoSpikeCurve(value){ lashParams.cantoSpikeCurve = value; rebuild() }
 export function setCantoSpikeScale(value){ lashParams.cantoSpikeScale = value; rebuild() }
 export function setCantoSpikeTipRotation(degrees){ lashParams.cantoSpikeTipRotation = degrees; rebuild() }
+export function setLashSpikeCount(value){ lashParams.lashSpikeCount = Math.round(value); rebuild() }
+export function setLashSpikeAmplitude(value){ lashParams.lashSpikeAmplitude = value; rebuild() }
 
 export function setEyelashOcclusion(respectOcclusion){
     ;[rightLashMat, leftLashMat].forEach(mat => {
@@ -235,16 +273,18 @@ export function setEyelashOcclusion(respectOcclusion){
 export function getEyelashOutlines2D(){
     const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(1)
 
-    if(lashParams.style === 'spikes'){
-        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(1)
-        return {
-            right: buildCantoSpike(1, upperRight, lowerRight).map(v => ({ x: v.x, y: v.y, z: v.z })),
-            left: buildCantoSpike(1, upperLeft, lowerLeft).map(v => ({ x: v.x, y: v.y, z: v.z }))
-        }
+    const result = {
+        right: buildLashPoints(1, upperRight).map(v => ({ x: v.x, y: v.y, z: v.z })),
+        left: buildLashPoints(1, upperLeft).map(v => ({ x: v.x, y: v.y, z: v.z })),
+        rightSpike: null,
+        leftSpike: null
     }
 
-    return {
-        right: buildLashPoints(1, upperRight).map(v => ({ x: v.x, y: v.y, z: v.z })),
-        left: buildLashPoints(1, upperLeft).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    if(lashParams.style === 'spikes'){
+        const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(1)
+        result.rightSpike = buildCantoSpike(1, upperRight, lowerRight).map(v => ({ x: v.x, y: v.y, z: v.z }))
+        result.leftSpike = buildCantoSpike(1, upperLeft, lowerLeft).map(v => ({ x: v.x, y: v.y, z: v.z }))
     }
+
+    return result
 }
