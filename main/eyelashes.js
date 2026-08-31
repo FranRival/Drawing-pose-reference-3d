@@ -107,8 +107,8 @@ function buildUpperLashPoints(baseRadius, lidPoints){
         const tipDirX = dirX * cosR - dirY * sinR
         const tipDirY = dirX * sinR + dirY * cosR
 
-        const perpX = -dirY
-        const perpY = dirX
+        const perpX = -tipDirY
+        const perpY = tipDirX
 
         const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
         const curve = baseRadius * lashParams.cantoSpikeCurve
@@ -190,8 +190,8 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
     const tipDirX = dirX * cosR - dirY * sinR
     const tipDirY = dirX * sinR + dirY * cosR
 
-    const perpX = -dirY
-    const perpY = dirX
+    const perpX = -tipDirY
+    const perpY = tipDirX
 
     const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
     const curve = baseRadius * lashParams.cantoSpikeCurve
