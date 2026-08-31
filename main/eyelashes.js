@@ -15,8 +15,11 @@ let lashParams = {
     outerThickness: 0.05, // espesor cerca del canto (estilo 'shadow')
 
     // --- estilo 'spikes': pico del canto ---
-    cantoSpikeLength: 0.09, // largo del pico, fracción del radio de cabeza
-    cantoSpikeWidth: 0.012  // ancho de la base del pico, fracción del radio de cabeza
+    cantoSpikeLength: 0.09,  // largo del pico, fracción del radio de cabeza
+    cantoSpikeWidth: 0.012,  // ancho de la base del pico, fracción del radio de cabeza
+    cantoSpikeCurve: 0.02,   // curvatura de los bordes superior/inferior (0 = triángulo recto)
+    cantoSpikeScale: 1.0,    // escala general del pico completo ("agrandar")
+    cantoSpikeTipRotation: 0 // rota la punta respecto a la dirección natural, en grados
 }
 
 let lashGroup = null
@@ -63,10 +66,18 @@ function buildLashPoints(baseRadius, lidPoints){
     return pts
 }
 
-// ✅ NUEVO: pico de pestaña del canto (estilo 'spikes') — nace justo en
-// medio de donde terminan el párpado superior e inferior (el canto), y
-// apunta hacia afuera siguiendo la misma dirección con la que ya venía
-// saliendo el párpado superior en ese punto (su tangente final).
+// ✅ ACTUALIZADO: el pico ya no es un triángulo recto — tiene curvatura
+// real en el borde superior e inferior (dos Bezier cuadráticas), la punta
+// se puede rotar respecto a la dirección natural, y todo el pico se puede
+// escalar de un solo control ("agrandar").
+function quadraticBezierPoint(p0, p1, p2, t){
+    const mt = 1 - t
+    return {
+        x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+        y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
+    }
+}
+
 function buildCantoSpike(baseRadius, upperPts, lowerPts){
     if(upperPts.length < 2 || lowerPts.length < 1) return []
 
@@ -79,8 +90,7 @@ function buildCantoSpike(baseRadius, upperPts, lowerPts){
         z: (upperCanto.z + lowerCanto.z) / 2
     }
 
-    // dirección: la tangente del párpado superior en su extremo, para que
-    // el pico "siga de largo" en la misma dirección natural de esa curva
+    // dirección natural: la tangente del párpado superior en su extremo
     const prevPt = upperPts[upperPts.length - 2]
     let dirX = upperCanto.x - prevPt.x
     let dirY = upperCanto.y - prevPt.y
@@ -88,17 +98,52 @@ function buildCantoSpike(baseRadius, upperPts, lowerPts){
     dirX /= dirLen
     dirY /= dirLen
 
+    // rotar la dirección de la PUNTA respecto a la natural, según el slider
+    const rotRad = THREE.MathUtils.degToRad(lashParams.cantoSpikeTipRotation)
+    const cosR = Math.cos(rotRad)
+    const sinR = Math.sin(rotRad)
+    const tipDirX = dirX * cosR - dirY * sinR
+    const tipDirY = dirX * sinR + dirY * cosR
+
     const perpX = -dirY
     const perpY = dirX
 
     const halfWidth = (baseRadius * lashParams.cantoSpikeWidth) / 2
     const length = baseRadius * lashParams.cantoSpikeLength
+    const curve = baseRadius * lashParams.cantoSpikeCurve
 
-    const baseA = new THREE.Vector3(origin.x + perpX * halfWidth, origin.y + perpY * halfWidth, origin.z)
-    const baseB = new THREE.Vector3(origin.x - perpX * halfWidth, origin.y - perpY * halfWidth, origin.z)
-    const tip = new THREE.Vector3(origin.x + dirX * length, origin.y + dirY * length, origin.z)
+    const baseA = { x: origin.x + perpX * halfWidth, y: origin.y + perpY * halfWidth }
+    const baseB = { x: origin.x - perpX * halfWidth, y: origin.y - perpY * halfWidth }
+    const tip = { x: origin.x + tipDirX * length, y: origin.y + tipDirY * length }
 
-    return [baseA, tip, baseB, baseA] // triángulo cerrado (fino, tipo pestaña)
+    // puntos de control: al medio de cada borde, empujados hacia afuera
+    // por la curvatura - borde superior hacia +perp, inferior hacia -perp
+    const controlTop = {
+        x: (baseA.x + tip.x) / 2 + perpX * curve,
+        y: (baseA.y + tip.y) / 2 + perpY * curve
+    }
+    const controlBottom = {
+        x: (tip.x + baseB.x) / 2 - perpX * curve,
+        y: (tip.y + baseB.y) / 2 - perpY * curve
+    }
+
+    const segs = 10
+    const raw = []
+    for(let i = 0; i <= segs; i++){
+        raw.push(quadraticBezierPoint(baseA, controlTop, tip, i / segs))
+    }
+    for(let i = 0; i <= segs; i++){
+        raw.push(quadraticBezierPoint(tip, controlBottom, baseB, i / segs))
+    }
+    raw.push(baseA) // cierra el lazo (borde de la base)
+
+    // "agrandar": escala todo el pico alrededor de su propio origen
+    const scale = lashParams.cantoSpikeScale
+    return raw.map(p => new THREE.Vector3(
+        origin.x + (p.x - origin.x) * scale,
+        origin.y + (p.y - origin.y) * scale,
+        origin.z
+    ))
 }
 
 function buildLashes(baseRadius){
@@ -113,13 +158,13 @@ function buildLashes(baseRadius){
     if(lashParams.style === 'spikes'){
         const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(baseRadius)
 
-        rightLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+        rightLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
         const rightSpike = buildCantoSpike(baseRadius, upperRight, lowerRight)
         rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightSpike), rightLashMat)
         rightLashLine.renderOrder = 999
         lashGroup.add(rightLashLine)
 
-        leftLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+        leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
         const leftSpike = buildCantoSpike(baseRadius, upperLeft, lowerLeft)
         leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftSpike), leftLashMat)
         leftLashLine.renderOrder = 999
@@ -128,13 +173,13 @@ function buildLashes(baseRadius){
     }
 
     // estilo 'shadow' (el original)
-    rightLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+    rightLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
     const rightPts = buildLashPoints(baseRadius, upperRight)
     rightLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightLashMat)
     rightLashLine.renderOrder = 999
     lashGroup.add(rightLashLine)
 
-    leftLashMat = new THREE.LineBasicMaterial({ color: 0x222222, depthTest: true, depthWrite: false })
+    leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
     const leftPts = buildLashPoints(baseRadius, upperLeft)
     leftLashLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftLashMat)
     leftLashLine.renderOrder = 999
@@ -172,6 +217,9 @@ export function setLashOuterThickness(value){ lashParams.outerThickness = value;
 export function setLashStyle(style){ lashParams.style = (style === 'spikes') ? 'spikes' : 'shadow'; rebuild() }
 export function setCantoSpikeLength(value){ lashParams.cantoSpikeLength = value; rebuild() }
 export function setCantoSpikeWidth(value){ lashParams.cantoSpikeWidth = value; rebuild() }
+export function setCantoSpikeCurve(value){ lashParams.cantoSpikeCurve = value; rebuild() }
+export function setCantoSpikeScale(value){ lashParams.cantoSpikeScale = value; rebuild() }
+export function setCantoSpikeTipRotation(degrees){ lashParams.cantoSpikeTipRotation = degrees; rebuild() }
 
 export function setEyelashOcclusion(respectOcclusion){
     ;[rightLashMat, leftLashMat].forEach(mat => {
