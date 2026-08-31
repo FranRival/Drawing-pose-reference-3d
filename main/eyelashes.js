@@ -27,8 +27,30 @@ let lashParams = {
     cantoSpikeTipRotation: 0,
 
     lashSpikeCount: 5,
-    lashSpikeAmplitude: 0.03
+    lashSpikeAmplitude: 0.03,
+
+    // ✅ NUEVO: balance superior/inferior — un solo control, coexiste
+    // ENCIMA de los sliders de grosor existentes (los multiplica, no los
+    // reemplaza). -1 = toda la pestaña superior se adelgaza y la inferior
+    // se engruesa; +1 = al revés. En 0, sin efecto (proporciones tal cual
+    // las dejan los sliders). Entre más lejos de 0 (en cualquier
+    // dirección), más filosa la punta — nunca por un slider aparte, es
+    // consecuencia directa de la misma redistribución de proporciones.
+    lashBalance: 0
 }
+
+// K = qué tan fuerte reparte el balance entre superior/inferior.
+// SHARPEN = qué tanto se reduce la curvatura de la punta según |balance|.
+const BALANCE_K = 0.6
+const BALANCE_SHARPEN = 0.8
+
+function balanceMultipliers(){
+    const b = THREE.MathUtils.clamp(lashParams.lashBalance, -1, 1)
+    return {
+        upperMult: 1 + b * BALANCE_K,
+        lowerMult: 1 - b * BALANCE_K,
+        curveMult: 1 - Math.abs(b) * BALANCE_SHARPEN
+    }
 
 let lashGroup = null
 let rightUpperLine = null
@@ -107,11 +129,12 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
     const useSpike = lashParams.style === 'spikes'
     const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
     const center = curveCenter(lidPoints)
+    const { upperMult, curveMult } = balanceMultipliers()
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1)
-        let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
+        let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
         if(useSpike){
             thickness += spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         }
@@ -139,7 +162,7 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
         const perpY = tipDirX
 
         const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
-        const curve = baseRadius * lashParams.cantoSpikeCurve
+        const curve = baseRadius * lashParams.cantoSpikeCurve * curveMult
 
         const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length }
 
@@ -197,11 +220,12 @@ function buildLowerLashPoints(baseRadius, lidPoints){
 
     const couplingDeg = lashParams.style === 'spikes' ? lashParams.cantoSpikeTipRotation * LOWER_LASH_COUPLING : 0
     const center = curveCenter(lidPoints)
+    const { lowerMult } = balanceMultipliers()
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1) // 0 = canto, 1 = lagrimal
-        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
+        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
 
         // influencia máxima en el canto (t=0), se desvanece hacia el lagrimal (t=1)
         const influence = 1 - t
@@ -233,12 +257,13 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
 
     const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
     const upperCenter = curveCenter(upperLidPoints)
+    const { upperMult, lowerMult, curveMult } = balanceMultipliers()
 
     // borde exterior superior: lagrimal → canto (con dentado)
     const upperOuter = upperLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(upperLidPoints, i, upperCenter)
         const t = i / (nu - 1)
-        const thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
+        const thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
             + spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
@@ -258,7 +283,7 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const perpY = tipDirX
 
     const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
-    const curve = baseRadius * lashParams.cantoSpikeCurve
+    const curve = baseRadius * lashParams.cantoSpikeCurve * curveMult
 
     const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length, z: cantoBase.z }
 
@@ -286,7 +311,7 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const lowerOuter = lowerLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lowerLidPoints, i, lowerCenter)
         const t = i / (nl - 1) // 0 = canto, 1 = lagrimal
-        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
+        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
@@ -426,6 +451,7 @@ export function setCantoSpikeScale(value){ lashParams.cantoSpikeScale = value; r
 export function setCantoSpikeTipRotation(degrees){ lashParams.cantoSpikeTipRotation = degrees; rebuild() }
 export function setLashSpikeCount(value){ lashParams.lashSpikeCount = Math.round(value); rebuild() }
 export function setLashSpikeAmplitude(value){ lashParams.lashSpikeAmplitude = value; rebuild() }
+export function setLashBalance(value){ lashParams.lashBalance = value; rebuild() }
 
 export function setEyelashOcclusion(respectOcclusion){
     ;[rightLashMat, leftLashMat].forEach(mat => {
