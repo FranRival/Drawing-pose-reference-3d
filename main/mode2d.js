@@ -267,6 +267,8 @@ function drawFrame(){
         const lashOutlines = getEyelashOutlines2D()
         drawOutline(lashOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
         drawOutline(lashOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+        if(lashOutlines.rightSpike) drawOutline(lashOutlines.rightSpike.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+        if(lashOutlines.leftSpike) drawOutline(lashOutlines.leftSpike.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
 
         // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
         const pupilOutlines = getPupilOutlines2D()
@@ -303,6 +305,8 @@ function drawFrame(){
 
             const lo = getEyelashOutlines2D()
             drawOutline(lo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+            const loSpike = lo[t.side + 'Spike']
+            if(loSpike) drawOutline(loSpike.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
 
             const pupilMark = getPupilProfileMark(t.side)
             drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
