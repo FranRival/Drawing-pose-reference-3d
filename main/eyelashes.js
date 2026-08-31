@@ -244,6 +244,25 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
 
     const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length, z: cantoBase.z }
 
+    // ✅ CORREGIDO: el tramo base→punta también es una Bezier CÚBICA, con
+    // el manejador proporcional a la distancia real hasta la punta
+    // (gap1 * 0.4), no un valor fijo — así no se "pellizca" cuando la
+    // punta está lejos (agrandar pico grande, o rotación extrema). El
+    // manejador de salida sigue la tangente real de la banda superior en
+    // ese punto (hacia dónde ya venía "recorriendo" el trazo).
+    const prevUpperOuter = upperOuter[upperOuter.length - 2] || cantoBase
+    let bandTanX = cantoBase.x - prevUpperOuter.x
+    let bandTanY = cantoBase.y - prevUpperOuter.y
+    const bandTanLen = Math.sqrt(bandTanX * bandTanX + bandTanY * bandTanY) || 1
+    bandTanX /= bandTanLen
+    bandTanY /= bandTanLen
+
+    const gap1 = Math.sqrt((tip.x - cantoBase.x) ** 2 + (tip.y - cantoBase.y) ** 2)
+    const handleLen1 = gap1 * 0.4
+
+    const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1 }
+    const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve }
+
     // borde exterior inferior: canto → lagrimal (se afina)
     const lowerOuter = lowerLidPoints.map((p, i) => {
         const { px, py } = localPerpUp(lowerLidPoints, i)
@@ -252,17 +271,12 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
         return { x: p.x - px * thickness, y: p.y - py * thickness, z: p.z }
     })
 
-    const controlTop = {
-        x: (cantoBase.x + tip.x) / 2 + perpX * curve,
-        y: (cantoBase.y + tip.y) / 2 + perpY * curve
-    }
-
-    // ✅ la bajada de la punta hacia la pestaña inferior es una Bezier
-    // CÚBICA (dos manejadores), no una cuadrática con un solo punto de
-    // control fijo. El manejador de llegada se alinea con la dirección
-    // REAL en la que continúa la pestaña inferior (hacia lowerOuter[1]) —
-    // eso es lo que garantiza que no haya un ángulo recto ahí: la curva
-    // "entra" ya apuntando hacia donde sigue el trazo.
+    // ✅ la bajada de la punta hacia la pestaña inferior también es una
+    // Bezier CÚBICA (dos manejadores), no una cuadrática con un solo
+    // punto de control fijo. El manejador de llegada se alinea con la
+    // dirección REAL en la que continúa la pestaña inferior (hacia
+    // lowerOuter[1]) — eso es lo que garantiza que no haya un ángulo
+    // recto ahí: la curva "entra" ya apuntando hacia donde sigue el trazo.
     let lowerTanX = lowerOuter[1].x - lowerOuter[0].x
     let lowerTanY = lowerOuter[1].y - lowerOuter[0].y
     const lowerTanLen = Math.sqrt(lowerTanX * lowerTanX + lowerTanY * lowerTanY) || 1
@@ -287,8 +301,8 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const pts = [...upperOuter]
 
     const segs = 8
-    // cantoBase → punta
-    for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(cantoBase, controlTop, tip, i / segs))
+    // cantoBase → punta (cúbica, proporcional a la distancia real)
+    for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(cantoBase, handleOut1, handleIn1, tip, i / segs))
     // punta → borde exterior inferior, lado canto (cúbica, tangente alineada)
     for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(tip, handleOut, handleIn, lowerOuter[0], i / segs))
 
