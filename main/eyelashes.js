@@ -83,7 +83,9 @@ function localPerpUp(points, i){
 
 // ✅ Pestaña SUPERIOR autosuficiente (estilos 'shadow' y 'spikes'). Cierra
 // siempre contra su propio párpado superior — nunca toca el inferior.
-function buildUpperLashPoints(baseRadius, lidPoints){
+// mirrorX indica si es el ojo espejado (izquierdo), necesario para que la
+// orientación absoluta de la punta funcione igual en ambos ojos.
+function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
     const n = lidPoints.length
     if(n < 2) return []
 
@@ -104,20 +106,16 @@ function buildUpperLashPoints(baseRadius, lidPoints){
 
     if(useSpike){
         const cantoBase = offsetPts[offsetPts.length - 1]
-        const prevPt = offsetPts[offsetPts.length - 2] || cantoBase
         const trueCanto = lidPoints[n - 1]
 
-        let dirX = cantoBase.x - prevPt.x
-        let dirY = cantoBase.y - prevPt.y
-        const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
-        dirX /= dirLen
-        dirY /= dirLen
-
+        // ✅ CORREGIDO: orientación ABSOLUTA, no relativa a la tangente del
+        // párpado (eso era lo que causaba el cruce de líneas). 0° = hacia
+        // la oreja (horizontal); positivo = hacia la coronilla; negativo
+        // = hacia el cuello. Igual para ambos ojos gracias a dirSign.
+        const dirSign = mirrorX ? -1 : 1
         const rotRad = THREE.MathUtils.degToRad(lashParams.cantoSpikeTipRotation)
-        const cosR = Math.cos(rotRad)
-        const sinR = Math.sin(rotRad)
-        const tipDirX = dirX * cosR - dirY * sinR
-        const tipDirY = dirX * sinR + dirY * cosR
+        const tipDirX = dirSign * Math.cos(rotRad)
+        const tipDirY = Math.sin(rotRad)
 
         const perpX = -tipDirY
         const perpY = tipDirX
@@ -170,7 +168,7 @@ function buildLowerLashPoints(baseRadius, lidPoints){
 // cierra de vuelta cerca del lagrimal. Nunca usa las curvas "verdaderas"
 // del párpado como borde interno — por eso no puede entrelazarse consigo
 // misma.
-function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
+function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirrorX){
     const nu = upperLidPoints.length
     const nl = lowerLidPoints.length
     if(nu < 2 || nl < 2) return []
@@ -188,19 +186,14 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
 
     // pico del canto: cantoBase → punta afilada
     const cantoBase = upperOuter[upperOuter.length - 1]
-    const prevPt = upperOuter[upperOuter.length - 2] || cantoBase
 
-    let dirX = cantoBase.x - prevPt.x
-    let dirY = cantoBase.y - prevPt.y
-    const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1
-    dirX /= dirLen
-    dirY /= dirLen
-
+    // ✅ CORREGIDO: orientación ABSOLUTA (igual que en buildUpperLashPoints)
+    // — 0° = hacia la oreja, positivo = hacia la coronilla, negativo =
+    // hacia el cuello. Ya no depende de la tangente del párpado.
+    const dirSign = mirrorX ? -1 : 1
     const rotRad = THREE.MathUtils.degToRad(lashParams.cantoSpikeTipRotation)
-    const cosR = Math.cos(rotRad)
-    const sinR = Math.sin(rotRad)
-    const tipDirX = dirX * cosR - dirY * sinR
-    const tipDirY = dirX * sinR + dirY * cosR
+    const tipDirX = dirSign * Math.cos(rotRad)
+    const tipDirY = Math.sin(rotRad)
 
     const perpX = -tipDirY
     const perpY = tipDirX
@@ -223,12 +216,12 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints){
         y: (cantoBase.y + tip.y) / 2 + perpY * curve
     }
 
-    // ✅ CORREGIDO: la bajada de la punta hacia la pestaña inferior ahora
-    // es una Bezier CÚBICA (dos manejadores), no una cuadrática con un
-    // solo punto de control fijo. El manejador de llegada se alinea con
-    // la dirección REAL en la que continúa la pestaña inferior (hacia
-    // lowerOuter[1]) — eso es lo que garantiza que no haya un ángulo
-    // recto ahí: la curva "entra" ya apuntando hacia donde sigue el trazo.
+    // ✅ la bajada de la punta hacia la pestaña inferior es una Bezier
+    // CÚBICA (dos manejadores), no una cuadrática con un solo punto de
+    // control fijo. El manejador de llegada se alinea con la dirección
+    // REAL en la que continúa la pestaña inferior (hacia lowerOuter[1]) —
+    // eso es lo que garantiza que no haya un ángulo recto ahí: la curva
+    // "entra" ya apuntando hacia donde sigue el trazo.
     let lowerTanX = lowerOuter[1].x - lowerOuter[0].x
     let lowerTanY = lowerOuter[1].y - lowerOuter[0].y
     const lowerTanLen = Math.sqrt(lowerTanX * lowerTanX + lowerTanY * lowerTanY) || 1
@@ -282,13 +275,13 @@ function buildLashes(baseRadius){
     leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
 
     if(lashParams.style === 'fusion'){
-        const rightPts = buildFusedLashPoints(baseRadius, upperRight, lowerRight)
+        const rightPts = buildFusedLashPoints(baseRadius, upperRight, lowerRight, false)
         rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightLashMat)
         rightUpperLine.renderOrder = 999
         lashGroup.add(rightUpperLine)
         rightLowerLine = null
 
-        const leftPts = buildFusedLashPoints(baseRadius, upperLeft, lowerLeft)
+        const leftPts = buildFusedLashPoints(baseRadius, upperLeft, lowerLeft, true)
         leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftLashMat)
         leftUpperLine.renderOrder = 999
         lashGroup.add(leftUpperLine)
@@ -296,12 +289,12 @@ function buildLashes(baseRadius){
         return
     }
 
-    const rightUpperPts = buildUpperLashPoints(baseRadius, upperRight)
+    const rightUpperPts = buildUpperLashPoints(baseRadius, upperRight, false)
     rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightUpperPts), rightLashMat)
     rightUpperLine.renderOrder = 999
     lashGroup.add(rightUpperLine)
 
-    const leftUpperPts = buildUpperLashPoints(baseRadius, upperLeft)
+    const leftUpperPts = buildUpperLashPoints(baseRadius, upperLeft, true)
     leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftUpperPts), leftLashMat)
     leftUpperLine.renderOrder = 999
     lashGroup.add(leftUpperLine)
@@ -380,18 +373,18 @@ export function getEyelashOutlines2D(){
 
     if(lashParams.style === 'fusion'){
         return {
-            right: { upper: buildFusedLashPoints(1, upperRight, lowerRight).map(flat), lower: [] },
-            left: { upper: buildFusedLashPoints(1, upperLeft, lowerLeft).map(flat), lower: [] }
+            right: { upper: buildFusedLashPoints(1, upperRight, lowerRight, false).map(flat), lower: [] },
+            left: { upper: buildFusedLashPoints(1, upperLeft, lowerLeft, true).map(flat), lower: [] }
         }
     }
 
     return {
         right: {
-            upper: buildUpperLashPoints(1, upperRight).map(flat),
+            upper: buildUpperLashPoints(1, upperRight, false).map(flat),
             lower: buildLowerLashPoints(1, lowerRight).map(flat)
         },
         left: {
-            upper: buildUpperLashPoints(1, upperLeft).map(flat),
+            upper: buildUpperLashPoints(1, upperLeft, true).map(flat),
             lower: buildLowerLashPoints(1, lowerLeft).map(flat)
         }
     }
