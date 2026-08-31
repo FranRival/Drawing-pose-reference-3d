@@ -1,33 +1,30 @@
 import * as THREE from 'three'
 import { getEyeUpperLidPoints, getEyeLowerLidPoints } from './eyes.js'
 
-// Pestañas: dos piezas independientes, cada una autosuficiente (nunca
-// cruzan geometría de la otra — eso era lo que causaba el entrelazado):
-//   - Pestaña SUPERIOR: banda de espesor variable sobre el párpado
-//     superior, fina en el lagrimal, gruesa en el canto. En estilo
-//     'spikes' además tiene dentado a lo largo y un pico grande fusionado
-//     en el canto — pero el pico SIEMPRE cierra contra su propio párpado
-//     superior, nunca intenta alcanzar el inferior.
-//   - Pestaña INFERIOR: banda delgada independiente sobre el párpado
-//     inferior, con su propio espesor.
+// Pestañas: TRES estilos.
+//   'shadow'  - banda sobre el párpado superior + banda delgada inferior,
+//               ambas independientes, sin pico.
+//   'spikes'  - igual, pero con dentado + pico grande en el canto (se
+//               cierra sobre SÍ MISMO — nunca toca la pestaña inferior).
+//   'fusion'  - el pico del canto y la pestaña inferior quedan UNIDOS: la
+//               pestaña inferior arranca exactamente en la punta del pico,
+//               así que rotar la punta controla el arco completo de una
+//               sola vez (hacia la ceja = arco más pronunciado; hacia el
+//               pómulo = menos pronunciado).
 
 let lashParams = {
-    style: 'shadow', // 'shadow' | 'spikes'
-    innerThickness: 0.02, // espesor cerca del lagrimal (superior)
-    outerThickness: 0.05, // espesor cerca del canto (superior)
+    style: 'shadow', // 'shadow' | 'spikes' | 'fusion'
+    innerThickness: 0.02,
+    outerThickness: 0.05,
 
-    // --- pestaña inferior, independiente ---
-    lowerLashInnerThickness: 0.008, // espesor cerca del lagrimal (inferior) - normalmente muy fina
-    lowerLashOuterThickness: 0.018, // espesor cerca del canto (inferior)
+    lowerLashInnerThickness: 0.008,
+    lowerLashOuterThickness: 0.018,
 
-    // --- estilo 'spikes': pico del canto, fusionado al final de la banda
-    // superior, SIEMPRE autosuficiente (cierra contra sí misma) ---
     cantoSpikeLength: 0.09,
     cantoSpikeCurve: 0.02,
     cantoSpikeScale: 1.0,
     cantoSpikeTipRotation: 0,
 
-    // --- estilo 'spikes': dentado a lo largo de la banda superior ---
     lashSpikeCount: 5,
     lashSpikeAmplitude: 0.03
 }
@@ -49,8 +46,6 @@ function quadraticBezierPoint(p0, p1, p2, t){
     }
 }
 
-// modulación en zigzag: crea `count` picos a lo largo de t (0 a 1), con
-// un triángulo por pico (sube y baja), sesgado hacia el canto (t=1).
 function spikeModulation(t, count){
     const phase = (t * count) % 1
     const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2
@@ -58,8 +53,6 @@ function spikeModulation(t, count){
     return tri * bias
 }
 
-// perpendicular local a una polilínea, en el punto i, apuntando siempre
-// "hacia arriba" (y >= 0) — mismo truco que en eyes.js/eyebrows.js.
 function localPerpUp(points, i){
     const n = points.length
     const prev = points[Math.max(i - 1, 0)]
@@ -75,31 +68,34 @@ function localPerpUp(points, i){
     return { px, py }
 }
 
-// ✅ Pestaña SUPERIOR: banda + (si aplica) pico del canto — TODO cierra
-// contra su PROPIO párpado superior. Nunca referencia el párpado inferior,
-// así que nunca puede entrelazarse con él.
+// ✅ Pestaña SUPERIOR: banda + (si 'spikes' o 'fusion') pico del canto.
+// SIEMPRE cierra sobre su propio párpado superior — es un trazo
+// autosuficiente, nunca depende de la geometría del párpado inferior.
+// Además de los puntos, devuelve `tip` (la punta del pico) para que, en
+// modo 'fusion', la pestaña inferior sepa dónde anclarse.
 function buildUpperLashPoints(baseRadius, lidPoints){
     const n = lidPoints.length
-    if(n < 2) return []
+    if(n < 2) return { points: [], tip: null }
 
-    const useSpikes = lashParams.style === 'spikes'
+    const style = lashParams.style
+    const useZigzag = style === 'spikes'
+    const useSpike = style === 'spikes' || style === 'fusion'
     const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpUp(lidPoints, i)
         const t = i / (n - 1) // 0 = lagrimal, 1 = canto
         let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
-        if(useSpikes){
+        if(useZigzag){
             thickness += spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         }
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
     const pts = [...offsetPts]
+    let tip = null
 
-    // pico del canto, fusionado — cierra contra lidPoints[n-1] (el propio
-    // párpado superior en su extremo), NUNCA contra el párpado inferior.
-    if(useSpikes){
+    if(useSpike){
         const cantoBase = offsetPts[offsetPts.length - 1]
         const prevPt = offsetPts[offsetPts.length - 2] || cantoBase
         const trueCanto = lidPoints[n - 1] // punto real del párpado, sin desplazar
@@ -122,7 +118,7 @@ function buildUpperLashPoints(baseRadius, lidPoints){
         const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
         const curve = baseRadius * lashParams.cantoSpikeCurve
 
-        const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length }
+        tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length, z: cantoBase.z }
 
         const controlTop = {
             x: (cantoBase.x + tip.x) / 2 + perpX * curve,
@@ -135,31 +131,38 @@ function buildUpperLashPoints(baseRadius, lidPoints){
 
         const segs = 8
         for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(cantoBase, controlTop, tip, i / segs))
+        // ✅ el pico SIEMPRE se cierra contra su propio párpado (trueCanto)
+        // — esto es lo que evita el entrelazado, en 'spikes' Y en 'fusion'.
         for(let i = 1; i <= segs; i++) pts.push(quadraticBezierPoint(tip, controlBottom, trueCanto, i / segs))
     }
 
-    // cierre: la curva del párpado superior misma, canto→lagrimal
     for(let i = n - 1; i >= 0; i--) pts.push(lidPoints[i])
 
-    return pts.map(p => new THREE.Vector3(p.x, p.y, p.z))
+    return {
+        points: pts.map(p => new THREE.Vector3(p.x, p.y, p.z)),
+        tip
+    }
 }
 
-// ✅ Pestaña INFERIOR: independiente, banda delgada sobre el párpado
-// inferior — no depende del superior ni lo toca.
-function buildLowerLashPoints(baseRadius, lidPoints){
+// ✅ Pestaña INFERIOR: banda independiente sobre el párpado inferior. Si
+// se pasa `connectTip` (modo 'fusion'), su extremo del lado del canto se
+// ancla EXACTAMENTE en la punta del pico superior — así ambas piezas
+// quedan unidas en ese único punto, sin fusionarse en una sola forma
+// gigante (evita el riesgo de auto-intersección).
+function buildLowerLashPoints(baseRadius, lidPoints, connectTip){
     const n = lidPoints.length
     if(n < 2) return []
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpUp(lidPoints, i)
-        // lidPoints del párpado inferior van canto(0)→lagrimal(1) en su
-        // propia convención (ver eyes.js) - se usa tal cual para el degradado
-        const t = i / (n - 1)
+        const t = i / (n - 1) // 0 = canto, 1 = lagrimal (convención del párpado inferior)
         const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
-        // el párpado inferior se dibuja "hacia arriba" (px,py apunta
-        // arriba); para que la pestaña quede DEBAJO del ojo, se invierte
         return { x: p.x - px * thickness, y: p.y - py * thickness, z: p.z }
     })
+
+    if(connectTip && offsetPts.length > 0){
+        offsetPts[0] = { x: connectTip.x, y: connectTip.y, z: offsetPts[0].z }
+    }
 
     const pts = [...offsetPts]
     for(let i = n - 1; i >= 0; i--) pts.push(lidPoints[i])
@@ -176,25 +179,27 @@ function buildLashes(baseRadius){
     const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(baseRadius)
     const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(baseRadius)
 
+    const isFusion = lashParams.style === 'fusion'
+
     rightLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
     leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
 
-    const rightUpperPts = buildUpperLashPoints(baseRadius, upperRight)
-    rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightUpperPts), rightLashMat)
+    const rightUpper = buildUpperLashPoints(baseRadius, upperRight)
+    rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightUpper.points), rightLashMat)
     rightUpperLine.renderOrder = 999
     lashGroup.add(rightUpperLine)
 
-    const leftUpperPts = buildUpperLashPoints(baseRadius, upperLeft)
-    leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftUpperPts), leftLashMat)
+    const leftUpper = buildUpperLashPoints(baseRadius, upperLeft)
+    leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftUpper.points), leftLashMat)
     leftUpperLine.renderOrder = 999
     lashGroup.add(leftUpperLine)
 
-    const rightLowerPts = buildLowerLashPoints(baseRadius, lowerRight)
+    const rightLowerPts = buildLowerLashPoints(baseRadius, lowerRight, isFusion ? rightUpper.tip : null)
     rightLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightLowerPts), rightLashMat)
     rightLowerLine.renderOrder = 999
     lashGroup.add(rightLowerLine)
 
-    const leftLowerPts = buildLowerLashPoints(baseRadius, lowerLeft)
+    const leftLowerPts = buildLowerLashPoints(baseRadius, lowerLeft, isFusion ? leftUpper.tip : null)
     leftLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftLowerPts), leftLashMat)
     leftLowerLine.renderOrder = 999
     lashGroup.add(leftLowerLine)
@@ -232,7 +237,10 @@ export function setLashInnerThickness(value){ lashParams.innerThickness = value;
 export function setLashOuterThickness(value){ lashParams.outerThickness = value; rebuild() }
 export function setLowerLashInnerThickness(value){ lashParams.lowerLashInnerThickness = value; rebuild() }
 export function setLowerLashOuterThickness(value){ lashParams.lowerLashOuterThickness = value; rebuild() }
-export function setLashStyle(style){ lashParams.style = (style === 'spikes') ? 'spikes' : 'shadow'; rebuild() }
+export function setLashStyle(style){
+    lashParams.style = (style === 'spikes' || style === 'fusion') ? style : 'shadow'
+    rebuild()
+}
 export function setCantoSpikeLength(value){ lashParams.cantoSpikeLength = value; rebuild() }
 export function setCantoSpikeCurve(value){ lashParams.cantoSpikeCurve = value; rebuild() }
 export function setCantoSpikeScale(value){ lashParams.cantoSpikeScale = value; rebuild() }
@@ -249,22 +257,26 @@ export function setEyelashOcclusion(respectOcclusion){
     })
 }
 
-// ✅ silueta 2D (vista frontal) — ahora devuelve upper/lower por separado
-// para cada lado, ya que son dos piezas independientes.
+// ✅ silueta 2D (vista frontal) — upper/lower por separado para cada lado,
+// respetando el modo 'fusion' (anclaje del inferior a la punta del pico).
 export function getEyelashOutlines2D(){
     const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(1)
     const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(1)
 
+    const isFusion = lashParams.style === 'fusion'
     const flat = v => ({ x: v.x, y: v.y, z: v.z })
+
+    const rightUpper = buildUpperLashPoints(1, upperRight)
+    const leftUpper = buildUpperLashPoints(1, upperLeft)
 
     return {
         right: {
-            upper: buildUpperLashPoints(1, upperRight).map(flat),
-            lower: buildLowerLashPoints(1, lowerRight).map(flat)
+            upper: rightUpper.points.map(flat),
+            lower: buildLowerLashPoints(1, lowerRight, isFusion ? rightUpper.tip : null).map(flat)
         },
         left: {
-            upper: buildUpperLashPoints(1, upperLeft).map(flat),
-            lower: buildLowerLashPoints(1, lowerLeft).map(flat)
+            upper: leftUpper.points.map(flat),
+            lower: buildLowerLashPoints(1, lowerLeft, isFusion ? leftUpper.tip : null).map(flat)
         }
     }
 }
