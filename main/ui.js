@@ -12,7 +12,7 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
-import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength, setCantoSpikeWidth,
+import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength,
          setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation,
          setLashSpikeCount, setLashSpikeAmplitude } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
@@ -802,17 +802,6 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setCantoSpikeLength(value)
             if(cantoSpikeLengthValue) cantoSpikeLengthValue.textContent = value.toFixed(3)
-        })
-    }
-
-    const cantoSpikeWidthSlider = document.getElementById("cantoSpikeWidth")
-    const cantoSpikeWidthValue  = document.getElementById("cantoSpikeWidthValue")
-
-    if(cantoSpikeWidthSlider){
-        cantoSpikeWidthSlider.addEventListener("input",(e)=>{
-            const value = parseFloat(e.target.value)
-            setCantoSpikeWidth(value)
-            if(cantoSpikeWidthValue) cantoSpikeWidthValue.textContent = value.toFixed(3)
         })
     }
 
