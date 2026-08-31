@@ -66,7 +66,20 @@ function spikeModulation(t, count){
     return tri * bias
 }
 
-function localPerpUp(points, i){
+// ✅ CORREGIDO: antes se decidía el lado de la perpendicular forzando
+// py>=0 — en curvas con mucha variación (como el párpado superior con
+// lift/erase/flick/etc.) esa regla podía INVERTIRSE de golpe en algún
+// punto del recorrido, creando un escalón/bulto ahí mismo. Ahora se
+// decide según si el punto se aleja del CENTRO del contorno — un criterio
+// estable que nunca cambia de golpe entre puntos vecinos.
+function curveCenter(points){
+    let sx = 0
+    let sy = 0
+    for(const p of points){ sx += p.x; sy += p.y }
+    return { x: sx / points.length, y: sy / points.length }
+}
+
+function localPerpAway(points, i, center){
     const n = points.length
     const prev = points[Math.max(i - 1, 0)]
     const next = points[Math.min(i + 1, n - 1)]
@@ -77,7 +90,9 @@ function localPerpUp(points, i){
     ty /= len
     let px = -ty
     let py = tx
-    if(py < 0){ px = -px; py = -py }
+    const toPointX = points[i].x - center.x
+    const toPointY = points[i].y - center.y
+    if(px * toPointX + py * toPointY < 0){ px = -px; py = -py }
     return { px, py }
 }
 
@@ -91,9 +106,10 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
 
     const useSpike = lashParams.style === 'spikes'
     const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
+    const center = curveCenter(lidPoints)
 
     const offsetPts = lidPoints.map((p, i) => {
-        const { px, py } = localPerpUp(lidPoints, i)
+        const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1)
         let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
         if(useSpike){
@@ -180,9 +196,10 @@ function buildLowerLashPoints(baseRadius, lidPoints){
     if(n < 2) return []
 
     const couplingDeg = lashParams.style === 'spikes' ? lashParams.cantoSpikeTipRotation * LOWER_LASH_COUPLING : 0
+    const center = curveCenter(lidPoints)
 
     const offsetPts = lidPoints.map((p, i) => {
-        const { px, py } = localPerpUp(lidPoints, i)
+        const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1) // 0 = canto, 1 = lagrimal
         const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
 
@@ -194,7 +211,7 @@ function buildLowerLashPoints(baseRadius, lidPoints){
         const rpx = px * cosR - py * sinR
         const rpy = px * sinR + py * cosR
 
-        return { x: p.x - rpx * thickness, y: p.y - rpy * thickness, z: p.z }
+        return { x: p.x + rpx * thickness, y: p.y + rpy * thickness, z: p.z }
     })
 
     const pts = [...offsetPts]
@@ -215,10 +232,11 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     if(nu < 2 || nl < 2) return []
 
     const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
+    const upperCenter = curveCenter(upperLidPoints)
 
     // borde exterior superior: lagrimal → canto (con dentado)
     const upperOuter = upperLidPoints.map((p, i) => {
-        const { px, py } = localPerpUp(upperLidPoints, i)
+        const { px, py } = localPerpAway(upperLidPoints, i, upperCenter)
         const t = i / (nu - 1)
         const thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius
             + spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
@@ -264,11 +282,12 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve }
 
     // borde exterior inferior: canto → lagrimal (se afina)
+    const lowerCenter = curveCenter(lowerLidPoints)
     const lowerOuter = lowerLidPoints.map((p, i) => {
-        const { px, py } = localPerpUp(lowerLidPoints, i)
+        const { px, py } = localPerpAway(lowerLidPoints, i, lowerCenter)
         const t = i / (nl - 1) // 0 = canto, 1 = lagrimal
         const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius
-        return { x: p.x - px * thickness, y: p.y - py * thickness, z: p.z }
+        return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
     // ✅ la bajada de la punta hacia la pestaña inferior también es una
