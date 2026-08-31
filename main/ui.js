@@ -13,7 +13,8 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
          setLagrimalDepth, setCenterDepth, setCantoDepth,
          setProfileUpperDepth, setProfileLowerDepth, setProfileArchPosition } from './eyes.js'
 import { setLashInnerThickness, setLashOuterThickness, setLashStyle, setCantoSpikeLength, setCantoSpikeWidth,
-         setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation } from './eyelashes.js'
+         setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation,
+         setLashSpikeCount, setLashSpikeAmplitude } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -845,6 +846,28 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setCantoSpikeTipRotation(value)
             if(cantoSpikeTipRotationValue) cantoSpikeTipRotationValue.textContent = value.toFixed(0)
+        })
+    }
+
+    const lashSpikeCountSlider = document.getElementById("lashSpikeCount")
+    const lashSpikeCountValue  = document.getElementById("lashSpikeCountValue")
+
+    if(lashSpikeCountSlider){
+        lashSpikeCountSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashSpikeCount(value)
+            if(lashSpikeCountValue) lashSpikeCountValue.textContent = value.toFixed(0)
+        })
+    }
+
+    const lashSpikeAmplitudeSlider = document.getElementById("lashSpikeAmplitude")
+    const lashSpikeAmplitudeValue  = document.getElementById("lashSpikeAmplitudeValue")
+
+    if(lashSpikeAmplitudeSlider){
+        lashSpikeAmplitudeSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashSpikeAmplitude(value)
+            if(lashSpikeAmplitudeValue) lashSpikeAmplitudeValue.textContent = value.toFixed(3)
         })
     }
 
