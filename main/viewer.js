@@ -3,6 +3,7 @@ import { createEyeGuides, setEyeOcclusion } from './eyes.js'
 import { createPupilGuides, setPupilOcclusion } from './pupils.js'
 import { createEyebrowGuides, setEyebrowOcclusion } from './eyebrows.js'
 import { createEyelashGuides, setEyelashOcclusion } from './eyelashes.js'
+import { createEyelidGuides, setEyelidOcclusion } from './eyelids.js'
 import * as THREE from 'three'
 
 const raycaster = new THREE.Raycaster()
@@ -490,6 +491,10 @@ export function createLoomisGuide(radius){
     // curva del párpado superior del ojo, así que van DESPUÉS de crear el ojo.
     createEyelashGuides(loomisGroup, localRadius)
 
+    // ✅ NUEVO: párpados (eyelids.js) — el pliegue corre por encima de la
+    // curva del párpado superior del ojo, así que también va DESPUÉS.
+    createEyelidGuides(loomisGroup, localRadius)
+
     // ✅ NUEVO: guías de cejas (eyebrows.js) — mismo patrón que los ojos.
     createEyebrowGuides(loomisGroup, localRadius)
 
@@ -535,6 +540,7 @@ export function setLoomisRespectOcclusion(respectOcclusion){
     setEyeOcclusion(respectOcclusion) // los ojos viven en eyes.js, con sus propios materiales
     setPupilOcclusion(respectOcclusion) // iris/pupila viven en pupils.js
     setEyelashOcclusion(respectOcclusion) // las pestañas viven en eyelashes.js
+    setEyelidOcclusion(respectOcclusion)  // los párpados viven en eyelids.js
     setEyebrowOcclusion(respectOcclusion) // las cejas viven en eyebrows.js, con sus propios materiales
 }
 
