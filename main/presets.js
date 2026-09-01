@@ -18,10 +18,10 @@ import { setSelectedTarget, getTargetAdjust,
 const DYNAMIC_IDS = ['targetOffsetX', 'targetOffsetY', 'targetScale', 'targetRotation']
 
 // controles que no describen el personaje (no tiene sentido guardarlos)
-const SKIP_IDS = ['mode2DTarget', 'frameCount', 'imgFormat']
+const SKIP_IDS = ['mode2DTarget', 'frameCount', 'imgFormat', 'mode2DToggle']
 
 function collectControls(){
-    const nodes = document.querySelectorAll('input[type="range"], select')
+    const nodes = document.querySelectorAll('input[type="range"], input[type="checkbox"], select')
     const out = []
     nodes.forEach(node => {
         if(!node.id) return
@@ -43,7 +43,7 @@ function shapeTargetKeys(){
 export function buildPreset(){
     const controls = {}
     collectControls().forEach(node => {
-        controls[node.id] = node.value
+        controls[node.id] = node.type === 'checkbox' ? node.checked : node.value
     })
 
     const shapeAdjust = {}
@@ -88,6 +88,11 @@ export function downloadPreset(filename){
 function applyControl(id, value){
     const node = document.getElementById(id)
     if(!node) return false
+    if(node.type === 'checkbox'){
+        node.checked = !!value
+        node.dispatchEvent(new Event('change', { bubbles: true }))
+        return true
+    }
     node.value = value
     const evtName = node.tagName === 'SELECT' ? 'change' : 'input'
     node.dispatchEvent(new Event(evtName, { bubbles: true }))
