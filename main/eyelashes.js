@@ -235,7 +235,7 @@ function buildLowerLashPoints(baseRadius, lidPoints){
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1) // 0 = canto, 1 = lagrimal
-        const thickness = easeLerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
+        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
 
         // influencia máxima en el canto (t=0), se desvanece hacia el lagrimal (t=1)
         const influence = 1 - t
@@ -321,7 +321,7 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const lowerOuter = lowerLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lowerLidPoints, i, lowerCenter)
         const t = i / (nl - 1) // 0 = canto, 1 = lagrimal
-        const thickness = easeLerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
+        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
