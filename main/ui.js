@@ -25,7 +25,8 @@ import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBi
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
-         setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
+         setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
+         setLayerVisible } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -958,6 +959,27 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setter(value)
             if(label) label.textContent = value.toFixed(decimals)
+        })
+    })
+
+    // --- Capas visibles en el modo 2D (mode2d.js) ---
+    const layerChecks = [
+        ["layerEye", "eye"],
+        ["layerLashes", "lashes"],
+        ["layerLids", "lids"],
+        ["layerPupils", "pupils"],
+        ["layerBrows", "brows"],
+        ["layerJaw", "jaw"],
+        ["layerHeadCircle", "headCircle"]
+    ]
+
+    layerChecks.forEach(([id, layer]) => {
+        const box = document.getElementById(id)
+        if(!box) return
+        // se sincroniza el estado inicial con lo que marque el HTML
+        setLayerVisible(layer, box.checked)
+        box.addEventListener("change",(e)=>{
+            setLayerVisible(layer, e.target.checked)
         })
     })
 
