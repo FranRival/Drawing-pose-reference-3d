@@ -15,7 +15,9 @@ import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setI
 import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThickness, setLowerLashOuterThickness,
          setLashStyle, setCantoSpikeLength,
          setCantoSpikeCurve, setCantoSpikeScale, setCantoSpikeTipRotation,
-         setLashSpikeCount, setLashSpikeAmplitude, setLashBalance } from './eyelashes.js'
+         setLashSpikeCount, setLashBalance,
+         setLashSpikeLength, setLashSpikeWidth, setLashSpikeLean,
+         setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -872,14 +874,54 @@ export function initUI(){
         })
     }
 
-    const lashSpikeAmplitudeSlider = document.getElementById("lashSpikeAmplitude")
-    const lashSpikeAmplitudeValue  = document.getElementById("lashSpikeAmplitudeValue")
+    const lashSpikeLengthSlider = document.getElementById("lashSpikeLength")
+    const lashSpikeLengthValue  = document.getElementById("lashSpikeLengthValue")
 
-    if(lashSpikeAmplitudeSlider){
-        lashSpikeAmplitudeSlider.addEventListener("input",(e)=>{
+    if(lashSpikeLengthSlider){
+        lashSpikeLengthSlider.addEventListener("input",(e)=>{
             const value = parseFloat(e.target.value)
-            setLashSpikeAmplitude(value)
-            if(lashSpikeAmplitudeValue) lashSpikeAmplitudeValue.textContent = value.toFixed(3)
+            setLashSpikeLength(value)
+            if(lashSpikeLengthValue) lashSpikeLengthValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lashSpikeWidthSlider = document.getElementById("lashSpikeWidth")
+    const lashSpikeWidthValue  = document.getElementById("lashSpikeWidthValue")
+
+    if(lashSpikeWidthSlider){
+        lashSpikeWidthSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashSpikeWidth(value)
+            if(lashSpikeWidthValue) lashSpikeWidthValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lashSpikeLeanSlider = document.getElementById("lashSpikeLean")
+    const lashSpikeLeanValue  = document.getElementById("lashSpikeLeanValue")
+
+    if(lashSpikeLeanSlider){
+        lashSpikeLeanSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashSpikeLean(value)
+            if(lashSpikeLeanValue) lashSpikeLeanValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const lashSpikeSideSelect = document.getElementById("lashSpikeSide")
+    if(lashSpikeSideSelect){
+        lashSpikeSideSelect.addEventListener("change",(e)=>{
+            setLashSpikeSide(e.target.value)
+        })
+    }
+
+    const lashSpikeSeedSlider = document.getElementById("lashSpikeSeed")
+    const lashSpikeSeedValue  = document.getElementById("lashSpikeSeedValue")
+
+    if(lashSpikeSeedSlider){
+        lashSpikeSeedSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLashSpikeSeed(value)
+            if(lashSpikeSeedValue) lashSpikeSeedValue.textContent = value.toFixed(0)
         })
     }
 
