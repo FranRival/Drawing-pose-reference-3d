@@ -24,6 +24,12 @@ let lidParams = {
     // recorrido se dibuja (0 = no aparece; 1 = llega hasta el lagrimal).
     tailLength: 0.60,
 
+    // ✅ ángulo de esa línea: 0 = continúa en la MISMA dirección en la que
+    // venía el pliegue (natural, sin quiebre); 1 = baja directo al
+    // lagrimal (el ángulo cerrado que teníamos antes). Valores intermedios
+    // interpolan entre ambos.
+    tailAngle: 1.0,
+
     // ✅ desvanecimiento en el canto: qué fracción del pliegue se recorta
     // desde el lado del canto (0 = llega completo al canto; 0.5 = se borra
     // la mitad exterior).
@@ -106,20 +112,46 @@ function buildLidPoints(baseRadius, upperLidPts){
 
     if(!pts.length) return []
 
-    // ✅ línea que baja al lagrimal: del inicio del pliegue hacia el
-    // lagrimal real del ojo, recorrida solo parcialmente según tailLength.
+    // ✅ línea que baja al lagrimal: nace del inicio del pliegue. Su
+    // DIRECCIÓN se interpola entre continuar el pliegue tal cual
+    // (tailAngle=0, sin quiebre) y apuntar directo al lagrimal
+    // (tailAngle=1, el ángulo cerrado). `tailLength` controla cuánto de
+    // ese recorrido se dibuja.
     const tail = THREE.MathUtils.clamp(lidParams.tailLength, 0, 1)
-    if(tail > 0){
+    if(tail > 0 && pts.length >= 2){
         const start = pts[0]
         const lagrimal = upperLidPts[0]
+
+        // dirección "natural": la del propio pliegue en su arranque,
+        // extendida hacia atrás (hacia el lagrimal)
+        let contX = start.x - pts[1].x
+        let contY = start.y - pts[1].y
+        let contZ = start.z - pts[1].z
+        const contLen = Math.sqrt(contX * contX + contY * contY) || 1
+
+        // dirección "directa": del arranque del pliegue al lagrimal real
+        const toLagX = lagrimal.x - start.x
+        const toLagY = lagrimal.y - start.y
+        const toLagZ = lagrimal.z - start.z
+        const toLagLen = Math.sqrt(toLagX * toLagX + toLagY * toLagY) || 1
+
+        // se normaliza la continuación al mismo largo que el tramo directo,
+        // para que el slider solo cambie el ÁNGULO y no el tamaño
+        const k = toLagLen / contLen
+        const angle = THREE.MathUtils.clamp(lidParams.tailAngle, 0, 1)
+
+        const endX = start.x + THREE.MathUtils.lerp(contX * k, toLagX, angle)
+        const endY = start.y + THREE.MathUtils.lerp(contY * k, toLagY, angle)
+        const endZ = start.z + THREE.MathUtils.lerp(contZ * k, toLagZ, angle)
+
         const segs = 6
         const tailPts = []
         for(let i = 1; i <= segs; i++){
-            const k = (i / segs) * tail
+            const f = (i / segs) * tail
             tailPts.push({
-                x: start.x + (lagrimal.x - start.x) * k,
-                y: start.y + (lagrimal.y - start.y) * k,
-                z: start.z + (lagrimal.z - start.z) * k
+                x: start.x + (endX - start.x) * f,
+                y: start.y + (endY - start.y) * f,
+                z: start.z + (endZ - start.z) * f
             })
         }
         // se antepone en orden inverso, para que el trazo sea continuo:
@@ -188,6 +220,7 @@ export function setLidOffsetOuter(value){ lidParams.offsetOuter = value; rebuild
 export function setLidArchAmount(value){ lidParams.archAmount = value; rebuild() }
 export function setLidArchPosition(value){ lidParams.archPosition = value; rebuild() }
 export function setLidTailLength(value){ lidParams.tailLength = value; rebuild() }
+export function setLidTailAngle(value){ lidParams.tailAngle = value; rebuild() }
 export function setLidCantoFade(value){ lidParams.cantoFade = value; rebuild() }
 
 export function setEyelidOcclusion(respectOcclusion){
