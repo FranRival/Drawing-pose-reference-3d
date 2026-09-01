@@ -89,6 +89,15 @@ function spikeModulation(t, count){
     return tri * bias
 }
 
+// ✅ NUEVO: interpolación SUAVE (smoothstep), no lineal — el grosor entra
+// y sale de forma orgánica, como una curva, en vez de crecer a ritmo
+// mecánico constante. Esto es lo que hace que el engrosamiento "fluya"
+// en vez de sentirse rígido.
+function easeLerp(a, b, t){
+    const s = t * t * (3 - 2 * t)
+    return a + (b - a) * s
+}
+
 // ✅ CORREGIDO: antes se decidía el lado de la perpendicular forzando
 // py>=0 — en curvas con mucha variación (como el párpado superior con
 // lift/erase/flick/etc.) esa regla podía INVERTIRSE de golpe en algún
@@ -135,7 +144,7 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1)
-        let thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
+        let thickness = easeLerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
         if(useSpike){
             thickness += spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         }
@@ -226,7 +235,7 @@ function buildLowerLashPoints(baseRadius, lidPoints){
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1) // 0 = canto, 1 = lagrimal
-        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
+        const thickness = easeLerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
 
         // influencia máxima en el canto (t=0), se desvanece hacia el lagrimal (t=1)
         const influence = 1 - t
@@ -264,7 +273,7 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const upperOuter = upperLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(upperLidPoints, i, upperCenter)
         const t = i / (nu - 1)
-        const thickness = THREE.MathUtils.lerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
+        const thickness = easeLerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
             + spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
@@ -312,7 +321,7 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const lowerOuter = lowerLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lowerLidPoints, i, lowerCenter)
         const t = i / (nl - 1) // 0 = canto, 1 = lagrimal
-        const thickness = THREE.MathUtils.lerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
+        const thickness = easeLerp(lashParams.lowerLashOuterThickness, lashParams.lowerLashInnerThickness, t) * baseRadius * lowerMult
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
@@ -354,9 +363,33 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     // borde exterior inferior completo (ya empieza en lowerOuter[0])
     pts.push(...lowerOuter.slice(1))
 
-    // cierre final: del extremo lagrimal inferior de vuelta al lagrimal
-    // superior (un segmento corto, cierra el lazo)
-    pts.push(upperOuter[0])
+    // ✅ CORREGIDO: el cierre final (del lagrimal inferior de vuelta al
+    // lagrimal superior) YA NO es una línea recta — eso era exactamente
+    // el gancho/escalón que se veía en el lagrimal. Ahora es una cúbica
+    // con la tangente de salida siguiendo el propio recorrido de la banda
+    // inferior, y la de llegada alineada con hacia dónde sigue la banda
+    // superior — así cierra liso, sin doblez.
+    const lastLower = lowerOuter[nl - 1]
+    const prevLowerClose = lowerOuter[nl - 2] || lastLower
+    let closeOutX = lastLower.x - prevLowerClose.x
+    let closeOutY = lastLower.y - prevLowerClose.y
+    const closeOutLen = Math.sqrt(closeOutX * closeOutX + closeOutY * closeOutY) || 1
+    closeOutX /= closeOutLen
+    closeOutY /= closeOutLen
+
+    let closeInX = upperOuter[1].x - upperOuter[0].x
+    let closeInY = upperOuter[1].y - upperOuter[0].y
+    const closeInLen = Math.sqrt(closeInX * closeInX + closeInY * closeInY) || 1
+    closeInX /= closeInLen
+    closeInY /= closeInLen
+
+    const gapClose = Math.sqrt((upperOuter[0].x - lastLower.x) ** 2 + (upperOuter[0].y - lastLower.y) ** 2)
+    const handleLenClose = gapClose * 0.4
+
+    const handleOutClose = { x: lastLower.x + closeOutX * handleLenClose, y: lastLower.y + closeOutY * handleLenClose }
+    const handleInClose = { x: upperOuter[0].x - closeInX * handleLenClose, y: upperOuter[0].y - closeInY * handleLenClose }
+
+    for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(lastLower, handleOutClose, handleInClose, upperOuter[0], i / segs))
 
     return pts.map(p => new THREE.Vector3(p.x, p.y, p.z))
 }
