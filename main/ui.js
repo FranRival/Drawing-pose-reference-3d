@@ -18,6 +18,8 @@ import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThicknes
          setLashSpikeCount, setLashBalance,
          setLashSpikeLength, setLashSpikeWidth, setLashSpikeLean,
          setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
+import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
+         setLidArchPosition, setLidTailLength, setLidCantoFade } from './eyelids.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -935,6 +937,27 @@ export function initUI(){
             if(lashBalanceValue) lashBalanceValue.textContent = value.toFixed(2)
         })
     }
+
+    // --- Párpados (eyelids.js) ---
+    const lidSliders = [
+        ["lidOffsetInner", setLidOffsetInner, 3],
+        ["lidOffsetOuter", setLidOffsetOuter, 3],
+        ["lidArchAmount", setLidArchAmount, 3],
+        ["lidArchPosition", setLidArchPosition, 2],
+        ["lidTailLength", setLidTailLength, 2],
+        ["lidCantoFade", setLidCantoFade, 2]
+    ]
+
+    lidSliders.forEach(([id, setter, decimals]) => {
+        const slider = document.getElementById(id)
+        const label  = document.getElementById(id + "Value")
+        if(!slider) return
+        slider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setter(value)
+            if(label) label.textContent = value.toFixed(decimals)
+        })
+    })
 
     const irisRadiusSlider = document.getElementById("irisRadius")
     const irisRadiusValue  = document.getElementById("irisRadiusValue")
