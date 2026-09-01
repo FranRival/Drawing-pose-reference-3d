@@ -350,14 +350,37 @@
           <span id="cantoSpikeTipRotationValue">-11</span>
         </div>
         <div class="control">
-          <label for="lashSpikeCount">Pestañas - cantidad de picos en la banda</label>
+          <label for="lashSpikeCount">Púas - cantidad</label>
           <input type="range" id="lashSpikeCount" min="1" max="12" step="1" value="5">
           <span id="lashSpikeCountValue">5</span>
         </div>
         <div class="control">
-          <label for="lashSpikeAmplitude">Pestañas - tamaño de los picos en la banda</label>
-          <input type="range" id="lashSpikeAmplitude" min="0" max="0.10" step="0.005" value="0.000">
-          <span id="lashSpikeAmplitudeValue">0.000</span>
+          <label for="lashSpikeLength">Púas - longitud</label>
+          <input type="range" id="lashSpikeLength" min="0" max="0.20" step="0.005" value="0.05">
+          <span id="lashSpikeLengthValue">0.05</span>
+        </div>
+        <div class="control">
+          <label for="lashSpikeWidth">Púas - grosor de la base</label>
+          <input type="range" id="lashSpikeWidth" min="0.002" max="0.05" step="0.002" value="0.012">
+          <span id="lashSpikeWidthValue">0.012</span>
+        </div>
+        <div class="control">
+          <label for="lashSpikeLean">Púas - orientación (- lagrimal, + canto)</label>
+          <input type="range" id="lashSpikeLean" min="-1" max="1" step="0.05" value="0">
+          <span id="lashSpikeLeanValue">0.00</span>
+        </div>
+        <div class="control">
+          <label for="lashSpikeSide">Púas - lado (respecto al iris)</label>
+          <select id="lashSpikeSide">
+            <option value="right" selected>Derecha</option>
+            <option value="left">Izquierda</option>
+            <option value="random">Aleatorio</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="lashSpikeSeed">Púas - semilla (modo aleatorio)</label>
+          <input type="range" id="lashSpikeSeed" min="1" max="50" step="1" value="1">
+          <span id="lashSpikeSeedValue">1</span>
         </div>
         <div class="control">
           <label for="lashBalance">Pestañas - balance superior/inferior (afila la punta)</label>
