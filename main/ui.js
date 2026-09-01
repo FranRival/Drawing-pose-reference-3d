@@ -19,7 +19,7 @@ import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThicknes
          setLashSpikeLength, setLashSpikeWidth, setLashSpikeLean,
          setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
 import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
-         setLidArchPosition, setLidTailLength, setLidCantoFade } from './eyelids.js'
+         setLidArchPosition, setLidTailLength, setLidTailAngle, setLidCantoFade } from './eyelids.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -945,6 +945,7 @@ export function initUI(){
         ["lidArchAmount", setLidArchAmount, 3],
         ["lidArchPosition", setLidArchPosition, 2],
         ["lidTailLength", setLidTailLength, 2],
+        ["lidTailAngle", setLidTailAngle, 2],
         ["lidCantoFade", setLidCantoFade, 2]
     ]
 
