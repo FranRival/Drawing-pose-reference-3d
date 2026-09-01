@@ -51,6 +51,7 @@ function balanceMultipliers(){
         lowerMult: 1 - b * BALANCE_K,
         curveMult: 1 - Math.abs(b) * BALANCE_SHARPEN
     }
+}
 
 let lashGroup = null
 let rightUpperLine = null
