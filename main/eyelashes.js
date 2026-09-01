@@ -33,7 +33,7 @@ let lashParams = {
     lashSpikeLength: 0.05,   // longitud de cada púa, fracción del radio de cabeza
     lashSpikeWidth: 0.012,   // grosor de la base de cada púa, fracción del radio
     lashSpikeLean: 0,        // orientación 2D: -1 = todas se inclinan al lagrimal, +1 = al canto, 0 = perpendiculares
-    lashSpikeSide: 'right',  // 'left' | 'right' | 'random' — de qué lado del iris salen las púas
+    lashSpikeSide: 'canto',  // 'lagrimal' | 'canto' | 'random' — en qué mitad del párpado salen las púas (simétrico en ambos ojos)
     lashSpikeSeed: 1,        // semilla para el modo 'random' (mismo valor = mismo patrón)
 
     // ✅ NUEVO: balance superior/inferior — un solo control, coexiste
@@ -118,10 +118,16 @@ function buildLashSpikes(baseRadius, borderPts, lidPoints, center){
         const idx = Math.min(Math.max(Math.round(t * (n - 1)), 1), n - 2)
         const p = borderPts[idx]
 
-        // ¿de qué lado del centro (iris) cae esta púa?
-        const isRightSide = p.x > center.x
-        if(side === 'right' && !isRightSide) continue
-        if(side === 'left' && isRightSide) continue
+        // ✅ CORREGIDO: el lado se decide por la posición A LO LARGO del
+        // párpado (0 = lagrimal, 1 = canto), NO por la X del mundo. Los
+        // puntos siempre van lagrimal→canto en ambos ojos, así que este
+        // criterio es simétrico automáticamente; usar la X del mundo
+        // fallaba porque el ojo izquierdo está espejado y "derecha" caía
+        // del lado opuesto de la cara.
+        const along = idx / (n - 1)
+        const isCantoHalf = along > 0.5
+        if(side === 'canto' && !isCantoHalf) continue
+        if(side === 'lagrimal' && isCantoHalf) continue
         if(side === 'random' && pseudoRandom(lashParams.lashSpikeSeed, s) < 0.5) continue
 
         // dirección de la púa: la normal del borde en ese punto, inclinada
@@ -579,7 +585,7 @@ export function setLashSpikeLength(value){ lashParams.lashSpikeLength = value; r
 export function setLashSpikeWidth(value){ lashParams.lashSpikeWidth = value; rebuild() }
 export function setLashSpikeLean(value){ lashParams.lashSpikeLean = value; rebuild() }
 export function setLashSpikeSide(side){
-    lashParams.lashSpikeSide = (side === 'left' || side === 'random') ? side : 'right'
+    lashParams.lashSpikeSide = (side === 'lagrimal' || side === 'random') ? side : 'canto'
     rebuild()
 }
 export function setLashSpikeSeed(value){ lashParams.lashSpikeSeed = value; rebuild() }
