@@ -20,6 +20,22 @@
   <!-- PANEL IZQUIERDO -->
   <div class="left-panel">
 
+    <details class="control-group" open>
+      <summary>Preconfiguración</summary>
+      <div class="group-body">
+        <div class="control">
+          <button id="presetSaveBtn" type="button">Descargar preconfiguración (.txt)</button>
+        </div>
+        <div class="control">
+          <label for="presetLoadInput">Cargar preconfiguración</label>
+          <input type="file" id="presetLoadInput" accept=".txt,.json,text/plain,application/json">
+        </div>
+        <div class="control">
+          <span id="presetStatus"></span>
+        </div>
+      </div>
+    </details>
+
     <details class="control-group">
       <summary>Modo 2D (calibrar contra referencia)</summary>
       <div class="group-body">
