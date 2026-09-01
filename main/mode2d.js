@@ -22,6 +22,21 @@ let rafId = null
 
 let refImage = null
 let refScale = 1.55
+
+// ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
+// referencia hay tantas guías superpuestas que cuesta distinguir cuál es
+// cuál, así que cada capa se puede apagar. Por defecto solo queda el ojo
+// (la forma almendrada), que es la base sobre la que se calibra todo lo
+// demás.
+let layerVisibility = {
+    eye: true,
+    lashes: false,
+    lids: false,
+    pupils: false,
+    brows: false,
+    jaw: false,
+    headCircle: false
+}
 let refOffsetX = 0.07 // -1 a 1, fracción del ancho del canvas
 let refOffsetY = 0.12 // -1 a 1, fracción del alto del canvas
 
@@ -248,90 +263,118 @@ function drawFrame(){
     const { stretchX, stretchY, stretchZ } = getLoomisTransform2D()
 
     if(viewMode === 'front'){
-        drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
-
-        const eyeOutlines = getEyeOutlines2D()
-        const browOutlines = getBrowOutlines2D()
+        if(layerVisibility.headCircle){
+            drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
+        }
 
         // ✅ el ajuste por forma ya viene incluido en estas siluetas (se aplica
         // dentro de eyes.js/eyebrows.js). El ojo ahora son DOS trazos
         // abiertos independientes (párpado superior + inferior), no un
         // lazo cerrado, así que se dibujan con drawLine, no drawOutline.
-        drawLine(eyeOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-        drawLine(eyeOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-        drawLine(eyeOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-        drawLine(eyeOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-        drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
-        drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+        if(layerVisibility.eye){
+            const eyeOutlines = getEyeOutlines2D()
+            drawLine(eyeOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(eyeOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(eyeOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(eyeOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+        }
 
-        // pestañas — encima del ojo, mismo tono oscuro que en 3D
-        const lashOutlines = getEyelashOutlines2D()
-        drawOutline(lashOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-        drawOutline(lashOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-        drawOutline(lashOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-        drawOutline(lashOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+        if(layerVisibility.brows){
+            const browOutlines = getBrowOutlines2D()
+            drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+            drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+        }
+
+        // pestañas — encima del ojo
+        if(layerVisibility.lashes){
+            const lashOutlines = getEyelashOutlines2D()
+            drawOutline(lashOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(lashOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(lashOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(lashOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+        }
 
         // párpados — el pliegue por encima del ojo (trazo abierto, no lazo)
-        const lidOutlines = getEyelidOutlines2D()
-        drawLine(lidOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
-        drawLine(lidOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+        if(layerVisibility.lids){
+            const lidOutlines = getEyelidOutlines2D()
+            drawLine(lidOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+            drawLine(lidOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+        }
 
         // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
-        const pupilOutlines = getPupilOutlines2D()
-        drawOutline(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-        drawOutline(applyPupilAdjust2D(pupilOutlines.leftIris, pupilAdjust2D.leftIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-        drawOutline(applyPupilAdjust2D(pupilOutlines.rightPupil, pupilAdjust2D.rightPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
-        drawOutline(applyPupilAdjust2D(pupilOutlines.leftPupil, pupilAdjust2D.leftPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+        if(layerVisibility.pupils){
+            const pupilOutlines = getPupilOutlines2D()
+            drawOutline(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+            drawOutline(applyPupilAdjust2D(pupilOutlines.leftIris, pupilAdjust2D.leftIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+            drawOutline(applyPupilAdjust2D(pupilOutlines.rightPupil, pupilAdjust2D.rightPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+            drawOutline(applyPupilAdjust2D(pupilOutlines.leftPupil, pupilAdjust2D.leftPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+        }
 
         // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
         // color rosa que usa la guía 3D para que sea reconocible de un vistazo.
-        const jawOutlines = getJawOutlines2D()
-        const jawColor = '#ff66cc'
-        const templeColor = '#66ccff'
-        const bridgeColor = '#cccccc'
+        if(layerVisibility.jaw){
+            const jawOutlines = getJawOutlines2D()
+            const jawColor = '#ff66cc'
+            const templeColor = '#66ccff'
+            const bridgeColor = '#cccccc'
 
-        drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-        drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-        drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-        drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
-        drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-        drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-        drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
+            drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
+            drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+            drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+            drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
+        }
     } else {
         // --- vista de PERFIL: círculo de referencia con Z/Y (el "ancho"
         // de perfil es la profundidad real de la cabeza, no stretchX) ---
-        drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchZ, stretchY)
+        if(layerVisibility.headCircle){
+            drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchZ, stretchY)
+        }
 
         const t = resolveTarget(selectedTarget)
 
         if(t.kind === 'eye'){
-            const eo = getEyeOutlines2D()
-            drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
-            drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+            if(layerVisibility.eye){
+                const eo = getEyeOutlines2D()
+                drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+                drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+            }
 
-            const lo = getEyelashOutlines2D()
-            drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
-            drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+            if(layerVisibility.lashes){
+                const lo = getEyelashOutlines2D()
+                drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+            }
 
-            const lid = getEyelidOutlines2D()
-            drawLine(lid[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffcc66')
+            if(layerVisibility.lids){
+                const lid = getEyelidOutlines2D()
+                drawLine(lid[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffcc66')
+            }
 
-            const pupilMark = getPupilProfileMark(t.side)
-            drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
+            if(layerVisibility.pupils){
+                const pupilMark = getPupilProfileMark(t.side)
+                drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
+            }
         } else if(t.kind === 'brow'){
-            const bo = getBrowOutlines2D()
-            drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
+            if(layerVisibility.brows){
+                const bo = getBrowOutlines2D()
+                drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
+            }
         } else {
-            const jo = getJawOutlines2D()
-            const jawColor = '#ff66cc'
-            const templeColor = '#66ccff'
-            drawLine(jo.leftJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-            drawLine(jo.rightJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-            drawLine(jo.chin.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-            drawLine(jo.mouth.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffffff')
-            drawLine(jo.leftTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
-            drawLine(jo.rightTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
-            drawLine(jo.bridge.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#cccccc')
+            if(layerVisibility.jaw){
+                const jo = getJawOutlines2D()
+                const jawColor = '#ff66cc'
+                const templeColor = '#66ccff'
+                drawLine(jo.leftJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+                drawLine(jo.rightJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+                drawLine(jo.chin.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
+                drawLine(jo.mouth.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffffff')
+                drawLine(jo.leftTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
+                drawLine(jo.rightTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
+                drawLine(jo.bridge.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#cccccc')
+            }
         }
     }
 
@@ -406,6 +449,13 @@ export function setRefImage(file){
 }
 
 // ✅ conectar a los sliders de escala/posición del overlay
+export function setLayerVisible(layer, visible){
+    if(layer in layerVisibility){
+        layerVisibility[layer] = !!visible
+        drawFrame()
+    }
+}
+
 export function setRefScale(value){ refScale = value; drawFrame() }
 export function setRefOffsetX(value){ refOffsetX = value; drawFrame() }
 export function setRefOffsetY(value){ refOffsetY = value; drawFrame() }
