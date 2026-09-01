@@ -8,22 +8,22 @@ import * as THREE from 'three'
 // (IMG_3395). Punto de partida para calibrar en vivo con los sliders.
 let eyeParams = {
     // --- CAPA 1: el eje (lagrimal fijo, canto se mueve) ---
-    cantoLengthMult: 0.40,  // distancia lagrimal-canto, fraccion del radio de cabeza
-    cantoAngleDeg: 8,       // angulo del canto respecto al lagrimal - positivo = canto sube hacia la ceja
+    cantoLengthMult: 0.38,  // distancia lagrimal-canto, fraccion del radio de cabeza
+    cantoAngleDeg: 7,       // angulo del canto respecto al lagrimal - positivo = canto sube hacia la ceja
 
     // --- CAPA 2: la carne sobre ese eje (manejadores Bezier) ---
-    upperLidBulge: 0.14,    // altura del manejador del parpado superior, fraccion del radio de cabeza
-    lowerLidBulge: 0.08,    // altura del manejador del parpado inferior (normalmente menor que el superior)
-    innerSharp: 0.30,       // 0 = manejador lejos del lagrimal (redondeado), 1 = manejador cerca (picudo)
-    outerSharp: 0.60,       // 0 = manejador lejos del canto (redondeado), 1 = manejador cerca (picudo)
+    upperLidBulge: 0.13,    // altura del manejador del parpado superior, fraccion del radio de cabeza
+    lowerLidBulge: 0.07,    // altura del manejador del parpado inferior (normalmente menor que el superior)
+    innerSharp: 0.50,       // 0 = manejador lejos del lagrimal (redondeado), 1 = manejador cerca (picudo)
+    outerSharp: 0.25,       // 0 = manejador lejos del canto (redondeado), 1 = manejador cerca (picudo)
 
     // ✅ NUEVO: el parpado inferior ya NO comparte obligatoriamente el
     // lagrimal/canto con el superior - tiene su PROPIO inicio y final,
     // insertados hacia adentro del eje. 0 = toca la esquina exacta (como
     // antes); valores mayores lo acortan y lo "sueltan" de la esquina,
     // como un trazo independiente flotando debajo.
-    lowerLidInnerInset: 0.15, // fraccion del largo lagrimal-canto, desde el lagrimal
-    lowerLidOuterInset: 0.15, // fraccion del largo lagrimal-canto, desde el canto
+    lowerLidInnerInset: 0.10, // fraccion del largo lagrimal-canto, desde el lagrimal
+    lowerLidOuterInset: 0.00, // fraccion del largo lagrimal-canto, desde el canto
 
     // ✅ NUEVO: base plana del párpado inferior - en 0 el ojo es una
     // almendra (la curva actual, sin tramo recto). Al subir el valor se
@@ -40,16 +40,16 @@ let eyeParams = {
     // ✅ NUEVO: lagrimal superior - separarlo del lagrimal inferior (para
     // que no se toquen/crucen) y, desde ese punto ya elevado, ir borrando
     // el trazo hacia adentro con un slider.
-    upperInnerLift: 0,  // eleva el inicio del párpado superior, fracción del radio de cabeza
-    upperInnerErase: 0, // 0 = trazo completo; 1 = casi todo borrado desde el lagrimal
+    upperInnerLift: 0,     // eleva el inicio del párpado superior, fracción del radio de cabeza
+    upperInnerErase: 0.02, // 0 = trazo completo; 1 = casi todo borrado desde el lagrimal
 
     // --- CAPA 3: estiramiento final, independiente de las otras dos ---
     verticalStretch: 1.0,   // alarga/achica el ojo YA CONSTRUIDO en vertical
-    horizontalStretch: 1.0, // alarga/achica el ojo YA CONSTRUIDO en horizontal
+    horizontalStretch: 0.90, // alarga/achica el ojo YA CONSTRUIDO en horizontal
 
     // --- posicion del par de ojos en la cara ---
-    gapMult: 1.0,           // separacion lagrimal-a-lagrimal, en "longitudes de canto"
-    vertOffsetMult: 0.06,   // desplazamiento vertical bajo la linea de ojos, fraccion del radio
+    gapMult: 0.70,           // separacion lagrimal-a-lagrimal, en "longitudes de canto"
+    vertOffsetMult: 0.09,   // desplazamiento vertical bajo la linea de ojos, fraccion del radio
 
     // --- CAPA 4: profundidad en 3D (pegado a la curvatura del rostro) ---
     // 0 = sigue exactamente la curvatura natural de la esfera craneal en
@@ -57,9 +57,9 @@ let eyeParams = {
     // en vista frontal); negativo = se hunde hacia atras. Cada uno es
     // independiente, para poder "envolver" el ojo sobre la cara en vez de
     // dejarlo como una calcomania plana.
-    lagrimalDepth: 0,
-    centerDepth: 0,
-    cantoDepth: 0,
+    lagrimalDepth: -0.12,
+    centerDepth: -0.06,
+    cantoDepth: -0.04,
 
     // --- CAPA 5: volumen de perfil (SOLO afecta la vista de perfil — la
     // vista frontal ignora Z por completo, así que estos valores nunca se
