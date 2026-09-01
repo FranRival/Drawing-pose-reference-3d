@@ -1,5 +1,6 @@
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getEyelashOutlines2D } from './eyelashes.js'
+import { getEyelidOutlines2D } from './eyelids.js'
 import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
@@ -270,6 +271,11 @@ function drawFrame(){
         drawOutline(lashOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
         drawOutline(lashOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
 
+        // párpados — el pliegue por encima del ojo (trazo abierto, no lazo)
+        const lidOutlines = getEyelidOutlines2D()
+        drawLine(lidOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+        drawLine(lidOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+
         // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
         const pupilOutlines = getPupilOutlines2D()
         drawOutline(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
@@ -306,6 +312,9 @@ function drawFrame(){
             const lo = getEyelashOutlines2D()
             drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
             drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+
+            const lid = getEyelidOutlines2D()
+            drawLine(lid[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffcc66')
 
             const pupilMark = getPupilProfileMark(t.side)
             drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
