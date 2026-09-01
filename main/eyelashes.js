@@ -377,14 +377,23 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     closeOutX /= closeOutLen
     closeOutY /= closeOutLen
 
-    let closeInX = upperOuter[1].x - upperOuter[0].x
-    let closeInY = upperOuter[1].y - upperOuter[0].y
+    // ✅ AJUSTADO: cerca del lagrimal el hueco entre el cierre y el inicio
+    // de la banda superior puede ser muy chico — si el manejador fuera
+    // solo proporcional a ese hueco, se volvía casi nulo y no suavizaba
+    // nada ahí (el pellizco que se ve justo en el arranque de la pestaña
+    // superior). Ahora tiene un mínimo garantizado (relativo al radio de
+    // cabeza), y la tangente de llegada usa un punto un poco más lejano
+    // de la banda superior (más estable, menos ruido de un solo segmento
+    // muy corto).
+    const closeInRef = upperOuter[2] || upperOuter[1]
+    let closeInX = closeInRef.x - upperOuter[0].x
+    let closeInY = closeInRef.y - upperOuter[0].y
     const closeInLen = Math.sqrt(closeInX * closeInX + closeInY * closeInY) || 1
     closeInX /= closeInLen
     closeInY /= closeInLen
 
     const gapClose = Math.sqrt((upperOuter[0].x - lastLower.x) ** 2 + (upperOuter[0].y - lastLower.y) ** 2)
-    const handleLenClose = gapClose * 0.4
+    const handleLenClose = Math.max(gapClose * 0.4, baseRadius * 0.05)
 
     const handleOutClose = { x: lastLower.x + closeOutX * handleLenClose, y: lastLower.y + closeOutY * handleLenClose }
     const handleInClose = { x: upperOuter[0].x - closeInX * handleLenClose, y: upperOuter[0].y - closeInY * handleLenClose }
