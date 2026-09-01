@@ -27,7 +27,14 @@ let lashParams = {
     cantoSpikeTipRotation: -11,
 
     lashSpikeCount: 5,
-    lashSpikeAmplitude: 0.000,
+
+    // ✅ NUEVO: púas reales (tubos con punta) sobre la banda superior, en
+    // vez de la modulación en onda anterior (que producía la "viborita").
+    lashSpikeLength: 0.05,   // longitud de cada púa, fracción del radio de cabeza
+    lashSpikeWidth: 0.012,   // grosor de la base de cada púa, fracción del radio
+    lashSpikeLean: 0,        // orientación 2D: -1 = todas se inclinan al lagrimal, +1 = al canto, 0 = perpendiculares
+    lashSpikeSide: 'right',  // 'left' | 'right' | 'random' — de qué lado del iris salen las púas
+    lashSpikeSeed: 1,        // semilla para el modo 'random' (mismo valor = mismo patrón)
 
     // ✅ NUEVO: balance superior/inferior — un solo control, coexiste
     // ENCIMA de los sliders de grosor existentes (los multiplica, no los
@@ -82,11 +89,82 @@ function cubicBezierPoint(p0, p1, p2, p3, t){
     }
 }
 
-function spikeModulation(t, count){
-    const phase = (t * count) % 1
-    const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2
-    const bias = THREE.MathUtils.lerp(0.25, 1.0, t)
-    return tri * bias
+// ✅ REEMPLAZA a la vieja modulación en onda: genera púas reales (tubos
+// con punta) que se INSERTAN en el borde de la banda, en vez de ondular
+// el grosor. Devuelve una lista de púas, cada una con el índice del punto
+// del borde donde nace y sus 3 vértices (base A → punta → base B).
+// El lado se decide respecto al CENTRO del ojo (donde va el iris), igual
+// criterio que usa pupils.js para centrarlo, pero calculado aquí para no
+// crear una dependencia circular entre módulos.
+function pseudoRandom(seed, i){
+    const x = Math.sin(seed * 127.1 + i * 311.7) * 43758.5453
+    return x - Math.floor(x)
+}
+
+function buildLashSpikes(baseRadius, borderPts, lidPoints, center){
+    const count = Math.max(1, Math.round(lashParams.lashSpikeCount))
+    const n = borderPts.length
+    if(n < 3 || count < 1) return []
+
+    const length = baseRadius * lashParams.lashSpikeLength
+    const halfWidth = (baseRadius * lashParams.lashSpikeWidth) / 2
+    const lean = THREE.MathUtils.clamp(lashParams.lashSpikeLean, -1, 1)
+    const side = lashParams.lashSpikeSide
+
+    const spikes = []
+    for(let s = 0; s < count; s++){
+        // repartidas a lo largo del borde, sin pegarse a los extremos
+        const t = (s + 1) / (count + 1)
+        const idx = Math.min(Math.max(Math.round(t * (n - 1)), 1), n - 2)
+        const p = borderPts[idx]
+
+        // ¿de qué lado del centro (iris) cae esta púa?
+        const isRightSide = p.x > center.x
+        if(side === 'right' && !isRightSide) continue
+        if(side === 'left' && isRightSide) continue
+        if(side === 'random' && pseudoRandom(lashParams.lashSpikeSeed, s) < 0.5) continue
+
+        // dirección de la púa: la normal del borde en ese punto, inclinada
+        // hacia el lagrimal o el canto según `lean`
+        const { px, py } = localPerpAway(borderPts, idx, center)
+        let tx = borderPts[idx + 1].x - borderPts[idx - 1].x
+        let ty = borderPts[idx + 1].y - borderPts[idx - 1].y
+        const tl = Math.sqrt(tx * tx + ty * ty) || 1
+        tx /= tl
+        ty /= tl
+
+        let dx = px + tx * lean
+        let dy = py + ty * lean
+        const dl = Math.sqrt(dx * dx + dy * dy) || 1
+        dx /= dl
+        dy /= dl
+
+        spikes.push({
+            idx,
+            baseA: { x: p.x - tx * halfWidth, y: p.y - ty * halfWidth, z: p.z },
+            tip: { x: p.x + dx * length, y: p.y + dy * length, z: p.z },
+            baseB: { x: p.x + tx * halfWidth, y: p.y + ty * halfWidth, z: p.z }
+        })
+    }
+    return spikes
+}
+
+// inserta las púas dentro de la secuencia del borde, en orden
+function weaveSpikes(borderPts, spikes){
+    if(!spikes.length) return [...borderPts]
+    const byIdx = new Map()
+    for(const sp of spikes) byIdx.set(sp.idx, sp)
+
+    const out = []
+    for(let i = 0; i < borderPts.length; i++){
+        const sp = byIdx.get(i)
+        if(sp){
+            out.push(sp.baseA, sp.tip, sp.baseB)
+        } else {
+            out.push(borderPts[i])
+        }
+    }
+    return out
 }
 
 // ✅ NUEVO: interpolación SUAVE (smoothstep), no lineal — el grosor entra
@@ -137,21 +215,24 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
     if(n < 2) return []
 
     const useSpike = lashParams.style === 'spikes'
-    const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
     const center = curveCenter(lidPoints)
     const { upperMult, curveMult } = balanceMultipliers()
 
     const offsetPts = lidPoints.map((p, i) => {
         const { px, py } = localPerpAway(lidPoints, i, center)
         const t = i / (n - 1)
-        let thickness = easeLerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
-        if(useSpike){
-            thickness += spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
-        }
+        const thickness = easeLerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
-    const pts = [...offsetPts]
+    // ✅ las púas ya no modulan el grosor: son geometría real insertada en
+    // el borde exterior, respetando lado (izq/der del iris), longitud,
+    // grosor y orientación.
+    const borderPts = useSpike
+        ? weaveSpikes(offsetPts, buildLashSpikes(baseRadius, offsetPts, lidPoints, center))
+        : offsetPts
+
+    const pts = [...borderPts]
 
     if(useSpike){
         const cantoBase = offsetPts[offsetPts.length - 1]
@@ -265,16 +346,14 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const nl = lowerLidPoints.length
     if(nu < 2 || nl < 2) return []
 
-    const spikeAmp = baseRadius * lashParams.lashSpikeAmplitude
     const upperCenter = curveCenter(upperLidPoints)
     const { upperMult, lowerMult, curveMult } = balanceMultipliers()
 
-    // borde exterior superior: lagrimal → canto (con dentado)
+    // borde exterior superior: lagrimal → canto
     const upperOuter = upperLidPoints.map((p, i) => {
         const { px, py } = localPerpAway(upperLidPoints, i, upperCenter)
         const t = i / (nu - 1)
         const thickness = easeLerp(lashParams.innerThickness, lashParams.outerThickness, t) * baseRadius * upperMult
-            + spikeAmp * spikeModulation(t, lashParams.lashSpikeCount)
         return { x: p.x + px * thickness, y: p.y + py * thickness, z: p.z }
     })
 
@@ -352,7 +431,10 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
         y: lowerOuter[0].y - lowerTanY * handleLen - perpY * curve
     }
 
-    const pts = [...upperOuter]
+    // ✅ las púas se tejen SOLO al volcar el borde en la secuencia final —
+    // `upperOuter` se deja intacto arriba porque el pico y el cierre
+    // dependen de sus índices reales.
+    const pts = [...weaveSpikes(upperOuter, buildLashSpikes(baseRadius, upperOuter, upperLidPoints, upperCenter))]
 
     const segs = 8
     // cantoBase → punta (cúbica, proporcional a la distancia real)
@@ -493,7 +575,14 @@ export function setCantoSpikeCurve(value){ lashParams.cantoSpikeCurve = value; r
 export function setCantoSpikeScale(value){ lashParams.cantoSpikeScale = value; rebuild() }
 export function setCantoSpikeTipRotation(degrees){ lashParams.cantoSpikeTipRotation = degrees; rebuild() }
 export function setLashSpikeCount(value){ lashParams.lashSpikeCount = Math.round(value); rebuild() }
-export function setLashSpikeAmplitude(value){ lashParams.lashSpikeAmplitude = value; rebuild() }
+export function setLashSpikeLength(value){ lashParams.lashSpikeLength = value; rebuild() }
+export function setLashSpikeWidth(value){ lashParams.lashSpikeWidth = value; rebuild() }
+export function setLashSpikeLean(value){ lashParams.lashSpikeLean = value; rebuild() }
+export function setLashSpikeSide(side){
+    lashParams.lashSpikeSide = (side === 'left' || side === 'random') ? side : 'right'
+    rebuild()
+}
+export function setLashSpikeSeed(value){ lashParams.lashSpikeSeed = value; rebuild() }
 export function setLashBalance(value){ lashParams.lashBalance = value; rebuild() }
 
 export function setEyelashOcclusion(respectOcclusion){
