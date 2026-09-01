@@ -14,20 +14,20 @@ import { getEyeUpperLidPoints, getEyeLowerLidPoints } from './eyes.js'
 //               una sola línea de principio a fin.
 
 let lashParams = {
-    style: 'shadow', // 'shadow' | 'spikes' | 'fusion'
-    innerThickness: 0.02,
-    outerThickness: 0.05,
+    style: 'fusion', // 'shadow' | 'spikes' | 'fusion'
+    innerThickness: 0.015,
+    outerThickness: 0.035,
 
-    lowerLashInnerThickness: 0.008,
-    lowerLashOuterThickness: 0.018,
+    lowerLashInnerThickness: 0.006,
+    lowerLashOuterThickness: 0.032,
 
-    cantoSpikeLength: 0.09,
-    cantoSpikeCurve: 0.02,
+    cantoSpikeLength: 0.055,
+    cantoSpikeCurve: 0.005,
     cantoSpikeScale: 1.0,
-    cantoSpikeTipRotation: 0,
+    cantoSpikeTipRotation: -11,
 
     lashSpikeCount: 5,
-    lashSpikeAmplitude: 0.03,
+    lashSpikeAmplitude: 0.000,
 
     // ✅ NUEVO: balance superior/inferior — un solo control, coexiste
     // ENCIMA de los sliders de grosor existentes (los multiplica, no los
@@ -36,7 +36,7 @@ let lashParams = {
     // las dejan los sliders). Entre más lejos de 0 (en cualquier
     // dirección), más filosa la punta — nunca por un slider aparte, es
     // consecuencia directa de la misma redistribución de proporciones.
-    lashBalance: 0
+    lashBalance: -0.20
 }
 
 // K = qué tan fuerte reparte el balance entre superior/inferior.
