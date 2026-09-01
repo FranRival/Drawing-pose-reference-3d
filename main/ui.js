@@ -20,6 +20,7 @@ import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThicknes
          setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
 import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
          setLidArchPosition, setLidTailLength, setLidTailAngle, setLidCantoFade } from './eyelids.js'
+import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
@@ -959,6 +960,39 @@ export function initUI(){
             if(label) label.textContent = value.toFixed(decimals)
         })
     })
+
+    // --- Preconfiguración: guardar / cargar (presets.js) ---
+    const presetStatus = document.getElementById("presetStatus")
+    const showStatus = (msg) => { if(presetStatus) presetStatus.textContent = msg }
+
+    const presetSaveBtn = document.getElementById("presetSaveBtn")
+    if(presetSaveBtn){
+        presetSaveBtn.addEventListener("click", () => {
+            try {
+                downloadPreset()
+                showStatus("Preconfiguración descargada.")
+            } catch(err){
+                showStatus("No se pudo guardar: " + err.message)
+            }
+        })
+    }
+
+    const presetLoadInput = document.getElementById("presetLoadInput")
+    if(presetLoadInput){
+        presetLoadInput.addEventListener("change", (e) => {
+            const file = e.target.files && e.target.files[0]
+            if(!file) return
+            showStatus("Cargando...")
+            loadPresetFromFile(file)
+                .then(({ applied, missing }) => {
+                    const extra = missing ? ` (${missing} valores del archivo ya no existen en esta versión)` : ""
+                    showStatus(`Preconfiguración cargada: ${applied} valores${extra}.`)
+                })
+                .catch(err => showStatus("No se pudo cargar: " + err.message))
+                // se limpia para poder recargar el MISMO archivo otra vez
+                .finally(() => { e.target.value = "" })
+        })
+    }
 
     const irisRadiusSlider = document.getElementById("irisRadius")
     const irisRadiusValue  = document.getElementById("irisRadiusValue")
