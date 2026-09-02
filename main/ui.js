@@ -8,7 +8,7 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setLowerLidInnerInset, setLowerLidOuterInset, setLowerLidBaseWidth, setOuterFlickLength,
-         setLowerLidBaseLevel, setLowerLidBaseCurve,
+         setLowerLidBaseLevel, setLowerLidBaseCurve, setLowerLidBaseU,
          setUpperInnerLift, setUpperInnerErase,
          setEyeVerticalStretch, setEyeHorizontalStretch, setEyeGap, setEyeVerticalOffset,
          setLagrimalDepth, setCenterDepth, setCantoDepth,
@@ -649,6 +649,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setLowerLidBaseCurve(value)
             if(lowerLidBaseCurveValue) lowerLidBaseCurveValue.textContent = value.toFixed(3)
+        })
+    }
+
+    const lowerLidBaseUSlider = document.getElementById("lowerLidBaseU")
+    const lowerLidBaseUValue  = document.getElementById("lowerLidBaseUValue")
+
+    if(lowerLidBaseUSlider){
+        lowerLidBaseUSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setLowerLidBaseU(value)
+            if(lowerLidBaseUValue) lowerLidBaseUValue.textContent = value.toFixed(3)
         })
     }
 
