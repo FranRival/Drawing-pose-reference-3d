@@ -31,6 +31,17 @@ let eyeParams = {
     // la base y alejándose de la forma almendrada.
     lowerLidBaseWidth: 0,
 
+    // ✅ NUEVO: la base plana venía heredando la inclinación del eje del
+    // ojo (cantoAngleDeg), por eso quedaba "en ángulo raro" en vez de
+    // parecer un suelo. `lowerLidBaseLevel` la nivela: 0 = como antes
+    // (sigue la inclinación del eje), 1 = totalmente horizontal, anclada
+    // en la unión con la curva para no crear un quiebre ahí.
+    lowerLidBaseLevel: 1.0,
+
+    // ✅ NUEVO: una base perfectamente recta se ve antinatural, así que
+    // puede combarse levemente hacia abajo en su centro. 0 = recta.
+    lowerLidBaseCurve: 0.012,
+
     // ✅ NUEVO: "flick" del canto - el párpado superior sigue de largo más
     // allá del punto donde el inferior termina, como un trazo de
     // delineador que no cierra justo en la esquina. En 0 no hay flick
@@ -107,6 +118,14 @@ let eyeShapeAdjust = {
 // eje. upperLidBulge/lowerLidBulge controlan su ALTURA (que tan inflado
 // se ve). Las cuatro combinadas dan control total sobre la forma, igual
 // que arrastrar los dos tipos de manejador en Illustrator.
+
+function quadraticBezierPoint(p0, p1, p2, t){
+    const mt = 1 - t
+    return {
+        x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+        y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
+    }
+}
 
 function cubicBezierPoint(p0, p1, p2, p3, t){
     const mt = 1 - t
@@ -272,17 +291,36 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
     const tCut = 1 - cutFraction
     const cutPoint = cutFraction > 0 ? cubicBezierPoint(outer2, loP1, loP2, inner2, tCut) : null
 
+    // ✅ extremo lagrimal de la base, NIVELADO: se lleva su Y hacia la Y
+    // del punto de unión, así la base deja de heredar la inclinación del
+    // eje del ojo. El punto de unión (cutPoint) no se mueve, para que no
+    // aparezca un quiebre contra la parte curva.
+    let baseEnd = null
+    let baseControl = null
+    if(cutFraction > 0){
+        const level = THREE.MathUtils.clamp(p.lowerLidBaseLevel, 0, 1)
+        baseEnd = {
+            x: inner2.x,
+            y: THREE.MathUtils.lerp(inner2.y, cutPoint.y, level)
+        }
+        // comba hacia abajo en el centro (en Y del mundo, así es simétrica
+        // en ambos ojos sin importar el espejado)
+        const sag = p.lowerLidBaseCurve * baseRadius
+        baseControl = {
+            x: (cutPoint.x + baseEnd.x) / 2,
+            y: (cutPoint.y + baseEnd.y) / 2 - sag
+        }
+    }
+
     const lowerRaw = []
     for(let i = 0; i <= segs; i++){
         const t = i / segs // 0 = canto2, 1 = lagrimal2 (orden invertido)
         let pt
         if(cutFraction > 0 && t > tCut){
-            // más allá del punto de corte: línea recta hasta el lagrimal
+            // más allá del punto de corte: la base, como bezier cuadrática
+            // (nivelada + combada), en vez de una recta cruda
             const localT = (t - tCut) / (1 - tCut)
-            pt = {
-                x: cutPoint.x + (inner2.x - cutPoint.x) * localT,
-                y: cutPoint.y + (inner2.y - cutPoint.y) * localT
-            }
+            pt = quadraticBezierPoint(cutPoint, baseControl, baseEnd, localT)
         } else {
             pt = cubicBezierPoint(outer2, loP1, loP2, inner2, t)
         }
@@ -415,6 +453,8 @@ export function setOuterSharp(value){ eyeParams.outerSharp = value; rebuild() }
 export function setLowerLidInnerInset(value){ eyeParams.lowerLidInnerInset = value; rebuild() }
 export function setLowerLidOuterInset(value){ eyeParams.lowerLidOuterInset = value; rebuild() }
 export function setLowerLidBaseWidth(value){ eyeParams.lowerLidBaseWidth = value; rebuild() }
+export function setLowerLidBaseLevel(value){ eyeParams.lowerLidBaseLevel = value; rebuild() }
+export function setLowerLidBaseCurve(value){ eyeParams.lowerLidBaseCurve = value; rebuild() }
 export function setOuterFlickLength(value){ eyeParams.outerFlickLength = value; rebuild() }
 export function setUpperInnerLift(value){ eyeParams.upperInnerLift = value; rebuild() }
 export function setUpperInnerErase(value){ eyeParams.upperInnerErase = value; rebuild() }
