@@ -42,6 +42,13 @@ let eyeParams = {
     // puede combarse levemente hacia abajo en su centro. 0 = recta.
     lowerLidBaseCurve: 0.012,
 
+    // ✅ NUEVO: convierte la base en una "U" — el centro se arquea hacia
+    // ARRIBA, en dirección a la pupila (el centro del ojo), al estilo
+    // anime. 0 = sin U (la base queda plana/combada según los dos
+    // parámetros de arriba). Se apunta al centro real del ojo, no a un
+    // "arriba" fijo, así el arco acompaña la inclinación del ojo.
+    lowerLidBaseU: 0,
+
     // ✅ NUEVO: "flick" del canto - el párpado superior sigue de largo más
     // allá del punto donde el inferior termina, como un trazo de
     // delineador que no cierra justo en la esquina. En 0 no hay flick
@@ -306,9 +313,24 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         // comba hacia abajo en el centro (en Y del mundo, así es simétrica
         // en ambos ojos sin importar el espejado)
         const sag = p.lowerLidBaseCurve * baseRadius
+        const midX = (cutPoint.x + baseEnd.x) / 2
+        const midY = (cutPoint.y + baseEnd.y) / 2
+
+        // ✅ arco en "U": el centro del tramo se jala hacia el centro del
+        // ojo (donde vive la pupila), en vez de hacia un "arriba" fijo.
+        // El centro del eje del ojo en coordenadas locales es outer/2.
+        const eyeCenterX = outer.x / 2
+        const eyeCenterY = outer.y / 2
+        let toPupilX = eyeCenterX - midX
+        let toPupilY = eyeCenterY - midY
+        const toPupilLen = Math.sqrt(toPupilX * toPupilX + toPupilY * toPupilY) || 1
+        toPupilX /= toPupilLen
+        toPupilY /= toPupilLen
+        const uAmount = p.lowerLidBaseU * baseRadius
+
         baseControl = {
-            x: (cutPoint.x + baseEnd.x) / 2,
-            y: (cutPoint.y + baseEnd.y) / 2 - sag
+            x: midX + toPupilX * uAmount,
+            y: midY - sag + toPupilY * uAmount
         }
     }
 
@@ -455,6 +477,7 @@ export function setLowerLidOuterInset(value){ eyeParams.lowerLidOuterInset = val
 export function setLowerLidBaseWidth(value){ eyeParams.lowerLidBaseWidth = value; rebuild() }
 export function setLowerLidBaseLevel(value){ eyeParams.lowerLidBaseLevel = value; rebuild() }
 export function setLowerLidBaseCurve(value){ eyeParams.lowerLidBaseCurve = value; rebuild() }
+export function setLowerLidBaseU(value){ eyeParams.lowerLidBaseU = value; rebuild() }
 export function setOuterFlickLength(value){ eyeParams.outerFlickLength = value; rebuild() }
 export function setUpperInnerLift(value){ eyeParams.upperInnerLift = value; rebuild() }
 export function setUpperInnerErase(value){ eyeParams.upperInnerErase = value; rebuild() }
