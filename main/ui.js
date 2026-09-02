@@ -997,23 +997,32 @@ export function initUI(){
     })
 
     // --- Capas visibles en el modo 2D (mode2d.js) ---
+    // Cada capa controla DOS cosas: si la guía se dibuja en el canvas, y
+    // si su grupo de controles aparece en el panel. Así no quedan a la
+    // vista herramientas de una pieza que ni siquiera se está mostrando.
     const layerChecks = [
-        ["layerEye", "eye"],
-        ["layerLashes", "lashes"],
-        ["layerLids", "lids"],
-        ["layerPupils", "pupils"],
-        ["layerBrows", "brows"],
-        ["layerJaw", "jaw"],
-        ["layerHeadCircle", "headCircle"]
+        ["layerEye", "eye", "groupEye"],
+        ["layerLashes", "lashes", "groupLashes"],
+        ["layerLids", "lids", "groupLids"],
+        ["layerPupils", "pupils", "groupPupils"],
+        ["layerBrows", "brows", "groupBrows"],
+        ["layerJaw", "jaw", "groupJaw"],
+        ["layerHeadCircle", "headCircle", "groupHead"]
     ]
 
-    layerChecks.forEach(([id, layer]) => {
+    const applyLayer = (layer, groupId, visible) => {
+        setLayerVisible(layer, visible)
+        const group = document.getElementById(groupId)
+        if(group) group.style.display = visible ? "" : "none"
+    }
+
+    layerChecks.forEach(([id, layer, groupId]) => {
         const box = document.getElementById(id)
         if(!box) return
         // se sincroniza el estado inicial con lo que marque el HTML
-        setLayerVisible(layer, box.checked)
+        applyLayer(layer, groupId, box.checked)
         box.addEventListener("change",(e)=>{
-            setLayerVisible(layer, e.target.checked)
+            applyLayer(layer, groupId, e.target.checked)
         })
     })
 
