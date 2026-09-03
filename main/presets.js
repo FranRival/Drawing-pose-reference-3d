@@ -1,5 +1,25 @@
 import { setSelectedTarget, getTargetAdjust,
          setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
+import { getBrowParams,
+         setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness,
+         setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
+
+// setters de ceja indexados por clave de parámetro, para restaurar
+// exactamente lo que se guardó sin repetir once líneas
+const BROW_SETTERS = {
+    lengthMult: setBrowLength,
+    angleDeg: setBrowAngle,
+    thicknessMult: setBrowThickness,
+    tailTaper: setBrowTailTaper,
+    headTaper: setBrowHeadTaper,
+    archPosition: setBrowArchPosition,
+    archHeight: setBrowArchHeight,
+    archSharpness: setBrowArchSharpness,
+    gapMult: setBrowGap,
+    vertOffsetMult: setBrowVerticalOffset,
+    depthOffset: setBrowDepth
+}
 
 // Guardado / carga de preconfiguraciones.
 //
@@ -15,7 +35,14 @@ import { setSelectedTarget, getTargetAdjust,
 // en ese momento. Para esos se recorre cada pieza y se guarda su ajuste
 // real desde mode2d.js.
 
-const DYNAMIC_IDS = ['targetOffsetX', 'targetOffsetY', 'targetScale', 'targetRotation']
+const DYNAMIC_IDS = [
+    'targetOffsetX', 'targetOffsetY', 'targetScale', 'targetRotation',
+    // los sliders per-ceja muestran la ceja seleccionada en ese momento;
+    // sus valores reales se guardan aparte, en `brows`
+    'sideBrowLength', 'sideBrowAngle', 'sideBrowThickness', 'sideBrowTailTaper',
+    'sideBrowHeadTaper', 'sideBrowArchPosition', 'sideBrowArchHeight',
+    'sideBrowArchSharpness', 'sideBrowGap', 'sideBrowVerticalOffset', 'sideBrowDepth'
+]
 
 // controles que no describen el personaje (no tiene sentido guardarlos)
 const SKIP_IDS = ['mode2DTarget', 'frameCount', 'imgFormat', 'mode2DToggle']
@@ -59,12 +86,21 @@ export function buildPreset(){
         }
     })
 
+    // ✅ las cejas tienen parámetros POR LADO; los sliders globales del
+    // grupo "Cejas" escriben en ambas, así que leerlos del DOM perdería
+    // cualquier diferencia entre izquierda y derecha. Se guardan aparte.
+    const brows = {
+        right: getBrowParams('right'),
+        left: getBrowParams('left')
+    }
+
     return {
         format: 'animemakerpro-preset',
         version: 1,
         savedAt: new Date().toISOString(),
         controls,
-        shapeAdjust
+        shapeAdjust,
+        brows
     }
 }
 
@@ -115,7 +151,19 @@ export function applyPreset(preset){
         })
     }
 
-    // 2) ajuste fino por forma — se selecciona cada pieza y se aplican sus
+    // 2) parámetros por ceja
+    if(preset.brows){
+        ['right', 'left'].forEach(side => {
+            const params = preset.brows[side]
+            if(!params) return
+            Object.entries(params).forEach(([key, value]) => {
+                const setter = BROW_SETTERS[key]
+                if(setter && typeof value === 'number') setter(value, side)
+            })
+        })
+    }
+
+    // 3) ajuste fino por forma — se selecciona cada pieza y se aplican sus
     // 4 valores, respetando el flujo normal de mode2d.js
     if(preset.shapeAdjust){
         const previous = document.getElementById('mode2DTarget')?.value
