@@ -69,11 +69,21 @@ let rightLashMat = null
 let leftLashMat = null
 let currentBaseRadius = 0
 
+// ✅ CORREGIDO: estas funciones devolvían solo {x, y}. Los puntos así
+// generados quedaban SIN Z, lo que no se notaba en vista frontal (solo usa
+// X/Y) pero rompía la vista de perfil, que proyecta usando Z: los puntos
+// sin Z se dibujaban como líneas horizontales disparadas hacia la oreja.
+// Ahora la Z se interpola igual que X e Y; si algún punto de control no
+// trae Z, se asume la del extremo inicial.
 function quadraticBezierPoint(p0, p1, p2, t){
     const mt = 1 - t
+    const z0 = p0.z ?? 0
+    const z1 = p1.z ?? z0
+    const z2 = p2.z ?? z0
     return {
         x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
-        y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
+        y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y,
+        z: mt * mt * z0 + 2 * mt * t * z1 + t * t * z2
     }
 }
 
@@ -83,9 +93,14 @@ function cubicBezierPoint(p0, p1, p2, p3, t){
     const b = 3 * mt * mt * t
     const c = 3 * mt * t * t
     const d = t * t * t
+    const z0 = p0.z ?? 0
+    const z1 = p1.z ?? z0
+    const z2 = p2.z ?? (p3.z ?? z0)
+    const z3 = p3.z ?? z0
     return {
         x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
-        y: a * p0.y + b * p1.y + c * p2.y + d * p3.y
+        y: a * p0.y + b * p1.y + c * p2.y + d * p3.y,
+        z: a * z0 + b * z1 + c * z2 + d * z3
     }
 }
 
@@ -261,7 +276,7 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
         const length = baseRadius * lashParams.cantoSpikeLength * lashParams.cantoSpikeScale
         const curve = baseRadius * lashParams.cantoSpikeCurve * curveMult
 
-        const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length }
+        const tip = { x: cantoBase.x + tipDirX * length, y: cantoBase.y + tipDirY * length, z: cantoBase.z }
 
         // ✅ CORREGIDO: los dos tramos ahora son Bezier CÚBICAS (dos
         // manejadores cada una), con la tangente de llegada/salida
@@ -278,8 +293,8 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
         bandTanX /= bandTanLen
         bandTanY /= bandTanLen
 
-        const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1 }
-        const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve }
+        const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1, z: cantoBase.z }
+        const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve, z: tip.z }
 
         const gap2 = Math.sqrt((trueCanto.x - tip.x) ** 2 + (trueCanto.y - tip.y) ** 2)
         const handleLen2 = gap2 * 0.4
@@ -290,8 +305,8 @@ function buildUpperLashPoints(baseRadius, lidPoints, mirrorX){
         closeTanX /= closeTanLen
         closeTanY /= closeTanLen
 
-        const handleOut2 = { x: tip.x + tipDirX * handleLen2 - perpX * curve, y: tip.y + tipDirY * handleLen2 - perpY * curve }
-        const handleIn2 = { x: trueCanto.x - closeTanX * handleLen2, y: trueCanto.y - closeTanY * handleLen2 }
+        const handleOut2 = { x: tip.x + tipDirX * handleLen2 - perpX * curve, y: tip.y + tipDirY * handleLen2 - perpY * curve, z: tip.z }
+        const handleIn2 = { x: trueCanto.x - closeTanX * handleLen2, y: trueCanto.y - closeTanY * handleLen2, z: trueCanto.z }
 
         const segs = 8
         for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(cantoBase, handleOut1, handleIn1, tip, i / segs))
@@ -398,8 +413,8 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const gap1 = Math.sqrt((tip.x - cantoBase.x) ** 2 + (tip.y - cantoBase.y) ** 2)
     const handleLen1 = gap1 * 0.4
 
-    const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1 }
-    const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve }
+    const handleOut1 = { x: cantoBase.x + bandTanX * handleLen1, y: cantoBase.y + bandTanY * handleLen1, z: cantoBase.z }
+    const handleIn1 = { x: tip.x - tipDirX * handleLen1 + perpX * curve, y: tip.y - tipDirY * handleLen1 + perpY * curve, z: tip.z }
 
     // borde exterior inferior: canto → lagrimal (se afina)
     const lowerCenter = curveCenter(lowerLidPoints)
@@ -430,11 +445,13 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
 
     const handleOut = {
         x: tip.x + tipDirX * handleLen + perpX * curve,
-        y: tip.y + tipDirY * handleLen + perpY * curve
+        y: tip.y + tipDirY * handleLen + perpY * curve,
+        z: tip.z
     }
     const handleIn = {
         x: lowerOuter[0].x - lowerTanX * handleLen - perpX * curve,
-        y: lowerOuter[0].y - lowerTanY * handleLen - perpY * curve
+        y: lowerOuter[0].y - lowerTanY * handleLen - perpY * curve,
+        z: lowerOuter[0].z
     }
 
     // ✅ las púas se tejen SOLO al volcar el borde en la secuencia final —
@@ -483,8 +500,8 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     const gapClose = Math.sqrt((upperOuter[0].x - lastLower.x) ** 2 + (upperOuter[0].y - lastLower.y) ** 2)
     const handleLenClose = Math.max(gapClose * 0.4, baseRadius * 0.05)
 
-    const handleOutClose = { x: lastLower.x + closeOutX * handleLenClose, y: lastLower.y + closeOutY * handleLenClose }
-    const handleInClose = { x: upperOuter[0].x - closeInX * handleLenClose, y: upperOuter[0].y - closeInY * handleLenClose }
+    const handleOutClose = { x: lastLower.x + closeOutX * handleLenClose, y: lastLower.y + closeOutY * handleLenClose, z: lastLower.z }
+    const handleInClose = { x: upperOuter[0].x - closeInX * handleLenClose, y: upperOuter[0].y - closeInY * handleLenClose, z: upperOuter[0].z }
 
     for(let i = 1; i <= segs; i++) pts.push(cubicBezierPoint(lastLower, handleOutClose, handleInClose, upperOuter[0], i / segs))
 
