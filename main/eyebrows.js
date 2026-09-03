@@ -5,27 +5,42 @@ import * as THREE from 'three'
 // eyes.js - cuelga del mismo loomisGroup, asi hereda posicion/rotacion de
 // la cabeza automaticamente.
 
+// ✅ Los parametros son AHORA POR CEJA (derecha / izquierda), para poder
+// ajustar cada una por separado desde "Ajuste fino por forma". Los
+// sliders globales del grupo "Cejas" escriben en ambas a la vez; los
+// per-lado escriben solo en una.
+function defaultBrowParams(){
+    return {
+        // --- eje: cabeza de la ceja (fija, cerca de la nariz) -> cola ---
+        lengthMult: 0.43,   // largo total, fraccion del radio de cabeza (mas corta = bajar esto)
+        angleDeg: -4,       // inclinacion/rotacion de toda la ceja sobre su ancla (la cabeza)
+
+        // --- espesor de la banda ---
+        thicknessMult: 0.040, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
+        tailTaper: 0.85,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
+        headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
+
+        // --- arco ---
+        archPosition: 0.55, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
+        archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
+        archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
+
+        // --- posicion del par en la cara ---
+        gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
+        vertOffsetMult: 0.15, // altura sobre la linea de ojos, fraccion del radio
+
+        // --- profundidad (para calibrar contra una referencia de perfil) ---
+        depthOffset: 0 // 0 = sigue la curvatura natural de la esfera; +/- la mueve adelante/atras
+    }
+}
+
 let browParams = {
-    // --- eje: cabeza de la ceja (fija, cerca de la nariz) -> cola ---
-    lengthMult: 0.43,   // largo total, fraccion del radio de cabeza (mas corta = bajar esto)
-    angleDeg: -4,       // inclinacion/rotacion de toda la ceja sobre su ancla (la cabeza)
+    right: defaultBrowParams(),
+    left: defaultBrowParams()
+}
 
-    // --- espesor de la banda ---
-    thicknessMult: 0.040, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
-    tailTaper: 0.85,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
-    headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
-
-    // --- arco ---
-    archPosition: 0.55, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
-    archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
-    archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
-
-    // --- posicion del par en la cara ---
-    gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
-    vertOffsetMult: 0.15, // altura sobre la linea de ojos, fraccion del radio
-
-    // --- profundidad (para calibrar contra una referencia de perfil) ---
-    depthOffset: 0 // 0 = sigue la curvatura natural de la esfera; +/- la mueve adelante/atras
+function paramsFor(side){
+    return side === 'left' ? browParams.left : browParams.right
 }
 
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js y en eyes.js
@@ -71,7 +86,7 @@ function archBump(t, archPosition, shapeSum){
 // profundidad sobre la curvatura real de la cabeza). mirrorX=true -> la
 // cola se abre hacia la izquierda (ceja izquierda).
 function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
-    const p = browParams
+    const p = paramsFor(mirrorX ? 'left' : 'right')
     const segs = 24
 
     const angleRad = THREE.MathUtils.degToRad(p.angleDeg)
@@ -151,17 +166,19 @@ function buildBrows(baseRadius){
         browGroup.remove(browGroup.children[0])
     }
 
-    const anchorX = baseRadius * browParams.gapMult
-    const anchorY = baseRadius * browParams.vertOffsetMult
+    const rAnchorX = baseRadius * browParams.right.gapMult
+    const rAnchorY = baseRadius * browParams.right.vertOffsetMult
+    const lAnchorX = baseRadius * browParams.left.gapMult
+    const lAnchorY = baseRadius * browParams.left.vertOffsetMult
 
     rightBrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: true, depthWrite: false })
-    const rightPts = buildBrowPoints(baseRadius, false, anchorX, anchorY)
+    const rightPts = buildBrowPoints(baseRadius, false, rAnchorX, rAnchorY)
     rightBrowLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightBrowMat)
     rightBrowLine.renderOrder = 999
     browGroup.add(rightBrowLine)
 
     leftBrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: true, depthWrite: false })
-    const leftPts = buildBrowPoints(baseRadius, true, -anchorX, anchorY)
+    const leftPts = buildBrowPoints(baseRadius, true, -lAnchorX, lAnchorY)
     leftBrowLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftBrowMat)
     leftBrowLine.renderOrder = 999
     browGroup.add(leftBrowLine)
@@ -193,26 +210,49 @@ function rebuild(){
     if(currentBaseRadius) buildBrows(currentBaseRadius)
 }
 
+// ✅ setter genérico: si se pasa `side` ('right'/'left') escribe SOLO en
+// esa ceja; si no, escribe en AMBAS (comportamiento de los sliders
+// globales del grupo "Cejas").
+function setParam(key, value, side){
+    if(side === 'right' || side === 'left'){
+        browParams[side][key] = value
+    } else {
+        browParams.right[key] = value
+        browParams.left[key] = value
+    }
+    rebuild()
+}
+
+// ✅ lee un parámetro de una ceja concreta — lo usa el panel per-lado
+// para mostrar los valores de la ceja seleccionada.
+export function getBrowParam(side, key){
+    return paramsFor(side)[key]
+}
+
+export function getBrowParams(side){
+    return { ...paramsFor(side) }
+}
+
 // setters - eje (cabeza fija, cola se mueve)
-export function setBrowLength(mult){ browParams.lengthMult = mult; rebuild() }
-export function setBrowAngle(degrees){ browParams.angleDeg = degrees; rebuild() }
+export function setBrowLength(mult, side){ setParam('lengthMult', mult, side) }
+export function setBrowAngle(degrees, side){ setParam('angleDeg', degrees, side) }
 
 // setters - espesor de la banda
-export function setBrowThickness(mult){ browParams.thicknessMult = mult; rebuild() }
-export function setBrowTailTaper(value){ browParams.tailTaper = value; rebuild() }
-export function setBrowHeadTaper(value){ browParams.headTaper = value; rebuild() }
+export function setBrowThickness(mult, side){ setParam('thicknessMult', mult, side) }
+export function setBrowTailTaper(value, side){ setParam('tailTaper', value, side) }
+export function setBrowHeadTaper(value, side){ setParam('headTaper', value, side) }
 
 // setters - arco
-export function setBrowArchPosition(value){ browParams.archPosition = value; rebuild() }
-export function setBrowArchHeight(mult){ browParams.archHeight = mult; rebuild() }
-export function setBrowArchSharpness(value){ browParams.archSharpness = value; rebuild() }
+export function setBrowArchPosition(value, side){ setParam('archPosition', value, side) }
+export function setBrowArchHeight(mult, side){ setParam('archHeight', mult, side) }
+export function setBrowArchSharpness(value, side){ setParam('archSharpness', value, side) }
 
 // setters - posicion del par en la cara
-export function setBrowGap(mult){ browParams.gapMult = mult; rebuild() }
-export function setBrowVerticalOffset(mult){ browParams.vertOffsetMult = mult; rebuild() }
+export function setBrowGap(mult, side){ setParam('gapMult', mult, side) }
+export function setBrowVerticalOffset(mult, side){ setParam('vertOffsetMult', mult, side) }
 
 // setter - profundidad (para perfil)
-export function setBrowDepth(value){ browParams.depthOffset = value; rebuild() }
+export function setBrowDepth(value, side){ setParam('depthOffset', value, side) }
 
 // setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
 // el modo 2D y el 3D — side es 'right' o 'left'.
@@ -237,11 +277,13 @@ export function setEyebrowOcclusion(respectOcclusion){
 // sin depender del modelo 3D, y descarta la Z.
 export function getBrowOutlines2D(){
     const baseRadius = 1
-    const anchorX = baseRadius * browParams.gapMult
-    const anchorY = baseRadius * browParams.vertOffsetMult
+    const rAnchorX = baseRadius * browParams.right.gapMult
+    const rAnchorY = baseRadius * browParams.right.vertOffsetMult
+    const lAnchorX = baseRadius * browParams.left.gapMult
+    const lAnchorY = baseRadius * browParams.left.vertOffsetMult
 
-    const right = buildBrowPoints(baseRadius, false, anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
-    const left = buildBrowPoints(baseRadius, true, -anchorX, anchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    const right = buildBrowPoints(baseRadius, false, rAnchorX, rAnchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
+    const left = buildBrowPoints(baseRadius, true, -lAnchorX, lAnchorY).map(v => ({ x: v.x, y: v.y, z: v.z }))
 
     return { right, left }
 }
