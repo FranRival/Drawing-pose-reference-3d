@@ -137,6 +137,68 @@
               <input type="range" id="targetRotation" min="-30" max="30" step="1" value="0">
               <span id="targetRotationValue">0</span>
             </div>
+
+            <!-- ✅ Controles COMPLETOS de la ceja seleccionada. Solo
+                 aparecen cuando el objetivo elegido arriba es una ceja,
+                 y escriben únicamente en ese lado. -->
+            <div id="browSideControls" style="display:none">
+              <div class="control"><strong id="browSideTitle">Ceja</strong></div>
+              <div class="control">
+                <label for="sideBrowLength">Largo</label>
+                <input type="range" id="sideBrowLength" min="0.15" max="0.90" step="0.01" value="0.43">
+                <span id="sideBrowLengthValue">0.43</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowAngle">Inclinación/rotación</label>
+                <input type="range" id="sideBrowAngle" min="-40" max="40" step="1" value="-4">
+                <span id="sideBrowAngleValue">-4</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowThickness">Grosor</label>
+                <input type="range" id="sideBrowThickness" min="0.005" max="0.15" step="0.005" value="0.040">
+                <span id="sideBrowThicknessValue">0.040</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowTailTaper">Afinar cola (punta)</label>
+                <input type="range" id="sideBrowTailTaper" min="0" max="1" step="0.05" value="0.85">
+                <span id="sideBrowTailTaperValue">0.85</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowHeadTaper">Afinar cabeza (punta)</label>
+                <input type="range" id="sideBrowHeadTaper" min="0" max="1" step="0.05" value="0.00">
+                <span id="sideBrowHeadTaperValue">0.00</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowArchPosition">Posición del arco</label>
+                <input type="range" id="sideBrowArchPosition" min="0.03" max="0.97" step="0.01" value="0.55">
+                <span id="sideBrowArchPositionValue">0.55</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowArchHeight">Altura del arco</label>
+                <input type="range" id="sideBrowArchHeight" min="0" max="0.15" step="0.005" value="0.02">
+                <span id="sideBrowArchHeightValue">0.020</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowArchSharpness">Arco (ancho ↔ marcado)</label>
+                <input type="range" id="sideBrowArchSharpness" min="0" max="1" step="0.05" value="0.00">
+                <span id="sideBrowArchSharpnessValue">0.00</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowGap">Separación del centro</label>
+                <input type="range" id="sideBrowGap" min="0" max="1.2" step="0.01" value="0.55">
+                <span id="sideBrowGapValue">0.55</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowVerticalOffset">Altura sobre línea de ojos</label>
+                <input type="range" id="sideBrowVerticalOffset" min="-0.20" max="0.60" step="0.01" value="0.15">
+                <span id="sideBrowVerticalOffsetValue">0.15</span>
+              </div>
+              <div class="control">
+                <label for="sideBrowDepth">Profundidad (perfil)</label>
+                <input type="range" id="sideBrowDepth" min="-0.20" max="0.20" step="0.01" value="0.00">
+                <span id="sideBrowDepthValue">0.00</span>
+              </div>
+            </div>
           </div>
         </details>
       </div>
@@ -362,7 +424,7 @@
       </div>
     </details>
 
-    <details id="groupLashes">
+    <details class="control-group" id="groupLashes">
       <summary>Pestañas</summary>
       <div class="group-body">
         <div class="control">
@@ -454,7 +516,7 @@
       </div>
     </details>
 
-    <details id="groupLids">
+    <details class="control-group" id="groupLids">
       <summary>Párpados</summary>
       <div class="group-body">
         <div class="control">
