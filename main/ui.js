@@ -276,18 +276,36 @@ export function initUI(){
     initMode2D()
 
     const mode2DViewModeSelect = document.getElementById("mode2DViewMode")
-    if(mode2DViewModeSelect){
-        mode2DViewModeSelect.addEventListener("change",(e)=>{
-            setViewMode(e.target.value)
+    const mode2DToggle = document.getElementById("mode2DToggle")
+
+    // ✅ Los controles marcados como .profile-only solo tienen sentido al
+    // calibrar de PERFIL. Se ocultan cuando el modo 2D está activo en
+    // vista frontal; en perfil (o con el modo 2D apagado, es decir en 3D
+    // completo) vuelven a aparecer.
+    function refreshProfileOnlyControls(){
+        const in2D = mode2DToggle ? mode2DToggle.checked : false
+        const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
+        const hide = in2D && view === "front"
+        document.querySelectorAll(".profile-only").forEach(el => {
+            el.style.display = hide ? "none" : ""
         })
     }
 
-    const mode2DToggle = document.getElementById("mode2DToggle")
+    if(mode2DViewModeSelect){
+        mode2DViewModeSelect.addEventListener("change",(e)=>{
+            setViewMode(e.target.value)
+            refreshProfileOnlyControls()
+        })
+    }
+
     if(mode2DToggle){
         mode2DToggle.addEventListener("change",(e)=>{
             setMode2DActive(e.target.checked)
+            refreshProfileOnlyControls()
         })
     }
+
+    refreshProfileOnlyControls() // estado inicial al cargar
 
     const refImageInput = document.getElementById("refImageInput")
     if(refImageInput){
