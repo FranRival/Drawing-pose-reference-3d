@@ -24,7 +24,8 @@ import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
 import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
-         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth } from './eyebrows.js'
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth,
+         getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
          setLayerVisible } from './mode2d.js'
@@ -353,7 +354,62 @@ export function initUI(){
         if(targetOffsetYSlider){ targetOffsetYSlider.value = adj.y; if(targetOffsetYValue) targetOffsetYValue.textContent = adj.y.toFixed(2) }
         if(targetScaleSlider){ targetScaleSlider.value = adj.scale; if(targetScaleValue) targetScaleValue.textContent = adj.scale.toFixed(2) }
         if(targetRotationSlider){ targetRotationSlider.value = adj.rotationDeg; if(targetRotationValue) targetRotationValue.textContent = adj.rotationDeg.toFixed(0) }
+
+        refreshBrowSidePanel(key)
     }
+
+    // ✅ Panel con TODAS las características de la ceja seleccionada.
+    // Solo aparece si el objetivo es una ceja, y escribe sólo en ese lado.
+    const browSideControls = document.getElementById("browSideControls")
+    const browSideTitle = document.getElementById("browSideTitle")
+
+    // [id del slider, clave del parámetro, setter, decimales]
+    const browSideSliders = [
+        ["sideBrowLength", "lengthMult", setBrowLength, 2],
+        ["sideBrowAngle", "angleDeg", setBrowAngle, 0],
+        ["sideBrowThickness", "thicknessMult", setBrowThickness, 3],
+        ["sideBrowTailTaper", "tailTaper", setBrowTailTaper, 2],
+        ["sideBrowHeadTaper", "headTaper", setBrowHeadTaper, 2],
+        ["sideBrowArchPosition", "archPosition", setBrowArchPosition, 2],
+        ["sideBrowArchHeight", "archHeight", setBrowArchHeight, 3],
+        ["sideBrowArchSharpness", "archSharpness", setBrowArchSharpness, 2],
+        ["sideBrowGap", "gapMult", setBrowGap, 2],
+        ["sideBrowVerticalOffset", "vertOffsetMult", setBrowVerticalOffset, 2],
+        ["sideBrowDepth", "depthOffset", setBrowDepth, 2]
+    ]
+
+    // lado actualmente mostrado en el panel ('right' | 'left' | null)
+    let browSide = null
+
+    function refreshBrowSidePanel(key){
+        const isBrow = key === "rightBrow" || key === "leftBrow"
+        if(browSideControls) browSideControls.style.display = isBrow ? "" : "none"
+        if(!isBrow){ browSide = null; return }
+
+        browSide = key === "leftBrow" ? "left" : "right"
+        if(browSideTitle) browSideTitle.textContent = browSide === "left" ? "Ceja izquierda" : "Ceja derecha"
+
+        const params = getBrowParams(browSide)
+        browSideSliders.forEach(([id, paramKey, , decimals]) => {
+            const slider = document.getElementById(id)
+            const label = document.getElementById(id + "Value")
+            const value = params[paramKey]
+            if(slider) slider.value = value
+            if(label) label.textContent = Number(value).toFixed(decimals)
+        })
+    }
+
+    browSideSliders.forEach(([id, , setter, decimals]) => {
+        const slider = document.getElementById(id)
+        const label = document.getElementById(id + "Value")
+        if(!slider) return
+        slider.addEventListener("input",(e)=>{
+            if(!browSide) return
+            const value = parseFloat(e.target.value)
+            setter(value, browSide) // ← el lado hace que escriba en UNA sola ceja
+            if(label) label.textContent = value.toFixed(decimals)
+        })
+    })
 
     if(mode2DTargetSelect){
         mode2DTargetSelect.addEventListener("change", refreshTargetSliders)
