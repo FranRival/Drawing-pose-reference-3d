@@ -230,27 +230,27 @@
     <details class="control-group" id="groupHead">
       <summary>Malla y guía de cabeza (Loomis)</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <select id="meshMode">
             <option value="solid" selected>Sólido normal</option>
             <option value="solidWireframe">Sólido + malla</option>
             <option value="wireframeOnly">Solo malla</option>
           </select>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisGuideToggle">Guía de cabeza (Loomis)</label>
           <input type="checkbox" id="loomisGuideToggle">
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisOcclusionToggle">Guía - solo parte visible (respetar oclusión)</label>
           <input type="checkbox" id="loomisOcclusionToggle">
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisOffsetX">Guía - ajuste horizontal (X)</label>
           <input type="range" id="loomisOffsetX" min="-1.5" max="1.5" step="0.05" value="0">
           <span id="loomisOffsetXValue">0</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisOffsetY">Guía - ajuste vertical (Y)</label>
           <input type="range" id="loomisOffsetY" min="-1.5" max="1.5" step="0.05" value="-0.80">
           <span id="loomisOffsetYValue">-0.80</span>
@@ -260,27 +260,27 @@
           <input type="range" id="loomisOffsetZ" min="-1.5" max="1.5" step="0.05" value="-0.50">
           <span id="loomisOffsetZValue">-0.50</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisScale">Guía - tamaño</label>
           <input type="range" id="loomisScale" min="0.3" max="2" step="0.05" value="0.80">
           <span id="loomisScaleValue">0.80</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisStretchX">Guía - agrandar X</label>
           <input type="range" id="loomisStretchX" min="0.5" max="2" step="0.05" value="0.85">
           <span id="loomisStretchXValue">0.85</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisStretchY">Guía - agrandar Y</label>
           <input type="range" id="loomisStretchY" min="0.5" max="2" step="0.05" value="1">
           <span id="loomisStretchYValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="loomisStretchZ">Guía - agrandar Z</label>
           <input type="range" id="loomisStretchZ" min="0.5" max="2" step="0.05" value="1">
           <span id="loomisStretchZValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="earRadius">Guía - tamaño de orejas</label>
           <input type="range" id="earRadius" min="0.1" max="1" step="0.05" value="0.55">
           <span id="earRadiusValue">0.55</span>
@@ -296,97 +296,97 @@
     <details class="control-group" id="groupEye">
       <summary>Ojos</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoLength">Ojos - largo lagrimal→canto</label>
           <input type="range" id="cantoLength" min="0.15" max="0.60" step="0.01" value="0.38">
           <span id="cantoLengthValue">0.38</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoAngle">Ojos - ángulo del canto</label>
           <input type="range" id="cantoAngle" min="-25" max="40" step="1" value="7">
           <span id="cantoAngleValue">7</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="upperLidBulge">Ojos - inflado párpado superior</label>
           <input type="range" id="upperLidBulge" min="0.02" max="0.35" step="0.01" value="0.13">
           <span id="upperLidBulgeValue">0.13</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidBulge">Ojos - inflado párpado inferior</label>
           <input type="range" id="lowerLidBulge" min="0.00" max="0.25" step="0.01" value="0.07">
           <span id="lowerLidBulgeValue">0.07</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="innerSharp">Ojos - lagrimal (redondo ↔ picudo)</label>
           <input type="range" id="innerSharp" min="0" max="1" step="0.05" value="0.50">
           <span id="innerSharpValue">0.50</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="outerSharp">Ojos - canto (redondo ↔ picudo)</label>
           <input type="range" id="outerSharp" min="0" max="1" step="0.05" value="0.25">
           <span id="outerSharpValue">0.25</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidInnerInset">Ojos - párpado inferior, hueco lagrimal</label>
           <input type="range" id="lowerLidInnerInset" min="0" max="0.40" step="0.01" value="0.10">
           <span id="lowerLidInnerInsetValue">0.10</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidOuterInset">Ojos - párpado inferior, hueco canto</label>
           <input type="range" id="lowerLidOuterInset" min="0" max="0.40" step="0.01" value="0.00">
           <span id="lowerLidOuterInsetValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidBaseWidth">Ojos - base plana del párpado inferior</label>
           <input type="range" id="lowerLidBaseWidth" min="0" max="1" step="0.01" value="0.00">
           <span id="lowerLidBaseWidthValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidBaseLevel">Ojos - nivelar la base (0=inclinada, 1=horizontal)</label>
           <input type="range" id="lowerLidBaseLevel" min="0" max="1" step="0.05" value="1.00">
           <span id="lowerLidBaseLevelValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidBaseCurve">Ojos - comba de la base</label>
           <input type="range" id="lowerLidBaseCurve" min="0" max="0.06" step="0.002" value="0.012">
           <span id="lowerLidBaseCurveValue">0.012</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLidBaseU">Ojos - base en U (arco hacia la pupila)</label>
           <input type="range" id="lowerLidBaseU" min="0" max="0.25" step="0.005" value="0.00">
           <span id="lowerLidBaseUValue">0.000</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="outerFlickLength">Ojos - flick del canto</label>
           <input type="range" id="outerFlickLength" min="0" max="0.40" step="0.01" value="0.00">
           <span id="outerFlickLengthValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="upperInnerLift">Ojos - separar lagrimal superior</label>
           <input type="range" id="upperInnerLift" min="0" max="0.15" step="0.005" value="0.00">
           <span id="upperInnerLiftValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="upperInnerErase">Ojos - borrar desde el lagrimal superior</label>
           <input type="range" id="upperInnerErase" min="0" max="0.85" step="0.01" value="0.02">
           <span id="upperInnerEraseValue">0.02</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="eyeVerticalStretch">Ojos - estirar vertical</label>
           <input type="range" id="eyeVerticalStretch" min="0.5" max="2.0" step="0.05" value="1.00">
           <span id="eyeVerticalStretchValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="eyeHorizontalStretch">Ojos - estirar horizontal</label>
           <input type="range" id="eyeHorizontalStretch" min="0.5" max="2.0" step="0.05" value="0.90">
           <span id="eyeHorizontalStretchValue">0.90</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="eyeGap">Ojos - separación</label>
           <input type="range" id="eyeGap" min="0.3" max="2.0" step="0.05" value="0.70">
           <span id="eyeGapValue">0.70</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="eyeVerticalOffset">Ojos - altura bajo línea de ojos</label>
           <input type="range" id="eyeVerticalOffset" min="-0.20" max="0.30" step="0.01" value="0.09">
           <span id="eyeVerticalOffsetValue">0.09</span>
@@ -427,7 +427,7 @@
     <details class="control-group" id="groupLashes">
       <summary>Pestañas</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="lashStyle">Pestañas - estilo</label>
           <select id="lashStyle">
             <option value="shadow">Sombra (banda actual)</option>
@@ -435,67 +435,67 @@
             <option value="fusion" selected>Pico de canto anime (fusión)</option>
           </select>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashInnerThickness">Pestañas - grosor lagrimal (sombra)</label>
           <input type="range" id="lashInnerThickness" min="0.00" max="0.10" step="0.005" value="0.015">
           <span id="lashInnerThicknessValue">0.015</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashOuterThickness">Pestañas - grosor canto (sombra)</label>
           <input type="range" id="lashOuterThickness" min="0.00" max="0.15" step="0.005" value="0.035">
           <span id="lashOuterThicknessValue">0.035</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLashInnerThickness">Pestaña inferior - grosor lagrimal</label>
           <input type="range" id="lowerLashInnerThickness" min="0.00" max="0.05" step="0.002" value="0.006">
           <span id="lowerLashInnerThicknessValue">0.006</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lowerLashOuterThickness">Pestaña inferior - grosor canto</label>
           <input type="range" id="lowerLashOuterThickness" min="0.00" max="0.06" step="0.002" value="0.032">
           <span id="lowerLashOuterThicknessValue">0.032</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoSpikeLength">Pestañas - largo del pico (canto)</label>
           <input type="range" id="cantoSpikeLength" min="0.02" max="0.25" step="0.005" value="0.055">
           <span id="cantoSpikeLengthValue">0.055</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoSpikeCurve">Pestañas - curvatura del pico</label>
           <input type="range" id="cantoSpikeCurve" min="0" max="0.10" step="0.005" value="0.005">
           <span id="cantoSpikeCurveValue">0.005</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoSpikeScale">Pestañas - agrandar pico</label>
           <input type="range" id="cantoSpikeScale" min="0.3" max="2.5" step="0.05" value="1.00">
           <span id="cantoSpikeScaleValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="cantoSpikeTipRotation">Pestañas - orientación de la punta (0=oreja, + coronilla, - cuello)</label>
           <input type="range" id="cantoSpikeTipRotation" min="-90" max="90" step="1" value="-11">
           <span id="cantoSpikeTipRotationValue">-11</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeCount">Púas - cantidad</label>
           <input type="range" id="lashSpikeCount" min="1" max="12" step="1" value="5">
           <span id="lashSpikeCountValue">5</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeLength">Púas - longitud</label>
           <input type="range" id="lashSpikeLength" min="0" max="0.20" step="0.005" value="0.05">
           <span id="lashSpikeLengthValue">0.05</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeWidth">Púas - grosor de la base</label>
           <input type="range" id="lashSpikeWidth" min="0.002" max="0.05" step="0.002" value="0.012">
           <span id="lashSpikeWidthValue">0.012</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeLean">Púas - orientación (- lagrimal, + canto)</label>
           <input type="range" id="lashSpikeLean" min="-1" max="1" step="0.05" value="0">
           <span id="lashSpikeLeanValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeSide">Púas - mitad del párpado</label>
           <select id="lashSpikeSide">
             <option value="canto" selected>Hacia el canto (lado oreja)</option>
@@ -503,12 +503,12 @@
             <option value="random">Aleatorio</option>
           </select>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashSpikeSeed">Púas - semilla (modo aleatorio)</label>
           <input type="range" id="lashSpikeSeed" min="1" max="50" step="1" value="1">
           <span id="lashSpikeSeedValue">1</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lashBalance">Pestañas - balance superior/inferior (afila la punta)</label>
           <input type="range" id="lashBalance" min="-1" max="1" step="0.05" value="-0.20">
           <span id="lashBalanceValue">-0.20</span>
@@ -519,37 +519,37 @@
     <details class="control-group" id="groupLids">
       <summary>Párpados</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="lidOffsetInner">Párpado - separación en lagrimal</label>
           <input type="range" id="lidOffsetInner" min="0" max="0.15" step="0.005" value="0.030">
           <span id="lidOffsetInnerValue">0.030</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidOffsetOuter">Párpado - separación en canto</label>
           <input type="range" id="lidOffsetOuter" min="0" max="0.20" step="0.005" value="0.055">
           <span id="lidOffsetOuterValue">0.055</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidArchAmount">Párpado - pronunciación de la curva</label>
           <input type="range" id="lidArchAmount" min="0" max="0.12" step="0.005" value="0.025">
           <span id="lidArchAmountValue">0.025</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidArchPosition">Párpado - posición del arco</label>
           <input type="range" id="lidArchPosition" min="0.05" max="0.95" step="0.05" value="0.50">
           <span id="lidArchPositionValue">0.50</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidTailLength">Párpado - largo de la línea al lagrimal</label>
           <input type="range" id="lidTailLength" min="0" max="1" step="0.05" value="0.60">
           <span id="lidTailLengthValue">0.60</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidTailAngle">Párpado - ángulo de esa línea (0=continúa, 1=al lagrimal)</label>
           <input type="range" id="lidTailAngle" min="0" max="1" step="0.05" value="1.00">
           <span id="lidTailAngleValue">1.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="lidCantoFade">Párpado - desvanecer en el canto</label>
           <input type="range" id="lidCantoFade" min="0" max="0.90" step="0.05" value="0.20">
           <span id="lidCantoFadeValue">0.20</span>
@@ -560,12 +560,12 @@
     <details class="control-group" id="groupPupils">
       <summary>Iris y Pupila</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="irisRadius">Iris - tamaño</label>
           <input type="range" id="irisRadius" min="0.15" max="0.60" step="0.01" value="0.42">
           <span id="irisRadiusValue">0.42</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="pupilRadius">Pupila - tamaño (relativo al iris)</label>
           <input type="range" id="pupilRadius" min="0.10" max="0.80" step="0.01" value="0.45">
           <span id="pupilRadiusValue">0.45</span>
@@ -575,7 +575,7 @@
           <input type="range" id="irisHorizontalBias" min="-0.30" max="0.30" step="0.01" value="0.00">
           <span id="irisHorizontalBiasValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="irisVerticalBias">Iris - posición vertical</label>
           <input type="range" id="irisVerticalBias" min="-0.30" max="0.30" step="0.01" value="0.00">
           <span id="irisVerticalBiasValue">0.00</span>
@@ -586,52 +586,52 @@
     <details class="control-group" id="groupBrows">
       <summary>Cejas</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="browLength">Cejas - largo</label>
           <input type="range" id="browLength" min="0.15" max="0.65" step="0.01" value="0.43">
           <span id="browLengthValue">0.43</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browAngle">Cejas - inclinación/rotación</label>
           <input type="range" id="browAngle" min="-20" max="35" step="1" value="-4">
           <span id="browAngleValue">-4</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browThickness">Cejas - grosor</label>
           <input type="range" id="browThickness" min="0.01" max="0.12" step="0.005" value="0.040">
           <span id="browThicknessValue">0.040</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browTailTaper">Cejas - afinar cola (punta)</label>
           <input type="range" id="browTailTaper" min="0" max="1" step="0.05" value="0.85">
           <span id="browTailTaperValue">0.85</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browHeadTaper">Cejas - afinar cabeza (punta)</label>
           <input type="range" id="browHeadTaper" min="0" max="1" step="0.05" value="0.00">
           <span id="browHeadTaperValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browArchPosition">Cejas - posición del arco</label>
           <input type="range" id="browArchPosition" min="0.03" max="0.97" step="0.02" value="0.55">
           <span id="browArchPositionValue">0.55</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browArchHeight">Cejas - altura del arco</label>
           <input type="range" id="browArchHeight" min="0.00" max="0.25" step="0.01" value="0.02">
           <span id="browArchHeightValue">0.02</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browArchSharpness">Cejas - arco (ancho/suave ↔ angosto/marcado)</label>
           <input type="range" id="browArchSharpness" min="0" max="1" step="0.05" value="0.00">
           <span id="browArchSharpnessValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browGap">Cejas - separación del centro</label>
           <input type="range" id="browGap" min="0.20" max="0.90" step="0.01" value="0.55">
           <span id="browGapValue">0.55</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="browVerticalOffset">Cejas - altura sobre línea de ojos</label>
           <input type="range" id="browVerticalOffset" min="0.00" max="0.35" step="0.01" value="0.15">
           <span id="browVerticalOffsetValue">0.15</span>
@@ -647,12 +647,12 @@
     <details class="control-group" id="groupJaw">
       <summary>Mandíbula</summary>
       <div class="group-body">
-        <div class="control">
+        <div class="control front-only">
           <label for="jawWidth">Mandíbula - ancho</label>
           <input type="range" id="jawWidth" min="0.3" max="1.5" step="0.05" value="0.80">
           <span id="jawWidthValue">0.80</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="jawChinDrop">Mandíbula - largo (barbilla)</label>
           <input type="range" id="jawChinDrop" min="0.3" max="1.8" step="0.05" value="1.25">
           <span id="jawChinDropValue">1.25</span>
@@ -662,7 +662,7 @@
           <input type="range" id="jawChinForward" min="0" max="1.2" step="0.05" value="0.00">
           <span id="jawChinForwardValue">0.00</span>
         </div>
-        <div class="control">
+        <div class="control front-only">
           <label for="jawChinWidth">Mandíbula - ancho de barbilla</label>
           <input type="range" id="jawChinWidth" min="0.1" max="1" step="0.05" value="0.25">
           <span id="jawChinWidthValue">0.25</span>
