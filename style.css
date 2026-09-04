@@ -179,23 +179,23 @@ details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
 
 .control.profile-only > label::after,
 .control.front-only > label::after{
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 5px;
+  display: inline;
+  margin-left: 5px;
+  padding: 1px 4px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .control.profile-only > label::after{
-  content: 'solo perfil';
+  content: 'perfil';
   background: #dbeafe;
   color: #1e40af;
 }
 
 .control.front-only > label::after{
-  content: 'solo frontal';
+  content: 'frontal';
   background: #fee2e2;
   color: #991b1b;
 }
