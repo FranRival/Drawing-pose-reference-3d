@@ -278,16 +278,48 @@ export function initUI(){
     const mode2DViewModeSelect = document.getElementById("mode2DViewMode")
     const mode2DToggle = document.getElementById("mode2DToggle")
 
-    // ✅ Los controles marcados como .profile-only solo tienen sentido al
-    // calibrar de PERFIL. Se ocultan cuando el modo 2D está activo en
-    // vista frontal; en perfil (o con el modo 2D apagado, es decir en 3D
-    // completo) vuelven a aparecer.
+    // ✅ Cada control de las guías está marcado como .profile-only (solo
+    // sirve calibrando de perfil) o .front-only (solo se refleja de
+    // frente). Según la vista activa se muestra únicamente el conjunto
+    // que corresponde, para no dejar a la vista ajustes que no cambian
+    // nada en lo que se está viendo.
+    //
+    // Con el modo 2D APAGADO (3D completo) se muestran ambos, porque ahí
+    // todos los parámetros afectan lo que se ve.
     function refreshProfileOnlyControls(){
         const in2D = mode2DToggle ? mode2DToggle.checked : false
         const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
-        const hide = in2D && view === "front"
+
+        const hideProfile = in2D && view === "front"
+        const hideFront   = in2D && view === "profile"
+
         document.querySelectorAll(".profile-only").forEach(el => {
-            el.style.display = hide ? "none" : ""
+            el.style.display = hideProfile ? "none" : ""
+        })
+        document.querySelectorAll(".front-only").forEach(el => {
+            el.style.display = hideFront ? "none" : ""
+        })
+
+        refreshGroupVisibility()
+    }
+
+    // ✅ Un grupo se oculta si su capa está apagada, o si la vista actual
+    // no deja ningún control visible dentro (p. ej. Pestañas en vista de
+    // perfil, que no tiene parámetros propios de perfil). Así no quedan
+    // encabezados vacíos en el panel.
+    function refreshGroupVisibility(){
+        const groupIds = ["groupHead","groupEye","groupLashes","groupLids",
+                          "groupPupils","groupBrows","groupJaw"]
+        groupIds.forEach(id => {
+            const group = document.getElementById(id)
+            if(!group) return
+            if(group.dataset.layerVisible === "0"){
+                group.style.display = "none"
+                return
+            }
+            const controls = group.querySelectorAll(".control")
+            const anyVisible = Array.from(controls).some(el => el.style.display !== "none")
+            group.style.display = (controls.length === 0 || anyVisible) ? "" : "none"
         })
     }
 
@@ -1087,7 +1119,12 @@ export function initUI(){
     const applyLayer = (layer, groupId, visible) => {
         setLayerVisible(layer, visible)
         const group = document.getElementById(groupId)
-        if(group) group.style.display = visible ? "" : "none"
+        if(group){
+            // se anota el estado de la capa; quién decide el display final
+            // es refreshGroupVisibility (que además considera la vista)
+            group.dataset.layerVisible = visible ? "1" : "0"
+        }
+        refreshGroupVisibility()
     }
 
     layerChecks.forEach(([id, layer, groupId]) => {
