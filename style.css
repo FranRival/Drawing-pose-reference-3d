@@ -169,3 +169,33 @@ details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
   font-size: 13px;
   color:#333;
 }
+
+/* ===================================================== */
+/* ETIQUETAS DE VISTA                                     */
+/* Los controles exclusivos de una vista se marcan para    */
+/* saber de un vistazo dónde surten efecto. Los que no     */
+/* llevan etiqueta afectan a AMBAS vistas.                 */
+/* ===================================================== */
+
+.control.profile-only > label::after,
+.control.front-only > label::after{
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.control.profile-only > label::after{
+  content: 'solo perfil';
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.control.front-only > label::after{
+  content: 'solo frontal';
+  background: #fee2e2;
+  color: #991b1b;
+}
