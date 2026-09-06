@@ -28,7 +28,8 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen } from './mode2d.js'
+         setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen,
+         getRefSettings } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -323,10 +324,33 @@ export function initUI(){
         })
     }
 
+    // ✅ Cada vista tiene su PROPIA imagen de referencia y su propio
+    // encuadre. Al cambiar de vista hay que reflejar en el panel los
+    // valores de la vista que queda activa.
+    function refreshRefControls(){
+        const r = getRefSettings()
+        const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
+
+        const viewLabel = document.getElementById("refViewLabel")
+        if(viewLabel) viewLabel.textContent = view === "profile" ? "vista de perfil" : "vista frontal"
+
+        const status = document.getElementById("refImageStatus")
+        if(status) status.textContent = r.hasImage ? "imagen cargada" : "sin imagen para esta vista"
+
+        const pairs = [["refScale", r.scale, 2], ["refOffsetX", r.offsetX, 2], ["refOffsetY", r.offsetY, 2]]
+        pairs.forEach(([id, value, dec]) => {
+            const slider = document.getElementById(id)
+            if(slider) slider.value = value
+            const label = document.getElementById(id + "Value")
+            if(label) label.textContent = Number(value).toFixed(dec)
+        })
+    }
+
     if(mode2DViewModeSelect){
         mode2DViewModeSelect.addEventListener("change",(e)=>{
             setViewMode(e.target.value)
             refreshProfileOnlyControls()
+            refreshRefControls()
         })
     }
 
@@ -343,9 +367,18 @@ export function initUI(){
     if(refImageInput){
         refImageInput.addEventListener("change",(e)=>{
             const file = e.target.files && e.target.files[0]
-            if(file) setRefImage(file)
+            if(file){
+                setRefImage(file)
+                // la carga es asíncrona; se refresca el estado en cuanto
+                // la imagen queda registrada en la vista activa
+                setTimeout(refreshRefControls, 150)
+            }
+            // se limpia para poder recargar la MISMA imagen si hace falta
+            e.target.value = ""
         })
     }
+
+    refreshRefControls() // estado inicial (vista frontal)
 
     const refScaleSlider = document.getElementById("refScale")
     const refScaleValue  = document.getElementById("refScaleValue")
