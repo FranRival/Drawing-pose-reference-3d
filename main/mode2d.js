@@ -53,7 +53,8 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // `spread` dispersa largo y ángulo a partir de una semilla fija, para que
 // el patrón sea aleatorio pero estable entre redibujados.
 let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
-let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1 }
+let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
+                           width: 0.02, curve: 0.35 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
@@ -556,30 +557,17 @@ function buildProfileLashExtras(upperPts){
         return { z: vz * Math.cos(r) - vy * Math.sin(r), y: vz * Math.sin(r) + vy * Math.cos(r) }
     }
 
-    // --- 1) PUNTA del canto (último punto) ---
-    // ✅ No es una línea: es un TRIÁNGULO que se extruye desde ese mismo
-    // punto, con sus dos bordes curvados (bezier) hacia el mismo lado, tal
-    // como se ve en el model sheet. La base se abre perpendicular a la
-    // dirección de salida y ambos bordes convergen en la punta.
-    if(profileLashTip.length > 0){
-        const i = n - 1
-        const p = upperPts[i]
-        const { tz, ty, nz, ny } = normalAt(i)
-        const oz = p.z ?? 0, oy = p.y
-
-        // dirección de la punta y ancho de la base (perpendicular a ella)
-        const d = rot(tz, ty, profileLashTip.angleDeg)
-        const half = profileLashTip.width / 2
-
-        const tipZ = oz + d.z * profileLashTip.length
-        const tipY = oy + d.y * profileLashTip.length
-
+    // ✅ Constructor compartido: TRIÁNGULO extruido desde un punto, con sus
+    // dos bordes curvados (bezier) hacia lados opuestos. Lo usan tanto la
+    // punta del canto como cada púa del racimo, así ambas tienen las
+    // mismas características (largo, ángulo, ancho de base, curvatura).
+    const triangleSpike = (oz, oy, dz, dy, nz, ny, length, width, curve) => {
+        const half = width / 2
+        const tipZ = oz + dz * length, tipY = oy + dy * length
         const baseAz = oz + nz * half, baseAy = oy + ny * half
         const baseBz = oz - nz * half, baseBy = oy - ny * half
+        const bend = curve * length
 
-        // los dos bordes se comban hacia la normal, así el triángulo queda
-        // "curvado" en vez de recto; la comba escala con el largo
-        const bend = profileLashTip.curve * profileLashTip.length
         const q = (az, ay, bz, by, sign) => {
             const cz = (az + bz) / 2 + nz * bend * sign
             const cy = (ay + by) / 2 + ny * bend * sign
@@ -595,11 +583,23 @@ function buildProfileLashExtras(upperPts){
             return out
         }
 
-        strokes.push([
-            ...q(baseAz, baseAy, tipZ, tipY, 1),   // borde superior, combado hacia afuera
-            ...q(tipZ, tipY, baseBz, baseBy, -1),  // borde inferior, combado hacia adentro
-            { x: 0, z: baseAz, y: baseAy }         // cierra el triángulo
-        ])
+        return [
+            ...q(baseAz, baseAy, tipZ, tipY, 1),
+            ...q(tipZ, tipY, baseBz, baseBy, -1),
+            { x: 0, z: baseAz, y: baseAy }
+        ]
+    }
+
+    // --- 1) PUNTA del canto (último punto) ---
+    if(profileLashTip.length > 0){
+        const i = n - 1
+        const p = upperPts[i]
+        const { tz, ty, nz, ny } = normalAt(i)
+        const d = rot(tz, ty, profileLashTip.angleDeg)
+        strokes.push(triangleSpike(
+            p.z ?? 0, p.y, d.z, d.y, nz, ny,
+            profileLashTip.length, profileLashTip.width, profileLashTip.curve
+        ))
     }
 
     // --- 3) RACIMO irregular, del lado del lagrimal (índices bajos) ---
@@ -625,10 +625,14 @@ function buildProfileLashExtras(upperPts){
 
             const d = rot(nz, ny, profileLashCluster.angleDeg + angJit)
             const L = profileLashCluster.length * Math.max(lenMult, 0.15)
-            strokes.push([
-                { x: 0, y: p.y, z: p.z ?? 0 },
-                { x: 0, y: p.y + d.y * L, z: (p.z ?? 0) + d.z * L }
-            ])
+
+            // la base de cada púa es perpendicular a SU propia dirección,
+            // no a la del párpado, para que el triángulo no salga torcido
+            const pz = -d.y, py = d.z
+            strokes.push(triangleSpike(
+                p.z ?? 0, p.y, d.z, d.y, pz, py,
+                L, profileLashCluster.width, profileLashCluster.curve
+            ))
         }
     }
 
@@ -651,6 +655,8 @@ export function setProfileLashClusterSpread(value){ profileLashCluster.spread = 
 export function setProfileLashClusterAngle(value){ profileLashCluster.angleDeg = value; drawFrame() }
 export function setProfileLashClusterExtent(value){ profileLashCluster.extent = value; drawFrame() }
 export function setProfileLashClusterOffset(value){ profileLashCluster.offset = value; drawFrame() }
+export function setProfileLashClusterWidth(value){ profileLashCluster.width = value; drawFrame() }
+export function setProfileLashClusterCurve(value){ profileLashCluster.curve = value; drawFrame() }
 export function setProfileLashClusterSeed(value){ profileLashCluster.seed = value; drawFrame() }
 
 export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
