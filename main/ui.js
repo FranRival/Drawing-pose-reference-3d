@@ -28,14 +28,13 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen,
-         setProfileLashDepth, setProfileLashOpen,
-         setProfileLashTipLength, setProfileLashTipAngle,
-         setProfileLashClusterCount, setProfileLashClusterLength,
-         setProfileLashClusterSpread, setProfileLashClusterAngle,
-         setProfileLashClusterExtent, setProfileLashClusterSeed,
-         setProfilePupilDepth, setProfilePupilHeight, setProfilePupilSize,
-         getRefSettings } from './mode2d.js'
+         setLayerVisible, getRefSettings } from './mode2d.js'
+// ✅ Los ajustes exclusivos de perfil se importan como ESPACIO DE NOMBRES,
+// no uno por uno. Con imports nombrados, si mode2d.js está desactualizado
+// y le falta uno solo, el módulo entero falla y TODO el panel deja de
+// responder. Así, un setter ausente queda como undefined y solo se
+// desactiva ese slider.
+import * as m2d from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -1147,25 +1146,34 @@ export function initUI(){
     // Ojo, pestañas e iris comparten geometría con el 3D y el frontal, así
     // que estos desplazamientos viven solo en el dibujado del perfil.
     ;[
-        ["profileEyeUpperOpen", setProfileEyeUpperOpen],
-        ["profileEyeLowerOpen", setProfileEyeLowerOpen],
-        ["profileLashDepth", setProfileLashDepth],
-        ["profileLashOpen", setProfileLashOpen],
-        ["profileLashTipLength", setProfileLashTipLength],
-        ["profileLashTipAngle", setProfileLashTipAngle],
-        ["profileLashClusterCount", setProfileLashClusterCount],
-        ["profileLashClusterLength", setProfileLashClusterLength],
-        ["profileLashClusterSpread", setProfileLashClusterSpread],
-        ["profileLashClusterAngle", setProfileLashClusterAngle],
-        ["profileLashClusterExtent", setProfileLashClusterExtent],
-        ["profileLashClusterSeed", setProfileLashClusterSeed],
-        ["profilePupilDepth", setProfilePupilDepth],
-        ["profilePupilHeight", setProfilePupilHeight],
-        ["profilePupilSize", setProfilePupilSize]
-    ].forEach(([id, setter]) => {
+        ["profileEyeUpperOpen", "setProfileEyeUpperOpen"],
+        ["profileEyeLowerOpen", "setProfileEyeLowerOpen"],
+        ["profileLashDepth", "setProfileLashDepth"],
+        ["profileLashOpen", "setProfileLashOpen"],
+        ["profileLashTipLength", "setProfileLashTipLength"],
+        ["profileLashTipAngle", "setProfileLashTipAngle"],
+        ["profileLashClusterCount", "setProfileLashClusterCount"],
+        ["profileLashClusterLength", "setProfileLashClusterLength"],
+        ["profileLashClusterSpread", "setProfileLashClusterSpread"],
+        ["profileLashClusterAngle", "setProfileLashClusterAngle"],
+        ["profileLashClusterExtent", "setProfileLashClusterExtent"],
+        ["profileLashClusterSeed", "setProfileLashClusterSeed"],
+        ["profilePupilDepth", "setProfilePupilDepth"],
+        ["profilePupilHeight", "setProfilePupilHeight"],
+        ["profilePupilSize", "setProfilePupilSize"]
+    ].forEach(([id, setterName]) => {
         const slider = document.getElementById(id)
         const label  = document.getElementById(id + "Value")
+        const setter = m2d[setterName]
         if(!slider) return
+        if(typeof setter !== 'function'){
+            // mode2d.js no tiene este setter: archivo desactualizado.
+            // Se deja el slider visible pero inerte, y se avisa en consola
+            // en vez de romper el resto del panel.
+            console.warn(`[AnimeMakerPro] mode2d.js no exporta ${setterName}; actualiza ese archivo.`)
+            slider.disabled = true
+            return
+        }
         slider.addEventListener("input",(e)=>{
             const value = parseFloat(e.target.value)
             setter(value)
