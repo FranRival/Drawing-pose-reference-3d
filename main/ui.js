@@ -28,7 +28,7 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         setLayerVisible } from './mode2d.js'
+         setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
@@ -1099,6 +1099,21 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setter(value)
             if(label) label.textContent = value.toFixed(decimals)
+        })
+    })
+
+    // --- Apertura del ojo, solo en vista de perfil (mode2d.js) ---
+    ;[
+        ["profileEyeUpperOpen", setProfileEyeUpperOpen],
+        ["profileEyeLowerOpen", setProfileEyeLowerOpen]
+    ].forEach(([id, setter]) => {
+        const slider = document.getElementById(id)
+        const label  = document.getElementById(id + "Value")
+        if(!slider) return
+        slider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setter(value)
+            if(label) label.textContent = value.toFixed(3)
         })
     })
 
