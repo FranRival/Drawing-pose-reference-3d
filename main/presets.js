@@ -1,5 +1,6 @@
 import { setSelectedTarget, getTargetAdjust,
-         setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation } from './mode2d.js'
+         setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
+         getAllRefSettings, setRefSettingsFor } from './mode2d.js'
 import { getBrowParams,
          setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness,
@@ -41,7 +42,10 @@ const DYNAMIC_IDS = [
     // sus valores reales se guardan aparte, en `brows`
     'sideBrowLength', 'sideBrowAngle', 'sideBrowThickness', 'sideBrowTailTaper',
     'sideBrowHeadTaper', 'sideBrowArchPosition', 'sideBrowArchHeight',
-    'sideBrowArchSharpness', 'sideBrowGap', 'sideBrowVerticalOffset', 'sideBrowDepth'
+    'sideBrowArchSharpness', 'sideBrowGap', 'sideBrowVerticalOffset', 'sideBrowDepth',
+    // el encuadre de la referencia es POR VISTA; estos sliders muestran
+    // solo la vista activa, así que se guardan aparte en `refs`
+    'refScale', 'refOffsetX', 'refOffsetY'
 ]
 
 // controles que no describen el personaje (no tiene sentido guardarlos)
@@ -100,7 +104,8 @@ export function buildPreset(){
         savedAt: new Date().toISOString(),
         controls,
         shapeAdjust,
-        brows
+        brows,
+        refs: getAllRefSettings()
     }
 }
 
@@ -151,7 +156,13 @@ export function applyPreset(preset){
         })
     }
 
-    // 2) parámetros por ceja
+    // 2) encuadre de la referencia, por vista
+    if(preset.refs){
+        setRefSettingsFor('front', preset.refs.front)
+        setRefSettingsFor('profile', preset.refs.profile)
+    }
+
+    // 3) parámetros por ceja
     if(preset.brows){
         ['right', 'left'].forEach(side => {
             const params = preset.brows[side]
@@ -163,7 +174,7 @@ export function applyPreset(preset){
         })
     }
 
-    // 3) ajuste fino por forma — se selecciona cada pieza y se aplican sus
+    // 4) ajuste fino por forma — se selecciona cada pieza y se aplican sus
     // 4 valores, respetando el flujo normal de mode2d.js
     if(preset.shapeAdjust){
         const previous = document.getElementById('mode2DTarget')?.value
