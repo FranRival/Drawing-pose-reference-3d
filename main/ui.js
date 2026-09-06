@@ -1152,6 +1152,8 @@ export function initUI(){
         ["profileLashOpen", "setProfileLashOpen"],
         ["profileLashTipLength", "setProfileLashTipLength"],
         ["profileLashTipAngle", "setProfileLashTipAngle"],
+        ["profileLashTipWidth", "setProfileLashTipWidth"],
+        ["profileLashTipCurve", "setProfileLashTipCurve"],
         ["profileLashClusterCount", "setProfileLashClusterCount"],
         ["profileLashClusterLength", "setProfileLashClusterLength"],
         ["profileLashClusterSpread", "setProfileLashClusterSpread"],
