@@ -23,6 +23,14 @@ let rafId = null
 let refImage = null
 let refScale = 1.55
 
+// ✅ Apertura del ojo SOLO EN PERFIL. La geometría del ojo es compartida
+// (el 3D y la vista frontal usan los mismos puntos), así que abrirlo
+// tocando eyes.js afectaría también al frontal. Por eso la apertura se
+// aplica aquí, al momento de dibujar el perfil — mismo criterio que ya
+// se usa con pupilAdjust2D: un ajuste que solo existe en esta vista.
+// Separa el párpado superior hacia arriba y el inferior hacia abajo.
+let profileEyeOpen = { upper: 0, lower: 0 }
+
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
 // referencia hay tantas guías superpuestas que cuesta distinguir cuál es
 // cuál, así que cada capa se puede apagar. Por defecto solo queda el ojo
@@ -338,8 +346,8 @@ function drawFrame(){
         if(t.kind === 'eye'){
             if(layerVisibility.eye){
                 const eo = getEyeOutlines2D()
-                drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
-                drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+                drawLine(openLid(eo[t.side].upper, profileEyeOpen.upper).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+                drawLine(openLid(eo[t.side].lower, -profileEyeOpen.lower).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
             }
 
             if(layerVisibility.lashes){
@@ -449,6 +457,23 @@ export function setRefImage(file){
 }
 
 // ✅ conectar a los sliders de escala/posición del overlay
+// Desplaza un párpado en Y para "abrir" el ojo en perfil. El
+// desplazamiento es máximo en el centro del trazo y nulo en los
+// extremos, para que el lagrimal y el canto sigan cerrando.
+function openLid(points, amount){
+    if(!amount) return points
+    const n = points.length
+    if(n < 2) return points
+    return points.map((p, i) => {
+        const t = i / (n - 1)
+        const bump = Math.sin(Math.PI * t) // 0 en extremos, 1 en el centro
+        return { x: p.x, y: p.y + amount * bump, z: p.z }
+    })
+}
+
+export function setProfileEyeUpperOpen(value){ profileEyeOpen.upper = value; drawFrame() }
+export function setProfileEyeLowerOpen(value){ profileEyeOpen.lower = value; drawFrame() }
+
 export function setLayerVisible(layer, visible){
     if(layer in layerVisibility){
         layerVisibility[layer] = !!visible
