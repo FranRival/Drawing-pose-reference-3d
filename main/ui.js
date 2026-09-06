@@ -30,6 +30,10 @@ import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, s
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
          setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen,
          setProfileLashDepth, setProfileLashOpen,
+         setProfileLashTipLength, setProfileLashTipAngle,
+         setProfileLashClusterCount, setProfileLashClusterLength,
+         setProfileLashClusterSpread, setProfileLashClusterAngle,
+         setProfileLashClusterExtent, setProfileLashClusterSeed,
          setProfilePupilDepth, setProfilePupilHeight, setProfilePupilSize,
          getRefSettings } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
@@ -1147,6 +1151,14 @@ export function initUI(){
         ["profileEyeLowerOpen", setProfileEyeLowerOpen],
         ["profileLashDepth", setProfileLashDepth],
         ["profileLashOpen", setProfileLashOpen],
+        ["profileLashTipLength", setProfileLashTipLength],
+        ["profileLashTipAngle", setProfileLashTipAngle],
+        ["profileLashClusterCount", setProfileLashClusterCount],
+        ["profileLashClusterLength", setProfileLashClusterLength],
+        ["profileLashClusterSpread", setProfileLashClusterSpread],
+        ["profileLashClusterAngle", setProfileLashClusterAngle],
+        ["profileLashClusterExtent", setProfileLashClusterExtent],
+        ["profileLashClusterSeed", setProfileLashClusterSeed],
         ["profilePupilDepth", setProfilePupilDepth],
         ["profilePupilHeight", setProfilePupilHeight],
         ["profilePupilSize", setProfilePupilSize]
