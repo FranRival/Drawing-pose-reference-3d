@@ -52,7 +52,7 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // El racimo se ve natural justamente porque sus púas NO son iguales:
 // `spread` dispersa largo y ángulo a partir de una semilla fija, para que
 // el patrón sea aleatorio pero estable entre redibujados.
-let profileLashTip = { length: 0, angleDeg: 0 }
+let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
 let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, seed: 1 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
@@ -557,15 +557,48 @@ function buildProfileLashExtras(upperPts){
     }
 
     // --- 1) PUNTA del canto (último punto) ---
+    // ✅ No es una línea: es un TRIÁNGULO que se extruye desde ese mismo
+    // punto, con sus dos bordes curvados (bezier) hacia el mismo lado, tal
+    // como se ve en el model sheet. La base se abre perpendicular a la
+    // dirección de salida y ambos bordes convergen en la punta.
     if(profileLashTip.length > 0){
         const i = n - 1
         const p = upperPts[i]
-        const { tz, ty } = normalAt(i)
-        // sigue la dirección en la que ya venía saliendo el trazo
+        const { tz, ty, nz, ny } = normalAt(i)
+        const oz = p.z ?? 0, oy = p.y
+
+        // dirección de la punta y ancho de la base (perpendicular a ella)
         const d = rot(tz, ty, profileLashTip.angleDeg)
+        const half = profileLashTip.width / 2
+
+        const tipZ = oz + d.z * profileLashTip.length
+        const tipY = oy + d.y * profileLashTip.length
+
+        const baseAz = oz + nz * half, baseAy = oy + ny * half
+        const baseBz = oz - nz * half, baseBy = oy - ny * half
+
+        // los dos bordes se comban hacia la normal, así el triángulo queda
+        // "curvado" en vez de recto; la comba escala con el largo
+        const bend = profileLashTip.curve * profileLashTip.length
+        const q = (az, ay, bz, by, sign) => {
+            const cz = (az + bz) / 2 + nz * bend * sign
+            const cy = (ay + by) / 2 + ny * bend * sign
+            const out = []
+            for(let s = 0; s <= 10; s++){
+                const t = s / 10, mt = 1 - t
+                out.push({
+                    x: 0,
+                    z: mt * mt * az + 2 * mt * t * cz + t * t * bz,
+                    y: mt * mt * ay + 2 * mt * t * cy + t * t * by
+                })
+            }
+            return out
+        }
+
         strokes.push([
-            { x: 0, y: p.y, z: p.z ?? 0 },
-            { x: 0, y: p.y + d.y * profileLashTip.length, z: (p.z ?? 0) + d.z * profileLashTip.length }
+            ...q(baseAz, baseAy, tipZ, tipY, 1),   // borde superior, combado hacia afuera
+            ...q(tipZ, tipY, baseBz, baseBy, -1),  // borde inferior, combado hacia adentro
+            { x: 0, z: baseAz, y: baseAy }         // cierra el triángulo
         ])
     }
 
@@ -605,6 +638,8 @@ function shiftProfile(points, dz, dy){
 
 export function setProfileLashTipLength(value){ profileLashTip.length = value; drawFrame() }
 export function setProfileLashTipAngle(value){ profileLashTip.angleDeg = value; drawFrame() }
+export function setProfileLashTipWidth(value){ profileLashTip.width = value; drawFrame() }
+export function setProfileLashTipCurve(value){ profileLashTip.curve = value; drawFrame() }
 export function setProfileLashClusterCount(value){ profileLashCluster.count = value; drawFrame() }
 export function setProfileLashClusterLength(value){ profileLashCluster.length = value; drawFrame() }
 export function setProfileLashClusterSpread(value){ profileLashCluster.spread = value; drawFrame() }
