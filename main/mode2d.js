@@ -44,6 +44,16 @@ let profileEyeOpen = { upper: 0, lower: 0 }
 // moverla en el módulo afectaría también al frontal. Aquí solo se
 // desplaza lo que se dibuja en esta vista.
 let profileLashAdjust = { depth: 0, open: 0 }
+
+// ✅ Pestaña de perfil, en TRES piezas independientes (ver referencia):
+//   1. punta afilada en el CANTO (lado oreja)
+//   2. el cuerpo/banda, que ya viene de eyelashes.js
+//   3. un racimo de púas IRREGULARES del lado del LAGRIMAL (nariz)
+// El racimo se ve natural justamente porque sus púas NO son iguales:
+// `spread` dispersa largo y ángulo a partir de una semilla fija, para que
+// el patrón sea aleatorio pero estable entre redibujados.
+let profileLashTip = { length: 0, angleDeg: 0 }
+let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, seed: 1 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
@@ -374,6 +384,12 @@ function drawFrame(){
                 const lashLo = shiftProfile(openLid(lo[t.side].lower, -profileLashAdjust.open), profileLashAdjust.depth, 0)
                 drawOutline(lashUp.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
                 drawOutline(lashLo.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+
+                // punta del canto + racimo irregular del lagrimal
+                const eyeUpper = shiftProfile(getEyeOutlines2D()[t.side].upper, profileLashAdjust.depth, 0)
+                buildProfileLashExtras(eyeUpper).forEach(stroke => {
+                    drawLine(stroke.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                })
             }
 
             if(layerVisibility.lids){
@@ -502,11 +518,99 @@ function openLid(points, amount){
     })
 }
 
+// aleatoriedad estable: misma semilla = mismo patrón en cada redibujado
+function lashRand(seed, i){
+    const x = Math.sin(seed * 91.7 + i * 47.3) * 43758.5453
+    return x - Math.floor(x)
+}
+
+// Construye la PUNTA del canto y el RACIMO del lagrimal, en coordenadas
+// de perfil (se trabaja sobre z/y, que es lo que proyecta esta vista).
+// upperPts viene de eyes.js: índice 0 = lagrimal (nariz), último = canto (oreja).
+function buildProfileLashExtras(upperPts){
+    const n = upperPts.length
+    const strokes = []
+    if(n < 3) return strokes
+
+    // centro del trazo, para saber hacia dónde es "afuera"
+    let cz = 0, cy = 0
+    for(const p of upperPts){ cz += (p.z ?? 0); cy += p.y }
+    cz /= n; cy /= n
+
+    // normal exterior en el punto i, dentro del plano (z, y)
+    const normalAt = (i) => {
+        const a = upperPts[Math.max(i - 1, 0)]
+        const b = upperPts[Math.min(i + 1, n - 1)]
+        let tz = (b.z ?? 0) - (a.z ?? 0)
+        let ty = b.y - a.y
+        const len = Math.hypot(tz, ty) || 1
+        tz /= len; ty /= len
+        let nz = -ty, ny = tz
+        const p = upperPts[i]
+        if(nz * ((p.z ?? 0) - cz) + ny * (p.y - cy) < 0){ nz = -nz; ny = -ny }
+        return { nz, ny, tz, ty }
+    }
+
+    const rot = (vz, vy, deg) => {
+        const r = deg * Math.PI / 180
+        return { z: vz * Math.cos(r) - vy * Math.sin(r), y: vz * Math.sin(r) + vy * Math.cos(r) }
+    }
+
+    // --- 1) PUNTA del canto (último punto) ---
+    if(profileLashTip.length > 0){
+        const i = n - 1
+        const p = upperPts[i]
+        const { tz, ty } = normalAt(i)
+        // sigue la dirección en la que ya venía saliendo el trazo
+        const d = rot(tz, ty, profileLashTip.angleDeg)
+        strokes.push([
+            { x: 0, y: p.y, z: p.z ?? 0 },
+            { x: 0, y: p.y + d.y * profileLashTip.length, z: (p.z ?? 0) + d.z * profileLashTip.length }
+        ])
+    }
+
+    // --- 3) RACIMO irregular, del lado del lagrimal (índices bajos) ---
+    const count = Math.round(profileLashCluster.count)
+    if(count > 0){
+        const extent = Math.max(0.05, Math.min(profileLashCluster.extent, 0.95))
+        for(let k = 0; k < count; k++){
+            const f = count === 1 ? 0.5 : k / (count - 1)
+            const i = Math.max(1, Math.min(n - 2, Math.round(f * extent * (n - 1))))
+            const p = upperPts[i]
+            const { nz, ny } = normalAt(i)
+
+            // irregularidad: cada púa varía su largo y su ángulo
+            const r1 = lashRand(profileLashCluster.seed, k)
+            const r2 = lashRand(profileLashCluster.seed + 7.13, k)
+            const lenMult = 1 + (r1 - 0.5) * 2 * profileLashCluster.spread
+            const angJit = (r2 - 0.5) * 2 * profileLashCluster.spread * 45
+
+            const d = rot(nz, ny, profileLashCluster.angleDeg + angJit)
+            const L = profileLashCluster.length * Math.max(lenMult, 0.15)
+            strokes.push([
+                { x: 0, y: p.y, z: p.z ?? 0 },
+                { x: 0, y: p.y + d.y * L, z: (p.z ?? 0) + d.z * L }
+            ])
+        }
+    }
+
+    return strokes
+}
+
 // Desplaza un trazo en Z (profundidad) y/o Y, solo para la vista de perfil
 function shiftProfile(points, dz, dy){
     if(!dz && !dy) return points
     return points.map(p => ({ x: p.x, y: p.y + (dy || 0), z: (p.z ?? 0) + (dz || 0) }))
 }
+
+export function setProfileLashTipLength(value){ profileLashTip.length = value; drawFrame() }
+export function setProfileLashTipAngle(value){ profileLashTip.angleDeg = value; drawFrame() }
+export function setProfileLashClusterCount(value){ profileLashCluster.count = value; drawFrame() }
+export function setProfileLashClusterLength(value){ profileLashCluster.length = value; drawFrame() }
+export function setProfileLashClusterSpread(value){ profileLashCluster.spread = value; drawFrame() }
+export function setProfileLashClusterAngle(value){ profileLashCluster.angleDeg = value; drawFrame() }
+export function setProfileLashClusterExtent(value){ profileLashCluster.extent = value; drawFrame() }
+export function setProfileLashClusterSeed(value){ profileLashCluster.seed = value; drawFrame() }
 
 export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
 export function setProfileLashOpen(value){ profileLashAdjust.open = value; drawFrame() }
