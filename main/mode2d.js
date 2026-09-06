@@ -25,8 +25,8 @@ let rafId = null
 // guarda su imagen y su escala/posición, y al cambiar de vista se usa
 // automáticamente la que corresponde.
 let refs = {
-    front:   { image: null, scale: 1.55, offsetX: 0.07, offsetY: 0.12 },
-    profile: { image: null, scale: 1.55, offsetX: 0.00, offsetY: 0.00 }
+    front:   { image: null, dataURL: null, name: null, scale: 1.55, offsetX: 0.07, offsetY: 0.12 },
+    profile: { image: null, dataURL: null, name: null, scale: 1.55, offsetX: 0.00, offsetY: 0.00 }
 }
 
 function currentRef(){ return refs[viewMode] || refs.front }
@@ -473,7 +473,13 @@ export function setRefImage(file){
     reader.onload = (e) => {
         const img = new Image()
         img.onload = () => {
-            currentRef().image = img
+            const r = currentRef()
+            r.image = img
+            // se conserva el dataURL para poder incrustar la imagen en la
+            // preconfiguración: el navegador no puede leer rutas del disco,
+            // así que guardar un nombre de archivo no permitiría recargarla.
+            r.dataURL = e.target.result
+            r.name = file.name || null
             drawFrame()
         }
         img.src = e.target.result
@@ -526,11 +532,27 @@ export function setRefOffsetY(value){ currentRef().offsetY = value; drawFrame() 
 // cambiar de vista (cada una tiene su propio encuadre)
 // ✅ encuadre de AMBAS vistas, para guardarlo en las preconfiguraciones
 // (las imágenes no se guardan: son archivos que el usuario vuelve a cargar)
-export function getAllRefSettings(){
-    return {
-        front:   { scale: refs.front.scale,   offsetX: refs.front.offsetX,   offsetY: refs.front.offsetY },
-        profile: { scale: refs.profile.scale, offsetX: refs.profile.offsetX, offsetY: refs.profile.offsetY }
+export function getAllRefSettings(includeImages){
+    const dump = (r) => {
+        const out = { scale: r.scale, offsetX: r.offsetX, offsetY: r.offsetY, name: r.name }
+        if(includeImages && r.dataURL) out.dataURL = r.dataURL
+        return out
     }
+    return { front: dump(refs.front), profile: dump(refs.profile) }
+}
+
+// ✅ restaura una imagen incrustada en la preconfiguración
+export function setRefImageData(view, dataURL, name){
+    const r = refs[view]
+    if(!r || !dataURL) return
+    const img = new Image()
+    img.onload = () => {
+        r.image = img
+        r.dataURL = dataURL
+        r.name = name || null
+        drawFrame()
+    }
+    img.src = dataURL
 }
 
 export function setRefSettingsFor(view, settings){
@@ -544,7 +566,7 @@ export function setRefSettingsFor(view, settings){
 
 export function getRefSettings(){
     const r = currentRef()
-    return { scale: r.scale, offsetX: r.offsetX, offsetY: r.offsetY, hasImage: !!r.image }
+    return { scale: r.scale, offsetX: r.offsetX, offsetY: r.offsetY, hasImage: !!r.image, name: r.name }
 }
 
 // ✅ conectar al selector "Ajustar forma" — cambia cuál de las 4 formas
