@@ -1,6 +1,6 @@
 import { setSelectedTarget, getTargetAdjust,
          setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         getAllRefSettings, setRefSettingsFor } from './mode2d.js'
+         getAllRefSettings, setRefSettingsFor, setRefImageData } from './mode2d.js'
 import { getBrowParams,
          setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness,
@@ -71,7 +71,7 @@ function shapeTargetKeys(){
     return Array.from(select.options).map(o => o.value)
 }
 
-export function buildPreset(){
+export function buildPreset(includeImages){
     const controls = {}
     collectControls().forEach(node => {
         controls[node.id] = node.type === 'checkbox' ? node.checked : node.value
@@ -105,12 +105,12 @@ export function buildPreset(){
         controls,
         shapeAdjust,
         brows,
-        refs: getAllRefSettings()
+        refs: getAllRefSettings(includeImages)
     }
 }
 
-export function downloadPreset(filename){
-    const preset = buildPreset()
+export function downloadPreset(filename, includeImages){
+    const preset = buildPreset(includeImages)
     const text = JSON.stringify(preset, null, 2)
     const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
@@ -158,8 +158,14 @@ export function applyPreset(preset){
 
     // 2) encuadre de la referencia, por vista
     if(preset.refs){
-        setRefSettingsFor('front', preset.refs.front)
-        setRefSettingsFor('profile', preset.refs.profile)
+        ;['front','profile'].forEach(view => {
+            const r = preset.refs[view]
+            if(!r) return
+            setRefSettingsFor(view, r)
+            // si el archivo trae la imagen incrustada, se recarga sola;
+            // si no, el encuadre queda listo para cuando se cargue a mano
+            if(r.dataURL) setRefImageData(view, r.dataURL, r.name)
+        })
     }
 
     // 3) parámetros por ceja
