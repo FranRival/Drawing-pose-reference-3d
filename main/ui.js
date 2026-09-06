@@ -29,6 +29,8 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
          setLayerVisible, setProfileEyeUpperOpen, setProfileEyeLowerOpen,
+         setProfileLashDepth, setProfileLashOpen,
+         setProfilePupilDepth, setProfilePupilHeight, setProfilePupilSize,
          getRefSettings } from './mode2d.js'
 import { setSunAngle, applyCameraShot } from './core.js'
 
@@ -1135,10 +1137,17 @@ export function initUI(){
         })
     })
 
-    // --- Apertura del ojo, solo en vista de perfil (mode2d.js) ---
+    // --- Ajustes exclusivos de la vista de perfil (mode2d.js) ---
+    // Ojo, pestañas e iris comparten geometría con el 3D y el frontal, así
+    // que estos desplazamientos viven solo en el dibujado del perfil.
     ;[
         ["profileEyeUpperOpen", setProfileEyeUpperOpen],
-        ["profileEyeLowerOpen", setProfileEyeLowerOpen]
+        ["profileEyeLowerOpen", setProfileEyeLowerOpen],
+        ["profileLashDepth", setProfileLashDepth],
+        ["profileLashOpen", setProfileLashOpen],
+        ["profilePupilDepth", setProfilePupilDepth],
+        ["profilePupilHeight", setProfilePupilHeight],
+        ["profilePupilSize", setProfilePupilSize]
     ].forEach(([id, setter]) => {
         const slider = document.getElementById(id)
         const label  = document.getElementById(id + "Value")
