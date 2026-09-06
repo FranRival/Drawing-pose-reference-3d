@@ -337,7 +337,9 @@ export function initUI(){
         if(viewLabel) viewLabel.textContent = view === "profile" ? "vista de perfil" : "vista frontal"
 
         const status = document.getElementById("refImageStatus")
-        if(status) status.textContent = r.hasImage ? "imagen cargada" : "sin imagen para esta vista"
+        if(status) status.textContent = r.hasImage
+            ? (r.name ? `imagen: ${r.name}` : "imagen cargada")
+            : "sin imagen para esta vista"
 
         const pairs = [["refScale", r.scale, 2], ["refOffsetX", r.offsetX, 2], ["refOffsetY", r.offsetY, 2]]
         pairs.forEach(([id, value, dec]) => {
@@ -1202,8 +1204,11 @@ export function initUI(){
     if(presetSaveBtn){
         presetSaveBtn.addEventListener("click", () => {
             try {
-                downloadPreset()
-                showStatus("Preconfiguración descargada.")
+                const includeImages = document.getElementById("presetIncludeImages")?.checked
+                downloadPreset(null, includeImages)
+                showStatus(includeImages
+                    ? "Preconfiguración descargada (con imágenes incrustadas)."
+                    : "Preconfiguración descargada (sin imágenes).")
             } catch(err){
                 showStatus("No se pudo guardar: " + err.message)
             }
@@ -1220,6 +1225,9 @@ export function initUI(){
                 .then(({ applied, missing }) => {
                     const extra = missing ? ` (${missing} valores del archivo ya no existen en esta versión)` : ""
                     showStatus(`Preconfiguración cargada: ${applied} valores${extra}.`)
+                    // las imágenes incrustadas se decodifican de forma
+                    // asíncrona; se refresca el panel una vez listas
+                    setTimeout(refreshRefControls, 200)
                 })
                 .catch(err => showStatus("No se pudo cargar: " + err.message))
                 // se limpia para poder recargar el MISMO archivo otra vez
