@@ -1159,6 +1159,7 @@ export function initUI(){
         ["profileLashClusterSpread", "setProfileLashClusterSpread"],
         ["profileLashClusterAngle", "setProfileLashClusterAngle"],
         ["profileLashClusterExtent", "setProfileLashClusterExtent"],
+        ["profileLashClusterOffset", "setProfileLashClusterOffset"],
         ["profileLashClusterSeed", "setProfileLashClusterSeed"],
         ["profilePupilDepth", "setProfilePupilDepth"],
         ["profilePupilHeight", "setProfilePupilHeight"],
