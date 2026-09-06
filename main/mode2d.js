@@ -20,8 +20,16 @@ let viewerEl = null
 let active = false
 let rafId = null
 
-let refImage = null
-let refScale = 1.55
+// ✅ Una referencia INDEPENDIENTE por vista: el model sheet frontal y el
+// de perfil son dibujos distintos, con su propio encuadre. Cada vista
+// guarda su imagen y su escala/posición, y al cambiar de vista se usa
+// automáticamente la que corresponde.
+let refs = {
+    front:   { image: null, scale: 1.55, offsetX: 0.07, offsetY: 0.12 },
+    profile: { image: null, scale: 1.55, offsetX: 0.00, offsetY: 0.00 }
+}
+
+function currentRef(){ return refs[viewMode] || refs.front }
 
 // ✅ Apertura del ojo SOLO EN PERFIL. La geometría del ojo es compartida
 // (el 3D y la vista frontal usan los mismos puntos), así que abrirlo
@@ -45,8 +53,6 @@ let layerVisibility = {
     jaw: false,
     headCircle: false
 }
-let refOffsetX = 0.07 // -1 a 1, fracción del ancho del canvas
-let refOffsetY = 0.12 // -1 a 1, fracción del alto del canvas
 
 // ✅ el ajuste por forma (offset/escala/rotación de cada ojo/ceja) YA NO
 // vive aquí — vive en eyeShapeAdjust (eyes.js) y browShapeAdjust
@@ -233,6 +239,11 @@ function drawFrame(){
     // --- transform de la IMAGEN: independiente, controlado por
     // refScale/refOffsetX/refOffsetY — así se puede centrar/escalar la
     // referencia SIN mover ojos, cejas ni mandíbula. ---
+    const ref = currentRef()
+    const refImage = ref.image
+    const refScale = ref.scale
+    const refOffsetX = ref.offsetX
+    const refOffsetY = ref.offsetY
     if(refImage){
         const imgAspect = refImage.width / refImage.height
         let baseDrawW, baseDrawH
@@ -448,7 +459,7 @@ export function setRefImage(file){
     reader.onload = (e) => {
         const img = new Image()
         img.onload = () => {
-            refImage = img
+            currentRef().image = img
             drawFrame()
         }
         img.src = e.target.result
@@ -481,9 +492,34 @@ export function setLayerVisible(layer, visible){
     }
 }
 
-export function setRefScale(value){ refScale = value; drawFrame() }
-export function setRefOffsetX(value){ refOffsetX = value; drawFrame() }
-export function setRefOffsetY(value){ refOffsetY = value; drawFrame() }
+export function setRefScale(value){ currentRef().scale = value; drawFrame() }
+export function setRefOffsetX(value){ currentRef().offsetX = value; drawFrame() }
+export function setRefOffsetY(value){ currentRef().offsetY = value; drawFrame() }
+
+// ✅ para que el panel pueda mostrar los valores de la vista activa al
+// cambiar de vista (cada una tiene su propio encuadre)
+// ✅ encuadre de AMBAS vistas, para guardarlo en las preconfiguraciones
+// (las imágenes no se guardan: son archivos que el usuario vuelve a cargar)
+export function getAllRefSettings(){
+    return {
+        front:   { scale: refs.front.scale,   offsetX: refs.front.offsetX,   offsetY: refs.front.offsetY },
+        profile: { scale: refs.profile.scale, offsetX: refs.profile.offsetX, offsetY: refs.profile.offsetY }
+    }
+}
+
+export function setRefSettingsFor(view, settings){
+    const r = refs[view]
+    if(!r || !settings) return
+    if(typeof settings.scale === 'number') r.scale = settings.scale
+    if(typeof settings.offsetX === 'number') r.offsetX = settings.offsetX
+    if(typeof settings.offsetY === 'number') r.offsetY = settings.offsetY
+    drawFrame()
+}
+
+export function getRefSettings(){
+    const r = currentRef()
+    return { scale: r.scale, offsetX: r.offsetX, offsetY: r.offsetY, hasImage: !!r.image }
+}
 
 // ✅ conectar al selector "Ajustar forma" — cambia cuál de las 4 formas
 // afectan los sliders de ajuste fino.
