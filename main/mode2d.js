@@ -39,6 +39,13 @@ function currentRef(){ return refs[viewMode] || refs.front }
 // Separa el párpado superior hacia arriba y el inferior hacia abajo.
 let profileEyeOpen = { upper: 0, lower: 0 }
 
+// ✅ Ajustes de PESTAÑAS e IRIS/PUPILA exclusivos del perfil, por la misma
+// razón: su geometría la comparten el 3D y la vista frontal, así que
+// moverla en el módulo afectaría también al frontal. Aquí solo se
+// desplaza lo que se dibuja en esta vista.
+let profileLashAdjust = { depth: 0, open: 0 }
+let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
+
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
 // referencia hay tantas guías superpuestas que cuesta distinguir cuál es
 // cuál, así que cada capa se puede apagar. Por defecto solo queda el ojo
@@ -363,8 +370,10 @@ function drawFrame(){
 
             if(layerVisibility.lashes){
                 const lo = getEyelashOutlines2D()
-                drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
-                drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                const lashUp = shiftProfile(openLid(lo[t.side].upper, profileLashAdjust.open), profileLashAdjust.depth, 0)
+                const lashLo = shiftProfile(openLid(lo[t.side].lower, -profileLashAdjust.open), profileLashAdjust.depth, 0)
+                drawOutline(lashUp.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                drawOutline(lashLo.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
             }
 
             if(layerVisibility.lids){
@@ -373,7 +382,12 @@ function drawFrame(){
             }
 
             if(layerVisibility.pupils){
-                const pupilMark = getPupilProfileMark(t.side)
+                const m = getPupilProfileMark(t.side)
+                const pupilMark = {
+                    z: m.z + profilePupilAdjust.depth,
+                    y: m.y + profilePupilAdjust.height,
+                    radius: m.radius * profilePupilAdjust.size
+                }
                 drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
             }
         } else if(t.kind === 'brow'){
@@ -481,6 +495,18 @@ function openLid(points, amount){
         return { x: p.x, y: p.y + amount * bump, z: p.z }
     })
 }
+
+// Desplaza un trazo en Z (profundidad) y/o Y, solo para la vista de perfil
+function shiftProfile(points, dz, dy){
+    if(!dz && !dy) return points
+    return points.map(p => ({ x: p.x, y: p.y + (dy || 0), z: (p.z ?? 0) + (dz || 0) }))
+}
+
+export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
+export function setProfileLashOpen(value){ profileLashAdjust.open = value; drawFrame() }
+export function setProfilePupilDepth(value){ profilePupilAdjust.depth = value; drawFrame() }
+export function setProfilePupilHeight(value){ profilePupilAdjust.height = value; drawFrame() }
+export function setProfilePupilSize(value){ profilePupilAdjust.size = value; drawFrame() }
 
 export function setProfileEyeUpperOpen(value){ profileEyeOpen.upper = value; drawFrame() }
 export function setProfileEyeLowerOpen(value){ profileEyeOpen.lower = value; drawFrame() }
