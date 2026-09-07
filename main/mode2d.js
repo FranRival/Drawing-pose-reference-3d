@@ -54,7 +54,7 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // el patrón sea aleatorio pero estable entre redibujados.
 let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
 let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
-                           width: 0.02, curve: 0.00, hook: 1 }
+                           width: 0.02, curve: 0.00, hook: 1, lift: 0 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
@@ -654,11 +654,18 @@ function buildProfileLashExtras(upperPts){
             const d = rot(bz, by, profileLashCluster.angleDeg + angJit)
             const L = profileLashCluster.length * Math.max(lenMult, 0.15)
 
+            // ✅ `lift` despega TODO el racimo del párpado, siguiendo esa
+            // misma normal: positivo lo aleja hacia la ceja, negativo lo
+            // hunde hacia el ojo. Es un desplazamiento del conjunto, no
+            // de cada púa por separado.
+            const oz = (p.z ?? 0) + bz * profileLashCluster.lift
+            const oy = p.y + by * profileLashCluster.lift
+
             // la base de cada púa es perpendicular a SU propia dirección,
             // no a la del párpado, para que el triángulo no salga torcido
             const pz = -d.y, py = d.z
             strokes.push(triangleSpike(
-                p.z ?? 0, p.y, d.z, d.y, pz, py,
+                oz, oy, d.z, d.y, pz, py,
                 L, profileLashCluster.width, profileLashCluster.curve,
                 profileLashCluster.hook
             ))
@@ -687,6 +694,7 @@ export function setProfileLashClusterOffset(value){ profileLashCluster.offset = 
 export function setProfileLashClusterWidth(value){ profileLashCluster.width = value; drawFrame() }
 export function setProfileLashClusterCurve(value){ profileLashCluster.curve = value; drawFrame() }
 export function setProfileLashClusterHook(value){ profileLashCluster.hook = value; drawFrame() }
+export function setProfileLashClusterLift(value){ profileLashCluster.lift = value; drawFrame() }
 export function setProfileLashClusterSeed(value){ profileLashCluster.seed = value; drawFrame() }
 
 export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
