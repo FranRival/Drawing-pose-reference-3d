@@ -55,7 +55,7 @@ let profileLashAdjust = { depth: 0, open: 0 }
 let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
 let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
                            width: 0.02, curve: 0.00, hook: 1, lift: 0, shift: 0 }
-let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
+let profilePupilAdjust = { depth: 0, height: 0, sizeH: 1, sizeV: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
 // referencia hay tantas guías superpuestas que cuesta distinguir cuál es
@@ -399,13 +399,22 @@ function drawFrame(){
             }
 
             if(layerVisibility.pupils){
+                // ✅ el iris de perfil era una marca vertical (una línea),
+                // que no admitía ancho. Ahora es una ELIPSE con radios
+                // independientes, así se puede ensanchar en horizontal
+                // (profundidad) y en vertical por separado.
                 const m = getPupilProfileMark(t.side)
-                const pupilMark = {
-                    z: m.z + profilePupilAdjust.depth,
-                    y: m.y + profilePupilAdjust.height,
-                    radius: m.radius * profilePupilAdjust.size
+                const cz = m.z + profilePupilAdjust.depth
+                const cy = m.y + profilePupilAdjust.height
+                const rz = m.radius * profilePupilAdjust.sizeH
+                const ry = m.radius * profilePupilAdjust.sizeV
+
+                const ellipse = []
+                for(let s = 0; s <= 32; s++){
+                    const a = (s / 32) * Math.PI * 2
+                    ellipse.push({ x: 0, z: cz + Math.cos(a) * rz, y: cy + Math.sin(a) * ry })
                 }
-                drawVerticalTick(pupilMark, centerX, centerY, pxPerUnit, stretchZ, stretchY, '#8888ff')
+                drawOutline(ellipse.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#8888ff')
             }
         } else if(t.kind === 'brow'){
             if(layerVisibility.brows){
@@ -709,7 +718,8 @@ export function setProfileLashDepth(value){ profileLashAdjust.depth = value; dra
 export function setProfileLashOpen(value){ profileLashAdjust.open = value; drawFrame() }
 export function setProfilePupilDepth(value){ profilePupilAdjust.depth = value; drawFrame() }
 export function setProfilePupilHeight(value){ profilePupilAdjust.height = value; drawFrame() }
-export function setProfilePupilSize(value){ profilePupilAdjust.size = value; drawFrame() }
+export function setProfilePupilSizeH(value){ profilePupilAdjust.sizeH = value; drawFrame() }
+export function setProfilePupilSizeV(value){ profilePupilAdjust.sizeV = value; drawFrame() }
 
 export function setProfileEyeUpperOpen(value){ profileEyeOpen.upper = value; drawFrame() }
 export function setProfileEyeLowerOpen(value){ profileEyeOpen.lower = value; drawFrame() }
