@@ -1164,6 +1164,7 @@ export function initUI(){
         ["profileLashClusterCurve", "setProfileLashClusterCurve"],
         ["profileLashClusterHook", "setProfileLashClusterHook"],
         ["profileLashClusterLift", "setProfileLashClusterLift"],
+        ["profileLashClusterShift", "setProfileLashClusterShift"],
         ["profileLashClusterSeed", "setProfileLashClusterSeed"],
         ["profilePupilDepth", "setProfilePupilDepth"],
         ["profilePupilHeight", "setProfilePupilHeight"],
