@@ -54,7 +54,7 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // el patrón sea aleatorio pero estable entre redibujados.
 let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
 let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
-                           width: 0.02, curve: 0.80, hook: 1 }
+                           width: 0.02, curve: 0.00, hook: 1 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
