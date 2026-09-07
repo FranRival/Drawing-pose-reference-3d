@@ -54,7 +54,7 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // el patrón sea aleatorio pero estable entre redibujados.
 let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
 let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
-                           width: 0.02, curve: 0.35 }
+                           width: 0.02, curve: 0.80, hook: 1 }
 let profilePupilAdjust = { depth: 0, height: 0, size: 1 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
@@ -557,37 +557,59 @@ function buildProfileLashExtras(upperPts){
         return { z: vz * Math.cos(r) - vy * Math.sin(r), y: vz * Math.sin(r) + vy * Math.cos(r) }
     }
 
-    // ✅ Constructor compartido: TRIÁNGULO extruido desde un punto, con sus
-    // dos bordes curvados (bezier) hacia lados opuestos. Lo usan tanto la
-    // punta del canto como cada púa del racimo, así ambas tienen las
-    // mismas características (largo, ángulo, ancho de base, curvatura).
-    const triangleSpike = (oz, oy, dz, dy, nz, ny, length, width, curve) => {
-        const half = width / 2
-        const tipZ = oz + dz * length, tipY = oy + dy * length
-        const baseAz = oz + nz * half, baseAy = oy + ny * half
-        const baseBz = oz - nz * half, baseBy = oy - ny * half
+    // ✅ Constructor compartido: GARRA. No es un triángulo combado — su
+    // EJE es una curva, y el grosor se afina a lo largo de ese eje hasta
+    // cerrar en punta. Eso es lo que produce la forma de gancho/garra en
+    // vez de una hoja. Lo usan la punta del canto y cada púa del racimo.
+    //
+    //   curve : cuánto se arquea el eje (0 = recto)
+    //   hook  : 0 = afinado parejo (hoja)   1 = borde exterior más lleno
+    //           y el interior más excavado (garra)
+    const triangleSpike = (oz, oy, dz, dy, nz, ny, length, width, curve, hook = 0) => {
+        const SEG = 14
         const bend = curve * length
 
-        const q = (az, ay, bz, by, sign) => {
-            const cz = (az + bz) / 2 + nz * bend * sign
-            const cy = (ay + by) / 2 + ny * bend * sign
-            const out = []
-            for(let s = 0; s <= 10; s++){
-                const t = s / 10, mt = 1 - t
-                out.push({
-                    x: 0,
-                    z: mt * mt * az + 2 * mt * t * cz + t * t * bz,
-                    y: mt * mt * ay + 2 * mt * t * cy + t * t * by
-                })
-            }
-            return out
+        // eje curvo: bezier cuadrática desde el origen hasta la punta
+        const p0z = oz, p0y = oy
+        const p2z = oz + dz * length, p2y = oy + dy * length
+        const c1z = (p0z + p2z) / 2 + nz * bend
+        const c1y = (p0y + p2y) / 2 + ny * bend
+
+        const spine = []
+        for(let s = 0; s <= SEG; s++){
+            const t = s / SEG, mt = 1 - t
+            spine.push({
+                z: mt * mt * p0z + 2 * mt * t * c1z + t * t * p2z,
+                y: mt * mt * p0y + 2 * mt * t * c1y + t * t * p2y,
+                t
+            })
         }
 
-        return [
-            ...q(baseAz, baseAy, tipZ, tipY, 1),
-            ...q(tipZ, tipY, baseBz, baseBy, -1),
-            { x: 0, z: baseAz, y: baseAy }
-        ]
+        // grosor a lo largo del eje: máximo en la base, cero en la punta.
+        // El exponente hace que la garra conserve carne cerca de la base y
+        // se afile de golpe al final, como una uña.
+        const half = width / 2
+        const outer = [], inner = []
+        for(let s = 0; s <= SEG; s++){
+            const p = spine[s]
+            const a = spine[Math.max(s - 1, 0)]
+            const b = spine[Math.min(s + 1, SEG)]
+            let tz = b.z - a.z, ty = b.y - a.y
+            const L = Math.hypot(tz, ty) || 1
+            tz /= L; ty /= L
+            const pz = -ty, py = tz
+
+            const taper = Math.pow(1 - p.t, 1.6)
+            const wOut = half * taper * (1 + 0.6 * hook)
+            const wIn  = half * taper * (1 - 0.75 * hook)
+
+            outer.push({ x: 0, z: p.z + pz * wOut, y: p.y + py * wOut })
+            inner.push({ x: 0, z: p.z - pz * wIn,  y: p.y - py * wIn })
+        }
+
+        // contorno cerrado: un borde de la base a la punta, y el otro de
+        // vuelta a la base
+        return [...outer, ...inner.reverse(), outer[0]]
     }
 
     // --- 1) PUNTA del canto (último punto) ---
@@ -623,7 +645,13 @@ function buildProfileLashExtras(upperPts){
             const lenMult = 1 + (r1 - 0.5) * 2 * profileLashCluster.spread
             const angJit = (r2 - 0.5) * 2 * profileLashCluster.spread * 45
 
-            const d = rot(nz, ny, profileLashCluster.angleDeg + angJit)
+            // ✅ las púas crecen HACIA ARRIBA (hacia la ceja), no hacia la
+            // boca: si la normal del párpado apunta hacia abajo en este
+            // punto, se invierte antes de rotarla con el ángulo del slider.
+            let bz = nz, by = ny
+            if(by < 0){ bz = -bz; by = -by }
+
+            const d = rot(bz, by, profileLashCluster.angleDeg + angJit)
             const L = profileLashCluster.length * Math.max(lenMult, 0.15)
 
             // la base de cada púa es perpendicular a SU propia dirección,
@@ -631,7 +659,8 @@ function buildProfileLashExtras(upperPts){
             const pz = -d.y, py = d.z
             strokes.push(triangleSpike(
                 p.z ?? 0, p.y, d.z, d.y, pz, py,
-                L, profileLashCluster.width, profileLashCluster.curve
+                L, profileLashCluster.width, profileLashCluster.curve,
+                profileLashCluster.hook
             ))
         }
     }
@@ -657,6 +686,7 @@ export function setProfileLashClusterExtent(value){ profileLashCluster.extent = 
 export function setProfileLashClusterOffset(value){ profileLashCluster.offset = value; drawFrame() }
 export function setProfileLashClusterWidth(value){ profileLashCluster.width = value; drawFrame() }
 export function setProfileLashClusterCurve(value){ profileLashCluster.curve = value; drawFrame() }
+export function setProfileLashClusterHook(value){ profileLashCluster.hook = value; drawFrame() }
 export function setProfileLashClusterSeed(value){ profileLashCluster.seed = value; drawFrame() }
 
 export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
