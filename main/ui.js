@@ -1168,7 +1168,8 @@ export function initUI(){
         ["profileLashClusterSeed", "setProfileLashClusterSeed"],
         ["profilePupilDepth", "setProfilePupilDepth"],
         ["profilePupilHeight", "setProfilePupilHeight"],
-        ["profilePupilSize", "setProfilePupilSize"]
+        ["profilePupilSizeH", "setProfilePupilSizeH"],
+        ["profilePupilSizeV", "setProfilePupilSizeV"]
     ].forEach(([id, setterName]) => {
         const slider = document.getElementById(id)
         const label  = document.getElementById(id + "Value")
