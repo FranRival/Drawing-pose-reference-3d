@@ -314,7 +314,7 @@ export function initUI(){
     // perfil, que no tiene parámetros propios de perfil). Así no quedan
     // encabezados vacíos en el panel.
     function refreshGroupVisibility(){
-        const groupIds = ["groupHead","groupEye","groupLashes","groupLids",
+        const groupIds = ["groupEye","groupLashes","groupLids",
                           "groupPupils","groupBrows","groupJaw"]
         groupIds.forEach(id => {
             const group = document.getElementById(id)
@@ -1162,6 +1162,7 @@ export function initUI(){
         ["profileLashClusterOffset", "setProfileLashClusterOffset"],
         ["profileLashClusterWidth", "setProfileLashClusterWidth"],
         ["profileLashClusterCurve", "setProfileLashClusterCurve"],
+        ["profileLashClusterHook", "setProfileLashClusterHook"],
         ["profileLashClusterSeed", "setProfileLashClusterSeed"],
         ["profilePupilDepth", "setProfilePupilDepth"],
         ["profilePupilHeight", "setProfilePupilHeight"],
@@ -1197,12 +1198,16 @@ export function initUI(){
         ["layerPupils", "pupils", "groupPupils"],
         ["layerBrows", "brows", "groupBrows"],
         ["layerJaw", "jaw", "groupJaw"],
-        ["layerHeadCircle", "headCircle", "groupHead"]
+        // ✅ la capa "círculo de cabeza" controla SOLO el círculo de
+        // referencia del modo 2D, no el grupo de controles: ahí vive el
+        // toggle de la guía Loomis en 3D, que debe seguir accesible aunque
+        // el círculo 2D esté apagado.
+        ["layerHeadCircle", "headCircle", null]
     ]
 
     const applyLayer = (layer, groupId, visible) => {
         setLayerVisible(layer, visible)
-        const group = document.getElementById(groupId)
+        const group = groupId ? document.getElementById(groupId) : null
         if(group){
             // se anota el estado de la capa; quién decide el display final
             // es refreshGroupVisibility (que además considera la vista)
