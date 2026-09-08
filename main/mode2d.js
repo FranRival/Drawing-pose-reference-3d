@@ -74,7 +74,11 @@ let layerVisibility = {
     pupils: false,
     brows: false,
     jaw: false,
-    headCircle: false
+    // ✅ encendido por defecto: es la referencia de TAMAÑO de la cabeza.
+    // Si se calibran las guías contra la imagen sin ajustar antes la
+    // imagen a este círculo, quedan proporcionadas al dibujo y no a la
+    // cabeza — se ve bien en 2D, pero descuadrado al volver al 3D.
+    headCircle: true
 }
 
 // ✅ el ajuste por forma (offset/escala/rotación de cada ojo/ceja) YA NO
