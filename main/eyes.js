@@ -75,6 +75,14 @@ let eyeParams = {
     // en vista frontal); negativo = se hunde hacia atras. Cada uno es
     // independiente, para poder "envolver" el ojo sobre la cara en vez de
     // dejarlo como una calcomania plana.
+    // ✅ Apertura del ojo — antes vivía solo en el dibujado 2D de perfil,
+    // así que el 3D no la reflejaba. Ahora es geometría real: separa el
+    // párpado superior hacia arriba y el inferior hacia abajo, con efecto
+    // máximo en el centro y nulo en lagrimal y canto (para que sigan
+    // cerrando en punta).
+    openUpper: 0,
+    openLower: 0,
+
     lagrimalDepth: -0.12,
     centerDepth: -0.06,
     cantoDepth: -0.04,
@@ -391,9 +399,21 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         return new THREE.Vector3(worldX, worldY, z)
     }
 
+    // la apertura se aplica DESPUÉS de transformar, sobre el trazo ya
+    // construido, para que no altere la profundidad ni el ajuste por ojo
+    const openLid = (pts, amount) => {
+        if(!amount) return pts
+        const n = pts.length
+        if(n < 2) return pts
+        return pts.map((v, i) => {
+            const bump = Math.sin(Math.PI * (i / (n - 1)))
+            return new THREE.Vector3(v.x, v.y + amount * baseRadius * bump, v.z)
+        })
+    }
+
     return {
-        upper: upperRaw.map(transformPoint),
-        lower: lowerRaw.map(transformPoint)
+        upper: openLid(upperRaw.map(transformPoint), p.openUpper),
+        lower: openLid(lowerRaw.map(transformPoint), -p.openLower)
     }
 }
 
@@ -478,6 +498,8 @@ export function setLowerLidBaseWidth(value){ eyeParams.lowerLidBaseWidth = value
 export function setLowerLidBaseLevel(value){ eyeParams.lowerLidBaseLevel = value; rebuild() }
 export function setLowerLidBaseCurve(value){ eyeParams.lowerLidBaseCurve = value; rebuild() }
 export function setLowerLidBaseU(value){ eyeParams.lowerLidBaseU = value; rebuild() }
+export function setEyeOpenUpper(value){ eyeParams.openUpper = value; rebuild() }
+export function setEyeOpenLower(value){ eyeParams.openLower = value; rebuild() }
 export function setOuterFlickLength(value){ eyeParams.outerFlickLength = value; rebuild() }
 export function setUpperInnerLift(value){ eyeParams.upperInnerLift = value; rebuild() }
 export function setUpperInnerErase(value){ eyeParams.upperInnerErase = value; rebuild() }
