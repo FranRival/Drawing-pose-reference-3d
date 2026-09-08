@@ -1169,7 +1169,11 @@ export function initUI(){
         ["profilePupilDepth", "setProfilePupilDepth"],
         ["profilePupilHeight", "setProfilePupilHeight"],
         ["profilePupilSizeH", "setProfilePupilSizeH"],
-        ["profilePupilSizeV", "setProfilePupilSizeV"]
+        ["profilePupilSizeV", "setProfilePupilSizeV"],
+        ["profileInnerPupilSizeH", "setProfileInnerPupilSizeH"],
+        ["profileInnerPupilSizeV", "setProfileInnerPupilSizeV"],
+        ["profileInnerPupilDepth", "setProfileInnerPupilDepth"],
+        ["profileInnerPupilHeight", "setProfileInnerPupilHeight"]
     ].forEach(([id, setterName]) => {
         const slider = document.getElementById(id)
         const label  = document.getElementById(id + "Value")
