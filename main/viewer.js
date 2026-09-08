@@ -287,6 +287,7 @@ export function createLoomisGuide(radius){
     if(loomisGroup && loomisGroup.parent) loomisGroup.parent.remove(loomisGroup)
     loomisGroup = null
     loomisMaterials = []
+    loomisStructureParts = [] // se re-registran más abajo al crear cada pieza
 
     const headBone = bones.head || bones.neck
     if(!headBone || !radius) return
@@ -334,6 +335,7 @@ export function createLoomisGuide(radius){
     const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat)
     sphereMesh.renderOrder = 998 // un poco antes que las líneas, para que ellas queden encima
     loomisGroup.add(sphereMesh)
+    loomisStructureParts.push(sphereMesh)
 
     // ⏸️ cilindro de cuello — pausado por ahora, sin datos reales del cuello
     // todavía; cuando se aborde el cuello va a necesitar geometría propia.
@@ -354,6 +356,7 @@ export function createLoomisGuide(radius){
     )
     centerLine.renderOrder = 999
     loomisGroup.add(centerLine)
+    loomisStructureParts.push(centerLine)
 
     // ✅ NUEVO: líneas de perfil lateral — mismo círculo que la línea
     // central, pero rotadas alrededor del eje vertical. Marcan dónde
@@ -371,6 +374,7 @@ export function createLoomisGuide(radius){
     leftSideLine.rotation.y = sideAngleRad
     leftSideLine.renderOrder = 999
     loomisGroup.add(leftSideLine)
+    loomisStructureParts.push(leftSideLine)
 
     const rightSideMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false })
     loomisMaterials.push(rightSideMat)
@@ -381,6 +385,7 @@ export function createLoomisGuide(radius){
     rightSideLine.rotation.y = -sideAngleRad
     rightSideLine.renderOrder = 999
     loomisGroup.add(rightSideLine)
+    loomisStructureParts.push(rightSideLine)
 
     // línea de cejas (horizontal, más arriba)
     const eyebrowMat = new THREE.LineBasicMaterial({ color: 0xffaa00, depthTest: false })
@@ -391,6 +396,7 @@ export function createLoomisGuide(radius){
     )
     eyebrowLine.renderOrder = 999
     loomisGroup.add(eyebrowLine)
+    loomisStructureParts.push(eyebrowLine)
 
     // línea de ojos (horizontal, debajo de las cejas)
     const eyeMat = new THREE.LineBasicMaterial({ color: 0xff3333, depthTest: false })
@@ -401,6 +407,7 @@ export function createLoomisGuide(radius){
     )
     eyeLine.renderOrder = 999
     loomisGroup.add(eyeLine)
+    loomisStructureParts.push(eyeLine)
 
     // círculos de oreja (izquierda y derecha), a la altura de cejas/ojos
     const earRadius = localRadius * earRadiusMult
@@ -416,6 +423,7 @@ export function createLoomisGuide(radius){
     leftEarLine.position.set(-localRadius * 0.85, earY, earZ)
     leftEarLine.renderOrder = 999
     loomisGroup.add(leftEarLine)
+    loomisStructureParts.push(leftEarLine)
 
     const rightEarMat = new THREE.LineBasicMaterial({ color: 0x33aaff, depthTest: false })
     loomisMaterials.push(rightEarMat)
@@ -426,6 +434,7 @@ export function createLoomisGuide(radius){
     rightEarLine.position.set(localRadius * 0.85, earY, earZ)
     rightEarLine.renderOrder = 999
     loomisGroup.add(rightEarLine)
+    loomisStructureParts.push(rightEarLine)
 
     // ✅ NUEVO: sincroniza el ángulo de las líneas de perfil con el radio de
     // oreja por defecto, apenas se crean ambas piezas.
@@ -500,6 +509,10 @@ export function createLoomisGuide(radius){
 
     headBone.add(loomisGroup)
     loomisGroup.scale.setScalar(loomisScaleDefault)
+
+    // la guía se reconstruye al cambiar de pose/modelo: se vuelve a
+    // aplicar el estado del armazón para no perderlo
+    loomisStructureParts.forEach(o => { if(o) o.visible = loomisStructureVisible })
     applyLoomisScale() // aplica también el estiramiento por eje (X/Y/Z) si ya se había ajustado antes
     applyLoomisTransform() // aplica el offset (x,y,z) y deja todo posicionado
     setLoomisRespectOcclusion(false) // default: se ve la guía completa (como quedó calibrada)
@@ -570,6 +583,14 @@ export function setLoomisOffsetZ(multiplier){
 // ✅ NUEVO: estiramiento por eje, combinado con el tamaño general — permite
 // convertir la esfera uniforme en un óvalo que calce con la forma real de
 // la cabeza (que casi nunca es una esfera perfecta).
+// ✅ Elementos ESTRUCTURALES de la guía: la esfera, las líneas de
+// construcción (central, perfiles laterales, línea de cejas, línea de
+// ojos) y los círculos de oreja. Se registran aparte de los RASGOS
+// (ojos, pestañas, párpados, iris, cejas, mandíbula) para poder ocultar
+// solo el armazón y dejar la cara limpia.
+let loomisStructureParts = []
+let loomisStructureVisible = true
+
 let loomisStretch = { x: 0.85, y: 1, z: 1 }
 
 function applyLoomisScale(){
@@ -579,6 +600,14 @@ function applyLoomisScale(){
         loomisScaleDefault * loomisStretch.y,
         loomisScaleDefault * loomisStretch.z
     )
+}
+
+// ✅ Oculta/muestra solo el ARMAZÓN (esfera, líneas de construcción y
+// orejas), dejando visibles los rasgos: ojos, pestañas, párpados, iris,
+// cejas y mandíbula.
+export function setLoomisStructureVisible(visible){
+    loomisStructureVisible = !!visible
+    loomisStructureParts.forEach(o => { if(o) o.visible = loomisStructureVisible })
 }
 
 export function setLoomisScale(scaleMultiplier){
