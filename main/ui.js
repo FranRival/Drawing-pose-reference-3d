@@ -1,6 +1,6 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
          togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
-         setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisRespectOcclusion,
+         setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisStructureVisible, setLoomisRespectOcclusion,
          setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
          setEarRadius,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
@@ -574,6 +574,14 @@ export function initUI(){
     if(loomisGuideToggle){
         loomisGuideToggle.addEventListener("change",(e)=>{
             setLoomisGuideVisible(e.target.checked)
+        })
+    }
+
+    const loomisStructureToggle = document.getElementById("loomisStructureToggle")
+    if(loomisStructureToggle){
+        setLoomisStructureVisible(loomisStructureToggle.checked)
+        loomisStructureToggle.addEventListener("change",(e)=>{
+            setLoomisStructureVisible(e.target.checked)
         })
     }
 
