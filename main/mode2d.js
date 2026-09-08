@@ -57,6 +57,11 @@ let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, ext
                            width: 0.02, curve: 0.00, hook: 1, lift: 0, shift: 0 }
 let profilePupilAdjust = { depth: 0, height: 0, sizeH: 1, sizeV: 1 }
 
+// ✅ la PUPILA de perfil: una segunda elipse, más chica, dentro del iris.
+// Tiene sus propios radios y desplazamiento, para poder descentrarla
+// respecto al iris igual que se hace en la vista frontal.
+let profileInnerPupil = { sizeH: 0.45, sizeV: 0.45, depth: 0, height: 0 }
+
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
 // referencia hay tantas guías superpuestas que cuesta distinguir cuál es
 // cuál, así que cada capa se puede apagar. Por defecto solo queda el ojo
@@ -409,12 +414,25 @@ function drawFrame(){
                 const rz = m.radius * profilePupilAdjust.sizeH
                 const ry = m.radius * profilePupilAdjust.sizeV
 
-                const ellipse = []
-                for(let s = 0; s <= 32; s++){
-                    const a = (s / 32) * Math.PI * 2
-                    ellipse.push({ x: 0, z: cz + Math.cos(a) * rz, y: cy + Math.sin(a) * ry })
+                const buildEllipse = (ez, ey, erz, ery) => {
+                    const pts = []
+                    for(let s = 0; s <= 32; s++){
+                        const a = (s / 32) * Math.PI * 2
+                        pts.push({ x: 0, z: ez + Math.cos(a) * erz, y: ey + Math.sin(a) * ery })
+                    }
+                    return pts
                 }
-                drawOutline(ellipse.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#8888ff')
+
+                // iris
+                drawOutline(buildEllipse(cz, cy, rz, ry).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#8888ff')
+
+                // pupila, dentro del iris — su tamaño es relativo al radio
+                // del iris, así sigue proporcionada al reescalarlo
+                const pz2 = cz + profileInnerPupil.depth
+                const py2 = cy + profileInnerPupil.height
+                const prz = m.radius * profileInnerPupil.sizeH
+                const pry = m.radius * profileInnerPupil.sizeV
+                drawOutline(buildEllipse(pz2, py2, prz, pry).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#000000')
             }
         } else if(t.kind === 'brow'){
             if(layerVisibility.brows){
@@ -720,6 +738,10 @@ export function setProfilePupilDepth(value){ profilePupilAdjust.depth = value; d
 export function setProfilePupilHeight(value){ profilePupilAdjust.height = value; drawFrame() }
 export function setProfilePupilSizeH(value){ profilePupilAdjust.sizeH = value; drawFrame() }
 export function setProfilePupilSizeV(value){ profilePupilAdjust.sizeV = value; drawFrame() }
+export function setProfileInnerPupilSizeH(value){ profileInnerPupil.sizeH = value; drawFrame() }
+export function setProfileInnerPupilSizeV(value){ profileInnerPupil.sizeV = value; drawFrame() }
+export function setProfileInnerPupilDepth(value){ profileInnerPupil.depth = value; drawFrame() }
+export function setProfileInnerPupilHeight(value){ profileInnerPupil.height = value; drawFrame() }
 
 export function setProfileEyeUpperOpen(value){ profileEyeOpen.upper = value; drawFrame() }
 export function setProfileEyeLowerOpen(value){ profileEyeOpen.lower = value; drawFrame() }
