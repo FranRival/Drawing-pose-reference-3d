@@ -43,7 +43,135 @@ let lashParams = {
     // las dejan los sliders). Entre más lejos de 0 (en cualquier
     // dirección), más filosa la punta — nunca por un slider aparte, es
     // consecuencia directa de la misma redistribución de proporciones.
-    lashBalance: -0.20
+    lashBalance: -0.20,
+
+    // ✅ Ajustes que antes vivían solo en el dibujado 2D de perfil y por
+    // eso no se reflejaban en el 3D. Ahora son geometría real.
+    depth: 0,   // desplaza las pestañas en Z (profundidad)
+    open: 0,    // las separa del párpado
+
+    // pico del canto (garra larga en la esquina, lado oreja)
+    tipLength: 0, tipAngleDeg: 0, tipWidth: 0.03, tipCurve: 0.35,
+
+    // racimo de garras irregulares
+    clCount: 0, clLength: 0.05, clSpread: 0.5, clAngleDeg: 0,
+    clExtent: 0.35, clOffset: 0, clSeed: 1, clWidth: 0.02,
+    clCurve: 0, clHook: 1, clLift: 0, clShift: 0
+}
+
+// aleatoriedad estable: misma semilla = mismo patrón
+function lashRand(seed, i){
+    const x = Math.sin(seed * 91.7 + i * 47.3) * 43758.5453
+    return x - Math.floor(x)
+}
+
+// ✅ GARRA en 3D: eje curvo con el grosor afinándose hasta la punta.
+// Misma construcción que usaba el perfil 2D, pero en las tres
+// coordenadas, para que el 3D muestre exactamente lo mismo.
+function clawSpike(o, dir, nrm, length, width, curve, hook){
+    const SEG = 14
+    const bend = curve * length
+    const p2 = { x: o.x + dir.x * length, y: o.y + dir.y * length, z: o.z + dir.z * length }
+    const c1 = {
+        x: (o.x + p2.x) / 2 + nrm.x * bend,
+        y: (o.y + p2.y) / 2 + nrm.y * bend,
+        z: (o.z + p2.z) / 2 + nrm.z * bend
+    }
+
+    const spine = []
+    for(let s = 0; s <= SEG; s++){
+        const t = s / SEG, mt = 1 - t
+        spine.push({
+            x: mt * mt * o.x + 2 * mt * t * c1.x + t * t * p2.x,
+            y: mt * mt * o.y + 2 * mt * t * c1.y + t * t * p2.y,
+            z: mt * mt * o.z + 2 * mt * t * c1.z + t * t * p2.z,
+            t
+        })
+    }
+
+    const half = width / 2
+    const outer = [], inner = []
+    for(let s = 0; s <= SEG; s++){
+        const p = spine[s]
+        const a = spine[Math.max(s - 1, 0)], b = spine[Math.min(s + 1, SEG)]
+        let tx = b.x - a.x, ty = b.y - a.y, tz = b.z - a.z
+        const L = Math.hypot(tx, ty, tz) || 1
+        tx /= L; ty /= L; tz /= L
+        let px = ty * nrm.z - tz * nrm.y
+        let py = tz * nrm.x - tx * nrm.z
+        let pz = tx * nrm.y - ty * nrm.x
+        const PL = Math.hypot(px, py, pz) || 1
+        px /= PL; py /= PL; pz /= PL
+
+        const taper = Math.pow(1 - p.t, 1.6)
+        const wO = half * taper * (1 + 0.6 * hook)
+        const wI = half * taper * (1 - 0.75 * hook)
+        outer.push(new THREE.Vector3(p.x + px * wO, p.y + py * wO, p.z + pz * wO))
+        inner.push(new THREE.Vector3(p.x - px * wI, p.y - py * wI, p.z - pz * wI))
+    }
+    return [...outer, ...inner.reverse(), outer[0]]
+}
+
+// pico del canto + racimo, apoyados en el párpado superior (3D)
+function buildLashClaws(baseRadius, lidPoints){
+    const n = lidPoints.length
+    const out = []
+    if(n < 3) return out
+
+    const center = curveCenter(lidPoints)
+    const tangentAt = (i) => {
+        const a = lidPoints[Math.max(i - 1, 0)], b = lidPoints[Math.min(i + 1, n - 1)]
+        let x = b.x - a.x, y = b.y - a.y, z = b.z - a.z
+        const L = Math.hypot(x, y, z) || 1
+        return { x: x / L, y: y / L, z: z / L }
+    }
+    const rotInPlane = (v, nrm, deg) => {
+        const r = THREE.MathUtils.degToRad(deg)
+        const c = Math.cos(r), s = Math.sin(r)
+        return { x: v.x * c + nrm.x * s, y: v.y * c + nrm.y * s, z: v.z * c + nrm.z * s }
+    }
+
+    if(lashParams.tipLength > 0){
+        const i = n - 1
+        const p = lidPoints[i]
+        const { px, py } = localPerpAway(lidPoints, i, center)
+        const nrm = { x: px, y: py, z: 0 }
+        const dir = rotInPlane(tangentAt(i), nrm, lashParams.tipAngleDeg)
+        out.push(clawSpike({ x: p.x, y: p.y, z: p.z }, dir, nrm,
+            baseRadius * lashParams.tipLength, baseRadius * lashParams.tipWidth,
+            lashParams.tipCurve, 1))
+    }
+
+    const count = Math.round(lashParams.clCount)
+    if(count > 0){
+        const extent = Math.max(0.05, Math.min(lashParams.clExtent, 0.95))
+        const offset = Math.max(0, Math.min(lashParams.clOffset, 1)) * (1 - extent)
+        for(let k = 0; k < count; k++){
+            const f = count === 1 ? 0.5 : k / (count - 1)
+            const i = Math.max(1, Math.min(n - 2, Math.round((offset + f * extent) * (n - 1))))
+            const p = lidPoints[i]
+            let { px, py } = localPerpAway(lidPoints, i, center)
+            if(py < 0){ px = -px; py = -py } // que crezcan hacia la ceja
+            const nrm = { x: px, y: py, z: 0 }
+            const tan = tangentAt(i)
+
+            const r1 = lashRand(lashParams.clSeed, k)
+            const r2 = lashRand(lashParams.clSeed + 7.13, k)
+            const lenMult = 1 + (r1 - 0.5) * 2 * lashParams.clSpread
+            const angJit = (r2 - 0.5) * 2 * lashParams.clSpread * 45
+
+            const dir = rotInPlane(nrm, tan, lashParams.clAngleDeg + angJit)
+            const origin = {
+                x: p.x + px * baseRadius * lashParams.clLift - tan.x * baseRadius * lashParams.clShift,
+                y: p.y + py * baseRadius * lashParams.clLift - tan.y * baseRadius * lashParams.clShift,
+                z: p.z - tan.z * baseRadius * lashParams.clShift
+            }
+            out.push(clawSpike(origin, dir, nrm,
+                baseRadius * lashParams.clLength * Math.max(lenMult, 0.15),
+                baseRadius * lashParams.clWidth, lashParams.clCurve, lashParams.clHook))
+        }
+    }
+    return out
 }
 
 // K = qué tan fuerte reparte el balance entre superior/inferior.
@@ -508,6 +636,34 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
     return pts.map(p => new THREE.Vector3(p.x, p.y, p.z))
 }
 
+// desplaza un trazo en Z (profundidad) y lo separa del párpado (Y)
+function applyLashShift(pts, baseRadius){
+    const d = lashParams.depth * baseRadius
+    const o = lashParams.open * baseRadius
+    if(!d && !o) return pts
+    const n = pts.length
+    return pts.map((v, i) => {
+        const bump = n > 1 ? Math.sin(Math.PI * (i / (n - 1))) : 0
+        return new THREE.Vector3(v.x, v.y + o * bump, v.z + d)
+    })
+}
+
+// ✅ garras (pico del canto + racimo) como geometría real. Se agregan en
+// TODOS los estilos: antes el modo 'fusion' retornaba antes de llegar aquí
+// y las garras nunca aparecían en 3D.
+function addClaws(baseRadius, upperRight, upperLeft){
+    buildLashClaws(baseRadius, upperRight).forEach(pts => {
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(applyLashShift(pts, baseRadius)), rightLashMat)
+        l.renderOrder = 999
+        lashGroup.add(l)
+    })
+    buildLashClaws(baseRadius, upperLeft).forEach(pts => {
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(applyLashShift(pts, baseRadius)), leftLashMat)
+        l.renderOrder = 999
+        lashGroup.add(l)
+    })
+}
+
 function buildLashes(baseRadius){
     if(!lashGroup || !baseRadius) return
 
@@ -533,28 +689,31 @@ function buildLashes(baseRadius){
         leftUpperLine.renderOrder = 999
         lashGroup.add(leftUpperLine)
         leftLowerLine = null
+
+        addClaws(baseRadius, upperRight, upperLeft)
         return
     }
 
-    const rightUpperPts = buildUpperLashPoints(baseRadius, upperRight, false)
+    const rightUpperPts = applyLashShift(buildUpperLashPoints(baseRadius, upperRight, false), baseRadius)
     rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightUpperPts), rightLashMat)
     rightUpperLine.renderOrder = 999
     lashGroup.add(rightUpperLine)
 
-    const leftUpperPts = buildUpperLashPoints(baseRadius, upperLeft, true)
+    const leftUpperPts = applyLashShift(buildUpperLashPoints(baseRadius, upperLeft, true), baseRadius)
     leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftUpperPts), leftLashMat)
     leftUpperLine.renderOrder = 999
     lashGroup.add(leftUpperLine)
 
-    const rightLowerPts = buildLowerLashPoints(baseRadius, lowerRight)
+    const rightLowerPts = applyLashShift(buildLowerLashPoints(baseRadius, lowerRight), baseRadius)
     rightLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightLowerPts), rightLashMat)
     rightLowerLine.renderOrder = 999
     lashGroup.add(rightLowerLine)
 
-    const leftLowerPts = buildLowerLashPoints(baseRadius, lowerLeft)
+    const leftLowerPts = applyLashShift(buildLowerLashPoints(baseRadius, lowerLeft), baseRadius)
     leftLowerLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftLowerPts), leftLashMat)
     leftLowerLine.renderOrder = 999
     lashGroup.add(leftLowerLine)
+
 }
 
 // Llamar desde viewer.js, después de createEyeGuides (necesita que el ojo
@@ -608,6 +767,26 @@ export function setLashSpikeSide(side){
 export function setLashSpikeSeed(value){ lashParams.lashSpikeSeed = value; rebuild() }
 export function setLashBalance(value){ lashParams.lashBalance = value; rebuild() }
 
+// ajustes que antes eran solo del perfil 2D y ahora son geometría real
+export function setLashDepth(v){ lashParams.depth = v; rebuild() }
+export function setLashOpen(v){ lashParams.open = v; rebuild() }
+export function setLashTipLength(v){ lashParams.tipLength = v; rebuild() }
+export function setLashTipAngle(v){ lashParams.tipAngleDeg = v; rebuild() }
+export function setLashTipWidth(v){ lashParams.tipWidth = v; rebuild() }
+export function setLashTipCurve(v){ lashParams.tipCurve = v; rebuild() }
+export function setLashClCount(v){ lashParams.clCount = v; rebuild() }
+export function setLashClLength(v){ lashParams.clLength = v; rebuild() }
+export function setLashClSpread(v){ lashParams.clSpread = v; rebuild() }
+export function setLashClAngle(v){ lashParams.clAngleDeg = v; rebuild() }
+export function setLashClExtent(v){ lashParams.clExtent = v; rebuild() }
+export function setLashClOffset(v){ lashParams.clOffset = v; rebuild() }
+export function setLashClSeed(v){ lashParams.clSeed = v; rebuild() }
+export function setLashClWidth(v){ lashParams.clWidth = v; rebuild() }
+export function setLashClCurve(v){ lashParams.clCurve = v; rebuild() }
+export function setLashClHook(v){ lashParams.clHook = v; rebuild() }
+export function setLashClLift(v){ lashParams.clLift = v; rebuild() }
+export function setLashClShift(v){ lashParams.clShift = v; rebuild() }
+
 export function setEyelashOcclusion(respectOcclusion){
     ;[rightLashMat, leftLashMat].forEach(mat => {
         if(!mat) return
@@ -620,6 +799,17 @@ export function setEyelashOcclusion(respectOcclusion){
 // ✅ silueta 2D (vista frontal). En 'fusion', todo el contorno único va en
 // `upper` y `lower` queda vacío (mode2d.js ya ignora arreglos vacíos, así
 // que no hace falta tocar ese archivo).
+// ✅ garras en unidades 2D, para que el modo 2D dibuje exactamente lo
+// mismo que el 3D en vez de tener su propia copia
+export function getLashClaws2D(){
+    const flat = v => ({ x: v.x, y: v.y, z: v.z })
+    const { right, left } = getEyeUpperLidPoints(1)
+    return {
+        right: buildLashClaws(1, right).map(s => applyLashShift(s, 1).map(flat)),
+        left: buildLashClaws(1, left).map(s => applyLashShift(s, 1).map(flat))
+    }
+}
+
 export function getEyelashOutlines2D(){
     const { right: upperRight, left: upperLeft } = getEyeUpperLidPoints(1)
     const { right: lowerRight, left: lowerLeft } = getEyeLowerLidPoints(1)
@@ -635,12 +825,12 @@ export function getEyelashOutlines2D(){
 
     return {
         right: {
-            upper: buildUpperLashPoints(1, upperRight, false).map(flat),
-            lower: buildLowerLashPoints(1, lowerRight).map(flat)
+            upper: applyLashShift(buildUpperLashPoints(1, upperRight, false), 1).map(flat),
+            lower: applyLashShift(buildLowerLashPoints(1, lowerRight), 1).map(flat)
         },
         left: {
-            upper: buildUpperLashPoints(1, upperLeft, true).map(flat),
-            lower: buildLowerLashPoints(1, lowerLeft).map(flat)
+            upper: applyLashShift(buildUpperLashPoints(1, upperLeft, true), 1).map(flat),
+            lower: applyLashShift(buildLowerLashPoints(1, lowerLeft), 1).map(flat)
         }
     }
 }
