@@ -28,7 +28,7 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         setLayerVisible, getRefSettings } from './mode2d.js'
+         setLayerVisible, getRefSettings, isMode2DActive } from './mode2d.js'
 // ✅ Los ajustes exclusivos de perfil se importan como ESPACIO DE NOMBRES,
 // no uno por uno. Con imports nombrados, si mode2d.js está desactualizado
 // y le falta uno solo, el módulo entero falla y TODO el panel deja de
@@ -293,7 +293,11 @@ export function initUI(){
     // Con el modo 2D APAGADO (3D completo) se muestran ambos, porque ahí
     // todos los parámetros afectan lo que se ve.
     function refreshProfileOnlyControls(){
-        const in2D = mode2DToggle ? mode2DToggle.checked : false
+        // ✅ el estado real lo tiene mode2d.js. Leer la casilla del DOM
+        // fallaba cuando quedaba desincronizada (carga de preset, o el
+        // modo activado por otra vía): in2D salía false y no se ocultaba
+        // nada.
+        const in2D = isMode2DActive()
         const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
 
         const hideProfile = in2D && view === "front"
