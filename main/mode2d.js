@@ -1,5 +1,11 @@
+import { setEyeOpenUpper, setEyeOpenLower } from './eyes.js'
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
-import { getEyelashOutlines2D } from './eyelashes.js'
+import { getEyelashOutlines2D, getLashClaws2D,
+         setLashDepth, setLashOpen,
+         setLashTipLength, setLashTipAngle, setLashTipWidth, setLashTipCurve,
+         setLashClCount, setLashClLength, setLashClSpread, setLashClAngle,
+         setLashClExtent, setLashClOffset, setLashClSeed, setLashClWidth,
+         setLashClCurve, setLashClHook, setLashClLift, setLashClShift } from './eyelashes.js'
 import { getEyelidOutlines2D } from './eyelids.js'
 import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
@@ -37,13 +43,11 @@ function currentRef(){ return refs[viewMode] || refs.front }
 // aplica aquí, al momento de dibujar el perfil — mismo criterio que ya
 // se usa con pupilAdjust2D: un ajuste que solo existe en esta vista.
 // Separa el párpado superior hacia arriba y el inferior hacia abajo.
-let profileEyeOpen = { upper: 0, lower: 0 }
 
 // ✅ Ajustes de PESTAÑAS e IRIS/PUPILA exclusivos del perfil, por la misma
 // razón: su geometría la comparten el 3D y la vista frontal, así que
 // moverla en el módulo afectaría también al frontal. Aquí solo se
 // desplaza lo que se dibuja en esta vista.
-let profileLashAdjust = { depth: 0, open: 0 }
 
 // ✅ Pestaña de perfil, en TRES piezas independientes (ver referencia):
 //   1. punta afilada en el CANTO (lado oreja)
@@ -52,10 +56,6 @@ let profileLashAdjust = { depth: 0, open: 0 }
 // El racimo se ve natural justamente porque sus púas NO son iguales:
 // `spread` dispersa largo y ángulo a partir de una semilla fija, para que
 // el patrón sea aleatorio pero estable entre redibujados.
-let profileLashTip = { length: 0, angleDeg: 0, width: 0.03, curve: 0.35 }
-let profileLashCluster = { count: 0, length: 0.05, spread: 0.5, angleDeg: 0, extent: 0.35, offset: 0, seed: 1,
-                           width: 0.02, curve: 0.00, hook: 1, lift: 0, shift: 0 }
-let profilePupilAdjust = { depth: 0, height: 0, sizeH: 1, sizeV: 1 }
 
 // ✅ la PUPILA de perfil: una segunda elipse, más chica, dentro del iris.
 // Tiene sus propios radios y desplazamiento, para poder descentrarla
@@ -384,21 +384,19 @@ function drawFrame(){
         if(t.kind === 'eye'){
             if(layerVisibility.eye){
                 const eo = getEyeOutlines2D()
-                drawLine(openLid(eo[t.side].upper, profileEyeOpen.upper).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
-                drawLine(openLid(eo[t.side].lower, -profileEyeOpen.lower).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+                drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
+                drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
             }
 
             if(layerVisibility.lashes){
                 const lo = getEyelashOutlines2D()
-                const lashUp = shiftProfile(openLid(lo[t.side].upper, profileLashAdjust.open), profileLashAdjust.depth, 0)
-                const lashLo = shiftProfile(openLid(lo[t.side].lower, -profileLashAdjust.open), profileLashAdjust.depth, 0)
-                drawOutline(lashUp.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
-                drawOutline(lashLo.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
 
-                // punta del canto + racimo irregular del lagrimal
-                const eyeUpper = shiftProfile(getEyeOutlines2D()[t.side].upper, profileLashAdjust.depth, 0)
-                buildProfileLashExtras(eyeUpper).forEach(stroke => {
-                    drawLine(stroke.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+                // ✅ las garras (pico del canto + racimo) las construye ahora
+                // eyelashes.js, la misma geometría que usa el 3D
+                getLashClaws2D()[t.side].forEach(stroke => {
+                    drawOutline(stroke.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
                 })
             }
 
@@ -550,194 +548,34 @@ function openLid(points, amount){
     })
 }
 
-// aleatoriedad estable: misma semilla = mismo patrón en cada redibujado
-function lashRand(seed, i){
-    const x = Math.sin(seed * 91.7 + i * 47.3) * 43758.5453
-    return x - Math.floor(x)
-}
-
-// Construye la PUNTA del canto y el RACIMO del lagrimal, en coordenadas
-// de perfil (se trabaja sobre z/y, que es lo que proyecta esta vista).
-// upperPts viene de eyes.js: índice 0 = lagrimal (nariz), último = canto (oreja).
-function buildProfileLashExtras(upperPts){
-    const n = upperPts.length
-    const strokes = []
-    if(n < 3) return strokes
-
-    // centro del trazo, para saber hacia dónde es "afuera"
-    let cz = 0, cy = 0
-    for(const p of upperPts){ cz += (p.z ?? 0); cy += p.y }
-    cz /= n; cy /= n
-
-    // normal exterior en el punto i, dentro del plano (z, y)
-    const normalAt = (i) => {
-        const a = upperPts[Math.max(i - 1, 0)]
-        const b = upperPts[Math.min(i + 1, n - 1)]
-        let tz = (b.z ?? 0) - (a.z ?? 0)
-        let ty = b.y - a.y
-        const len = Math.hypot(tz, ty) || 1
-        tz /= len; ty /= len
-        let nz = -ty, ny = tz
-        const p = upperPts[i]
-        if(nz * ((p.z ?? 0) - cz) + ny * (p.y - cy) < 0){ nz = -nz; ny = -ny }
-        return { nz, ny, tz, ty }
-    }
-
-    const rot = (vz, vy, deg) => {
-        const r = deg * Math.PI / 180
-        return { z: vz * Math.cos(r) - vy * Math.sin(r), y: vz * Math.sin(r) + vy * Math.cos(r) }
-    }
-
-    // ✅ Constructor compartido: GARRA. No es un triángulo combado — su
-    // EJE es una curva, y el grosor se afina a lo largo de ese eje hasta
-    // cerrar en punta. Eso es lo que produce la forma de gancho/garra en
-    // vez de una hoja. Lo usan la punta del canto y cada púa del racimo.
-    //
-    //   curve : cuánto se arquea el eje (0 = recto)
-    //   hook  : 0 = afinado parejo (hoja)   1 = borde exterior más lleno
-    //           y el interior más excavado (garra)
-    const triangleSpike = (oz, oy, dz, dy, nz, ny, length, width, curve, hook = 0) => {
-        const SEG = 14
-        const bend = curve * length
-
-        // eje curvo: bezier cuadrática desde el origen hasta la punta
-        const p0z = oz, p0y = oy
-        const p2z = oz + dz * length, p2y = oy + dy * length
-        const c1z = (p0z + p2z) / 2 + nz * bend
-        const c1y = (p0y + p2y) / 2 + ny * bend
-
-        const spine = []
-        for(let s = 0; s <= SEG; s++){
-            const t = s / SEG, mt = 1 - t
-            spine.push({
-                z: mt * mt * p0z + 2 * mt * t * c1z + t * t * p2z,
-                y: mt * mt * p0y + 2 * mt * t * c1y + t * t * p2y,
-                t
-            })
-        }
-
-        // grosor a lo largo del eje: máximo en la base, cero en la punta.
-        // El exponente hace que la garra conserve carne cerca de la base y
-        // se afile de golpe al final, como una uña.
-        const half = width / 2
-        const outer = [], inner = []
-        for(let s = 0; s <= SEG; s++){
-            const p = spine[s]
-            const a = spine[Math.max(s - 1, 0)]
-            const b = spine[Math.min(s + 1, SEG)]
-            let tz = b.z - a.z, ty = b.y - a.y
-            const L = Math.hypot(tz, ty) || 1
-            tz /= L; ty /= L
-            const pz = -ty, py = tz
-
-            const taper = Math.pow(1 - p.t, 1.6)
-            const wOut = half * taper * (1 + 0.6 * hook)
-            const wIn  = half * taper * (1 - 0.75 * hook)
-
-            outer.push({ x: 0, z: p.z + pz * wOut, y: p.y + py * wOut })
-            inner.push({ x: 0, z: p.z - pz * wIn,  y: p.y - py * wIn })
-        }
-
-        // contorno cerrado: un borde de la base a la punta, y el otro de
-        // vuelta a la base
-        return [...outer, ...inner.reverse(), outer[0]]
-    }
-
-    // --- 1) PUNTA del canto (último punto) ---
-    if(profileLashTip.length > 0){
-        const i = n - 1
-        const p = upperPts[i]
-        const { tz, ty, nz, ny } = normalAt(i)
-        const d = rot(tz, ty, profileLashTip.angleDeg)
-        strokes.push(triangleSpike(
-            p.z ?? 0, p.y, d.z, d.y, nz, ny,
-            profileLashTip.length, profileLashTip.width, profileLashTip.curve
-        ))
-    }
-
-    // --- 3) RACIMO irregular, del lado del lagrimal (índices bajos) ---
-    const count = Math.round(profileLashCluster.count)
-    if(count > 0){
-        const extent = Math.max(0.05, Math.min(profileLashCluster.extent, 0.95))
-        // ✅ el racimo no vive fijo junto al lagrimal: `offset` lo desliza
-        // a lo largo del párpado. 0 = pegado al lagrimal, 1 = pegado al
-        // canto. El tramo se recorta para no salirse del trazo.
-        const offset = Math.max(0, Math.min(profileLashCluster.offset, 1)) * (1 - extent)
-        for(let k = 0; k < count; k++){
-            const f = count === 1 ? 0.5 : k / (count - 1)
-            const pos = offset + f * extent
-            const i = Math.max(1, Math.min(n - 2, Math.round(pos * (n - 1))))
-            const p = upperPts[i]
-            const { nz, ny, tz: tz0, ty: ty0 } = normalAt(i)
-
-            // irregularidad: cada púa varía su largo y su ángulo
-            const r1 = lashRand(profileLashCluster.seed, k)
-            const r2 = lashRand(profileLashCluster.seed + 7.13, k)
-            const lenMult = 1 + (r1 - 0.5) * 2 * profileLashCluster.spread
-            const angJit = (r2 - 0.5) * 2 * profileLashCluster.spread * 45
-
-            // ✅ las púas crecen HACIA ARRIBA (hacia la ceja), no hacia la
-            // boca: si la normal del párpado apunta hacia abajo en este
-            // punto, se invierte antes de rotarla con el ángulo del slider.
-            let bz = nz, by = ny
-            if(by < 0){ bz = -bz; by = -by }
-
-            const d = rot(bz, by, profileLashCluster.angleDeg + angJit)
-            const L = profileLashCluster.length * Math.max(lenMult, 0.15)
-
-            // ✅ `lift` despega TODO el racimo del párpado, siguiendo esa
-            // misma normal: positivo lo aleja hacia la ceja, negativo lo
-            // hunde hacia el ojo. Es un desplazamiento del conjunto, no
-            // de cada púa por separado.
-            // ✅ y `shift` lo desplaza a lo largo del párpado, en la
-            // dirección de la tangente: positivo hacia la NARIZ (lagrimal),
-            // negativo hacia la oreja. A diferencia de `deslizar`, que
-            // reubica cada púa sobre otro punto de la curva, este traslada
-            // el conjunto sin cambiar de dónde nace cada una.
-            const tanNoseZ = -tz0, tanNoseY = -ty0
-
-            const oz = (p.z ?? 0) + bz * profileLashCluster.lift + tanNoseZ * profileLashCluster.shift
-            const oy = p.y + by * profileLashCluster.lift + tanNoseY * profileLashCluster.shift
-
-            // la base de cada púa es perpendicular a SU propia dirección,
-            // no a la del párpado, para que el triángulo no salga torcido
-            const pz = -d.y, py = d.z
-            strokes.push(triangleSpike(
-                oz, oy, d.z, d.y, pz, py,
-                L, profileLashCluster.width, profileLashCluster.curve,
-                profileLashCluster.hook
-            ))
-        }
-    }
-
-    return strokes
-}
-
 // Desplaza un trazo en Z (profundidad) y/o Y, solo para la vista de perfil
 function shiftProfile(points, dz, dy){
     if(!dz && !dy) return points
     return points.map(p => ({ x: p.x, y: p.y + (dy || 0), z: (p.z ?? 0) + (dz || 0) }))
 }
 
-export function setProfileLashTipLength(value){ profileLashTip.length = value; drawFrame() }
-export function setProfileLashTipAngle(value){ profileLashTip.angleDeg = value; drawFrame() }
-export function setProfileLashTipWidth(value){ profileLashTip.width = value; drawFrame() }
-export function setProfileLashTipCurve(value){ profileLashTip.curve = value; drawFrame() }
-export function setProfileLashClusterCount(value){ profileLashCluster.count = value; drawFrame() }
-export function setProfileLashClusterLength(value){ profileLashCluster.length = value; drawFrame() }
-export function setProfileLashClusterSpread(value){ profileLashCluster.spread = value; drawFrame() }
-export function setProfileLashClusterAngle(value){ profileLashCluster.angleDeg = value; drawFrame() }
-export function setProfileLashClusterExtent(value){ profileLashCluster.extent = value; drawFrame() }
-export function setProfileLashClusterOffset(value){ profileLashCluster.offset = value; drawFrame() }
-export function setProfileLashClusterWidth(value){ profileLashCluster.width = value; drawFrame() }
-export function setProfileLashClusterCurve(value){ profileLashCluster.curve = value; drawFrame() }
-export function setProfileLashClusterHook(value){ profileLashCluster.hook = value; drawFrame() }
-export function setProfileLashClusterLift(value){ profileLashCluster.lift = value; drawFrame() }
-export function setProfileLashClusterShift(value){ profileLashCluster.shift = value; drawFrame() }
-export function setProfileLashClusterSeed(value){ profileLashCluster.seed = value; drawFrame() }
+// ✅ Estos setters conservan su nombre para no romper el panel, pero ya
+// NO guardan estado local: delegan en eyes.js / eyelashes.js, donde ahora
+// vive la geometría real. Así el 3D refleja lo mismo que el perfil 2D.
+export function setProfileLashTipLength(value){ setLashTipLength(value); drawFrame() }
+export function setProfileLashTipAngle(value){ setLashTipAngle(value); drawFrame() }
+export function setProfileLashTipWidth(value){ setLashTipWidth(value); drawFrame() }
+export function setProfileLashTipCurve(value){ setLashTipCurve(value); drawFrame() }
+export function setProfileLashClusterCount(value){ setLashClCount(value); drawFrame() }
+export function setProfileLashClusterLength(value){ setLashClLength(value); drawFrame() }
+export function setProfileLashClusterSpread(value){ setLashClSpread(value); drawFrame() }
+export function setProfileLashClusterAngle(value){ setLashClAngle(value); drawFrame() }
+export function setProfileLashClusterExtent(value){ setLashClExtent(value); drawFrame() }
+export function setProfileLashClusterOffset(value){ setLashClOffset(value); drawFrame() }
+export function setProfileLashClusterWidth(value){ setLashClWidth(value); drawFrame() }
+export function setProfileLashClusterCurve(value){ setLashClCurve(value); drawFrame() }
+export function setProfileLashClusterHook(value){ setLashClHook(value); drawFrame() }
+export function setProfileLashClusterLift(value){ setLashClLift(value); drawFrame() }
+export function setProfileLashClusterShift(value){ setLashClShift(value); drawFrame() }
+export function setProfileLashClusterSeed(value){ setLashClSeed(value); drawFrame() }
 
-export function setProfileLashDepth(value){ profileLashAdjust.depth = value; drawFrame() }
-export function setProfileLashOpen(value){ profileLashAdjust.open = value; drawFrame() }
+export function setProfileLashDepth(value){ setLashDepth(value); drawFrame() }
+export function setProfileLashOpen(value){ setLashOpen(value); drawFrame() }
 export function setProfilePupilDepth(value){ profilePupilAdjust.depth = value; drawFrame() }
 export function setProfilePupilHeight(value){ profilePupilAdjust.height = value; drawFrame() }
 export function setProfilePupilSizeH(value){ profilePupilAdjust.sizeH = value; drawFrame() }
@@ -747,8 +585,8 @@ export function setProfileInnerPupilSizeV(value){ profileInnerPupil.sizeV = valu
 export function setProfileInnerPupilDepth(value){ profileInnerPupil.depth = value; drawFrame() }
 export function setProfileInnerPupilHeight(value){ profileInnerPupil.height = value; drawFrame() }
 
-export function setProfileEyeUpperOpen(value){ profileEyeOpen.upper = value; drawFrame() }
-export function setProfileEyeLowerOpen(value){ profileEyeOpen.lower = value; drawFrame() }
+export function setProfileEyeUpperOpen(value){ setEyeOpenUpper(value); drawFrame() }
+export function setProfileEyeLowerOpen(value){ setEyeOpenLower(value); drawFrame() }
 
 export function setLayerVisible(layer, visible){
     if(layer in layerVisibility){
