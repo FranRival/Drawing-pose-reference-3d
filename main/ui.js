@@ -293,15 +293,16 @@ export function initUI(){
     // Con el modo 2D APAGADO (3D completo) se muestran ambos, porque ahí
     // todos los parámetros afectan lo que se ve.
     function refreshProfileOnlyControls(){
-        // ✅ el estado real lo tiene mode2d.js. Leer la casilla del DOM
-        // fallaba cuando quedaba desincronizada (carga de preset, o el
-        // modo activado por otra vía): in2D salía false y no se ocultaba
-        // nada.
-        const in2D = isMode2DActive()
+        // ✅ La regla depende SOLO del selector de vista. Antes también
+        // exigía que el modo 2D estuviera activo, y ese estado podía no
+        // coincidir con lo que el usuario veía (carga de preset, orden en
+        // que se activan las cosas), dejando visibles los controles de la
+        // otra vista. Con una sola condición el comportamiento es
+        // predecible: lo que diga "Vista" es lo que se muestra.
         const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
 
-        const hideProfile = in2D && view === "front"
-        const hideFront   = in2D && view === "profile"
+        const hideProfile = view === "front"
+        const hideFront   = view === "profile"
 
         document.querySelectorAll(".profile-only").forEach(el => {
             el.style.display = hideProfile ? "none" : ""
