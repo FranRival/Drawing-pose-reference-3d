@@ -20,7 +20,8 @@ import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThicknes
          setLashSpikeLength, setLashSpikeWidth, setLashSpikeLean,
          setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
 import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
-         setLidArchPosition, setLidTailLength, setLidTailAngle, setLidCantoFade } from './eyelids.js'
+         setLidArchPosition, setLidTailLength, setLidTailAngle, setLidCantoFade,
+         setLidSurfaceLift } from './eyelids.js'
 import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
@@ -1141,7 +1142,8 @@ export function initUI(){
         ["lidArchPosition", setLidArchPosition, 2],
         ["lidTailLength", setLidTailLength, 2],
         ["lidTailAngle", setLidTailAngle, 2],
-        ["lidCantoFade", setLidCantoFade, 2]
+        ["lidCantoFade", setLidCantoFade, 2],
+        ["lidSurfaceLift", setLidSurfaceLift, 3]
     ]
 
     lidSliders.forEach(([id, setter, decimals]) => {
@@ -1162,6 +1164,7 @@ export function initUI(){
         ["profileEyeUpperOpen", "setProfileEyeUpperOpen"],
         ["profileEyeLowerOpen", "setProfileEyeLowerOpen"],
         ["profileLashDepth", "setProfileLashDepth"],
+        ["lashSurfaceLift", "setLashSurfaceLift"],
         ["profileLashOpen", "setProfileLashOpen"],
         ["profileLashTipLength", "setProfileLashTipLength"],
         ["profileLashTipAngle", "setProfileLashTipAngle"],
