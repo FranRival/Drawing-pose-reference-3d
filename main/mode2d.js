@@ -463,7 +463,22 @@ function drawFrame(){
 }
 
 function loop(){
-    drawFrame()
+    // ✅ el bucle no debe morir por una excepción de dibujado: si algo
+    // falla, el canvas se congelaba y parecía que "ningún slider
+    // funciona". Ahora se reporta una vez y el bucle sigue vivo.
+    try {
+        drawFrame()
+    } catch(err){
+        if(!loop._reported){
+            loop._reported = true
+            console.error('[AnimeMakerPro] error al dibujar el modo 2D:', err)
+            const el = document.getElementById('presetStatus')
+            if(el){
+                el.textContent = 'ERROR al dibujar 2D: ' + err.message
+                el.style.color = '#b91c1c'
+            }
+        }
+    }
     rafId = requestAnimationFrame(loop)
 }
 
