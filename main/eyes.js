@@ -101,6 +101,29 @@ let eyeParams = {
 // mismo truco anti z-fighting que las lineas de superficie en viewer.js
 const EYE_SURFACE_OFFSET = 1.02
 
+// ✅ Convención ÚNICA de envoltura sobre la cabeza. Antes solo el ojo la
+// aplicaba: las pestañas y los párpados heredaban la Z del punto de
+// origen, así que al desplazarse hacia afuera quedaban flotando fuera de
+// la superficie (más cuanto más cerca del borde). Exportarla permite que
+// todas las guías abracen la esfera con el mismo criterio.
+//
+//   lift: separación hacia afuera de la superficie, en fracción del radio
+//         (para que la pestaña quede ENCIMA del ojo y no lo atraviese)
+export function surfaceZ(worldX, worldY, baseRadius, lift = 0){
+    const surfaceR = baseRadius * (EYE_SURFACE_OFFSET + lift)
+    return Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
+}
+
+// desplaza un trazo ya construido para que se pegue a la superficie,
+// conservando el relieve propio que traiga cada punto respecto a su origen
+export function wrapToSurface(points, baseRadius, lift = 0){
+    return points.map(p => ({
+        x: p.x,
+        y: p.y,
+        z: surfaceZ(p.x, p.y, baseRadius, lift)
+    }))
+}
+
 let eyesGroup = null
 let rightEyeUpperLine = null
 let rightEyeLowerLine = null
