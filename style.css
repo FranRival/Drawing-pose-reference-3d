@@ -199,3 +199,22 @@ details.control-subgroup .group-body { padding: 4px 10px 10px 10px; }
   background: #fee2e2;
   color: #991b1b;
 }
+
+/* ===================================================== */
+/* OCULTADO POR VISTA — SIN JAVASCRIPT                     */
+/* El <select> de vista decide directamente qué controles  */
+/* se muestran, leyendo con :has() cuál opción está        */
+/* seleccionada. Antes esto lo hacía ui.js recorriendo los */
+/* elementos; si ese script fallaba en cualquier punto, no */
+/* se ocultaba nada y quedaban a la vista los controles de */
+/* la otra vista. Con CSS el comportamiento ya no depende  */
+/* de que el JS llegue a ejecutarse.                       */
+/* ===================================================== */
+
+.left-panel:has(#mode2DViewMode option[value="profile"]:checked) .control.front-only{
+  display: none !important;
+}
+
+.left-panel:has(#mode2DViewMode option[value="front"]:checked) .control.profile-only{
+  display: none !important;
+}
