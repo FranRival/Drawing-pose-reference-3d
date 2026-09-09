@@ -310,24 +310,12 @@ export function initUI(){
     // Con el modo 2D APAGADO (3D completo) se muestran ambos, porque ahí
     // todos los parámetros afectan lo que se ve.
     function refreshProfileOnlyControls(){
-        // ✅ La regla depende SOLO del selector de vista. Antes también
-        // exigía que el modo 2D estuviera activo, y ese estado podía no
-        // coincidir con lo que el usuario veía (carga de preset, orden en
-        // que se activan las cosas), dejando visibles los controles de la
-        // otra vista. Con una sola condición el comportamiento es
-        // predecible: lo que diga "Vista" es lo que se muestra.
-        const view = mode2DViewModeSelect ? mode2DViewModeSelect.value : "front"
-
-        const hideProfile = view === "front"
-        const hideFront   = view === "profile"
-
-        document.querySelectorAll(".profile-only").forEach(el => {
-            el.style.display = hideProfile ? "none" : ""
-        })
-        document.querySelectorAll(".front-only").forEach(el => {
-            el.style.display = hideFront ? "none" : ""
-        })
-
+        // ✅ El ocultado por vista lo hace AHORA EL CSS (regla :has() sobre
+        // el <select> de vista). Este JS ya no toca el display de los
+        // controles: antes ponía estilo en línea, y si el listener de
+        // cambio de vista no llegaba a ejecutarse, esos estilos quedaban
+        // congelados y ocultaban también los controles de perfil — dejando
+        // los grupos completamente vacíos.
         refreshGroupVisibility()
     }
 
@@ -346,7 +334,10 @@ export function initUI(){
                 return
             }
             const controls = group.querySelectorAll(".control")
-            const anyVisible = Array.from(controls).some(el => el.style.display !== "none")
+            // se consulta el estilo calculado, porque quien oculta es el CSS
+            const anyVisible = Array.from(controls).some(
+                el => getComputedStyle(el).display !== "none"
+            )
             group.style.display = (controls.length === 0 || anyVisible) ? "" : "none"
         })
     }
