@@ -36,6 +36,22 @@ import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, s
 // responder. Así, un setter ausente queda como undefined y solo se
 // desactiva ese slider.
 import * as m2d from './mode2d.js'
+
+// ✅ Capturador de errores: si algo falla al inicializar, los listeners no
+// se enganchan y "ningún slider funciona", sin pista visible. Esto muestra
+// el error real en el panel (y en consola) para poder diagnosticarlo.
+function reportarError(msg){
+    console.error('[AnimeMakerPro]', msg)
+    const el = document.getElementById('presetStatus')
+    if(el){
+        el.textContent = 'ERROR: ' + msg
+        el.style.color = '#b91c1c'
+        el.style.fontWeight = '600'
+    }
+}
+window.addEventListener('error', e => reportarError(e.message + '  @' + (e.filename||'').split('/').pop() + ':' + e.lineno))
+window.addEventListener('unhandledrejection', e => reportarError('promesa: ' + (e.reason && e.reason.message || e.reason)))
+
 import { setSunAngle, applyCameraShot } from './core.js'
 
 // ✅ NUEVO: catálogo de todos los huesos/ejes controlables por slider.
