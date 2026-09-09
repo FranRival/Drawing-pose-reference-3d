@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { getEyeUpperLidPoints } from './eyes.js'
+import { getEyeUpperLidPoints, surfaceZ } from './eyes.js'
 
 // Párpados: la curva del pliegue que corre POR ENCIMA del ojo (el doble
 // párpado), más una línea corta que baja a conectar con el lagrimal.
@@ -33,7 +33,12 @@ let lidParams = {
     // ✅ desvanecimiento en el canto: qué fracción del pliegue se recorta
     // desde el lado del canto (0 = llega completo al canto; 0.5 = se borra
     // la mitad exterior).
-    cantoFade: 0.20
+    cantoFade: 0.20,
+
+    // ✅ separación de la superficie de la cabeza. El pliegue se envuelve
+    // sobre la esfera igual que el ojo; antes heredaba la Z del párpado y
+    // quedaba flotando fuera de la superficie al desplazarse hacia afuera.
+    surfaceLift: 0.008
 }
 
 let lidGroup = null
@@ -160,7 +165,16 @@ function buildLidPoints(baseRadius, upperLidPts){
         pts.unshift(...tailPts)
     }
 
-    return pts.map(p => new THREE.Vector3(p.x, p.y, p.z))
+    // ✅ se envuelve sobre la cabeza: la Z se recalcula en la posición
+    // final de cada punto, con la misma convención que usa el ojo.
+    return pts.map(p => {
+        // se conserva el relieve propio del punto (las profundidades que
+        // se le dan al ojo), para acompañar su modelado
+        const relief = p.z - surfaceZ(p.x, p.y, baseRadius, 0)
+        return new THREE.Vector3(
+            p.x, p.y, surfaceZ(p.x, p.y, baseRadius, lidParams.surfaceLift) + relief
+        )
+    })
 }
 
 function buildLids(baseRadius){
@@ -222,6 +236,7 @@ export function setLidArchPosition(value){ lidParams.archPosition = value; rebui
 export function setLidTailLength(value){ lidParams.tailLength = value; rebuild() }
 export function setLidTailAngle(value){ lidParams.tailAngle = value; rebuild() }
 export function setLidCantoFade(value){ lidParams.cantoFade = value; rebuild() }
+export function setLidSurfaceLift(value){ lidParams.surfaceLift = value; rebuild() }
 
 export function setEyelidOcclusion(respectOcclusion){
     ;[rightLidMat, leftLidMat].forEach(mat => {
