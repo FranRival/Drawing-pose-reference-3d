@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { getEyeUpperLidPoints, getEyeLowerLidPoints } from './eyes.js'
+import { getEyeUpperLidPoints, getEyeLowerLidPoints, surfaceZ } from './eyes.js'
 
 // Pestañas: TRES estilos.
 //   'shadow'  - banda sobre el párpado superior + banda delgada inferior,
@@ -47,6 +47,7 @@ let lashParams = {
 
     // ✅ Ajustes que antes vivían solo en el dibujado 2D de perfil y por
     // eso no se reflejaban en el 3D. Ahora son geometría real.
+    surfaceLift: 0.015, // separación de la superficie, para quedar ENCIMA del ojo
     depth: 0,   // desplaza las pestañas en Z (profundidad)
     open: 0,    // las separa del párpado
 
@@ -110,6 +111,19 @@ function clawSpike(o, dir, nrm, length, width, curve, hook){
         inner.push(new THREE.Vector3(p.x - px * wI, p.y - py * wI, p.z - pz * wI))
     }
     return [...outer, ...inner.reverse(), outer[0]]
+}
+
+// ✅ envuelve una garra ya construida sobre la superficie de la cabeza.
+// Se construyen en el plano XY (con la normal en z=0) porque ahí es donde
+// tienen sentido su ángulo y su curvatura; la profundidad se resuelve
+// después, igual que en el resto de las guías.
+function wrapClaw(pts, baseRadius){
+    return pts.map(p => {
+        const relief = (p.z ?? 0) - surfaceZ(p.x, p.y, baseRadius, 0)
+        return new THREE.Vector3(
+            p.x, p.y, surfaceZ(p.x, p.y, baseRadius, lashParams.surfaceLift) + relief
+        )
+    })
 }
 
 // pico del canto + racimo, apoyados en el párpado superior (3D)
@@ -637,14 +651,24 @@ function buildFusedLashPoints(baseRadius, upperLidPoints, lowerLidPoints, mirror
 }
 
 // desplaza un trazo en Z (profundidad) y lo separa del párpado (Y)
+// ✅ Aplica separación/profundidad Y ENVUELVE sobre la cabeza. La Z se
+// recalcula contra la esfera en la posición final de cada punto, con la
+// misma convención que usa el ojo: así la pestaña abraza el maniquí en
+// vez de quedarse en el plano tangente del párpado.
 function applyLashShift(pts, baseRadius){
     const d = lashParams.depth * baseRadius
     const o = lashParams.open * baseRadius
-    if(!d && !o) return pts
     const n = pts.length
     return pts.map((v, i) => {
         const bump = n > 1 ? Math.sin(Math.PI * (i / (n - 1))) : 0
-        return new THREE.Vector3(v.x, v.y + o * bump, v.z + d)
+        const x = v.x
+        const y = v.y + o * bump
+        // relieve propio del punto respecto a su superficie de origen
+        // (las profundidades de lagrimal/centro/canto que se le dan al
+        // ojo). Se conserva, para que la pestaña acompañe ese modelado
+        // en vez de aplanarse sobre una esfera perfecta.
+        const relief = v.z - surfaceZ(v.x, v.y, baseRadius, 0)
+        return new THREE.Vector3(x, y, surfaceZ(x, y, baseRadius, lashParams.surfaceLift) + relief + d)
     })
 }
 
@@ -653,12 +677,12 @@ function applyLashShift(pts, baseRadius){
 // y las garras nunca aparecían en 3D.
 function addClaws(baseRadius, upperRight, upperLeft){
     buildLashClaws(baseRadius, upperRight).forEach(pts => {
-        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(applyLashShift(pts, baseRadius)), rightLashMat)
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(wrapClaw(pts, baseRadius)), rightLashMat)
         l.renderOrder = 999
         lashGroup.add(l)
     })
     buildLashClaws(baseRadius, upperLeft).forEach(pts => {
-        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(applyLashShift(pts, baseRadius)), leftLashMat)
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(wrapClaw(pts, baseRadius)), leftLashMat)
         l.renderOrder = 999
         lashGroup.add(l)
     })
@@ -769,6 +793,7 @@ export function setLashBalance(value){ lashParams.lashBalance = value; rebuild()
 
 // ajustes que antes eran solo del perfil 2D y ahora son geometría real
 export function setLashDepth(v){ lashParams.depth = v; rebuild() }
+export function setLashSurfaceLift(v){ lashParams.surfaceLift = v; rebuild() }
 export function setLashOpen(v){ lashParams.open = v; rebuild() }
 export function setLashTipLength(v){ lashParams.tipLength = v; rebuild() }
 export function setLashTipAngle(v){ lashParams.tipAngleDeg = v; rebuild() }
@@ -805,8 +830,8 @@ export function getLashClaws2D(){
     const flat = v => ({ x: v.x, y: v.y, z: v.z })
     const { right, left } = getEyeUpperLidPoints(1)
     return {
-        right: buildLashClaws(1, right).map(s => applyLashShift(s, 1).map(flat)),
-        left: buildLashClaws(1, left).map(s => applyLashShift(s, 1).map(flat))
+        right: buildLashClaws(1, right).map(s => wrapClaw(s, 1).map(flat)),
+        left: buildLashClaws(1, left).map(s => wrapClaw(s, 1).map(flat))
     }
 }
 
