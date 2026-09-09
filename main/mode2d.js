@@ -379,81 +379,74 @@ function drawFrame(){
             drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchZ, stretchY)
         }
 
+        // ✅ El perfil ya NO dibuja solo la pieza seleccionada: respeta las
+        // capas visibles igual que la vista frontal. Antes, si el objetivo
+        // del "Ajuste fino por forma" era un ojo, las cejas no se
+        // dibujaban; y si era una ceja, no se veía el iris — aunque sus
+        // controles estuvieran ahí. El objetivo ahora solo decide QUÉ LADO
+        // se muestra.
         const t = resolveTarget(selectedTarget)
+        const side = t.side || 'right'
 
-        if(t.kind === 'eye'){
-            if(layerVisibility.eye){
-                const eo = getEyeOutlines2D()
-                drawLine(eo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
-                drawLine(eo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#00ffcc')
-            }
+        const proj = p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)
 
-            if(layerVisibility.lashes){
-                const lo = getEyelashOutlines2D()
-                drawOutline(lo[t.side].upper.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
-                drawOutline(lo[t.side].lower.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
+        if(layerVisibility.eye){
+            const eo = getEyeOutlines2D()
+            drawLine(eo[side].upper.map(proj), '#00ffcc')
+            drawLine(eo[side].lower.map(proj), '#00ffcc')
+        }
 
-                // ✅ las garras (pico del canto + racimo) las construye ahora
-                // eyelashes.js, la misma geometría que usa el 3D
-                getLashClaws2D()[t.side].forEach(stroke => {
-                    drawOutline(stroke.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ff2222')
-                })
-            }
+        if(layerVisibility.lashes){
+            const lo = getEyelashOutlines2D()
+            drawOutline(lo[side].upper.map(proj), '#ff2222')
+            drawOutline(lo[side].lower.map(proj), '#ff2222')
+            getLashClaws2D()[side].forEach(stroke => drawOutline(stroke.map(proj), '#ff2222'))
+        }
 
-            if(layerVisibility.lids){
-                const lid = getEyelidOutlines2D()
-                drawLine(lid[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffcc66')
-            }
+        if(layerVisibility.lids){
+            const lid = getEyelidOutlines2D()
+            drawLine(lid[side].map(proj), '#ffcc66')
+        }
 
-            if(layerVisibility.pupils){
-                // ✅ el iris de perfil era una marca vertical (una línea),
-                // que no admitía ancho. Ahora es una ELIPSE con radios
-                // independientes, así se puede ensanchar en horizontal
-                // (profundidad) y en vertical por separado.
-                const m = getPupilProfileMark(t.side)
-                const cz = m.z + profilePupilAdjust.depth
-                const cy = m.y + profilePupilAdjust.height
-                const rz = m.radius * profilePupilAdjust.sizeH
-                const ry = m.radius * profilePupilAdjust.sizeV
+        if(layerVisibility.pupils){
+            const m = getPupilProfileMark(side)
+            const cz = m.z + profilePupilAdjust.depth
+            const cy = m.y + profilePupilAdjust.height
+            const rz = m.radius * profilePupilAdjust.sizeH
+            const ry = m.radius * profilePupilAdjust.sizeV
 
-                const buildEllipse = (ez, ey, erz, ery) => {
-                    const pts = []
-                    for(let s = 0; s <= 32; s++){
-                        const a = (s / 32) * Math.PI * 2
-                        pts.push({ x: 0, z: ez + Math.cos(a) * erz, y: ey + Math.sin(a) * ery })
-                    }
-                    return pts
+            const buildEllipse = (ez, ey, erz, ery) => {
+                const pts = []
+                for(let s = 0; s <= 32; s++){
+                    const a = (s / 32) * Math.PI * 2
+                    pts.push({ x: 0, z: ez + Math.cos(a) * erz, y: ey + Math.sin(a) * ery })
                 }
+                return pts
+            }
 
-                // iris
-                drawOutline(buildEllipse(cz, cy, rz, ry).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#8888ff')
+            drawOutline(buildEllipse(cz, cy, rz, ry).map(proj), '#8888ff')
+            drawOutline(buildEllipse(
+                cz + profileInnerPupil.depth,
+                cy + profileInnerPupil.height,
+                m.radius * profileInnerPupil.sizeH,
+                m.radius * profileInnerPupil.sizeV
+            ).map(proj), '#000000')
+        }
 
-                // pupila, dentro del iris — su tamaño es relativo al radio
-                // del iris, así sigue proporcionada al reescalarlo
-                const pz2 = cz + profileInnerPupil.depth
-                const py2 = cy + profileInnerPupil.height
-                const prz = m.radius * profileInnerPupil.sizeH
-                const pry = m.radius * profileInnerPupil.sizeV
-                drawOutline(buildEllipse(pz2, py2, prz, pry).map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#000000')
-            }
-        } else if(t.kind === 'brow'){
-            if(layerVisibility.brows){
-                const bo = getBrowOutlines2D()
-                drawOutline(bo[t.side].map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffaa00')
-            }
-        } else {
-            if(layerVisibility.jaw){
-                const jo = getJawOutlines2D()
-                const jawColor = '#ff66cc'
-                const templeColor = '#66ccff'
-                drawLine(jo.leftJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-                drawLine(jo.rightJaw.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-                drawLine(jo.chin.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), jawColor)
-                drawLine(jo.mouth.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#ffffff')
-                drawLine(jo.leftTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
-                drawLine(jo.rightTemple.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), templeColor)
-                drawLine(jo.bridge.map(p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)), '#cccccc')
-            }
+        if(layerVisibility.brows){
+            const bo = getBrowOutlines2D()
+            drawOutline(bo[side].map(proj), '#ffaa00')
+        }
+
+        if(layerVisibility.jaw){
+            const jo = getJawOutlines2D()
+            drawLine(jo.leftJaw.map(proj), '#ff66cc')
+            drawLine(jo.rightJaw.map(proj), '#ff66cc')
+            drawLine(jo.chin.map(proj), '#ff66cc')
+            drawLine(jo.mouth.map(proj), '#ffffff')
+            drawLine(jo.leftTemple.map(proj), '#66ccff')
+            drawLine(jo.rightTemple.map(proj), '#66ccff')
+            drawLine(jo.bridge.map(proj), '#cccccc')
         }
     }
 
