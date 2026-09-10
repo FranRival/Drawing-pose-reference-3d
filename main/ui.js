@@ -21,11 +21,11 @@ import { setLashInnerThickness, setLashOuterThickness, setLowerLashInnerThicknes
          setLashSpikeSide, setLashSpikeSeed } from './eyelashes.js'
 import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
          setLidArchPosition, setLidTailLength, setLidTailAngle, setLidCantoFade,
-         setLidSurfaceLift } from './eyelids.js'
+         setLidSurfaceLift, setLidDepth } from './eyelids.js'
 import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
-         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth,
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth, setBrowDepthTilt,
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
@@ -1150,7 +1150,8 @@ export function initUI(){
         ["lidTailLength", setLidTailLength, 2],
         ["lidTailAngle", setLidTailAngle, 2],
         ["lidCantoFade", setLidCantoFade, 2],
-        ["lidSurfaceLift", setLidSurfaceLift, 3]
+        ["lidSurfaceLift", setLidSurfaceLift, 3],
+        ["lidDepth", setLidDepth, 3]
     ]
 
     lidSliders.forEach(([id, setter, decimals]) => {
@@ -1461,6 +1462,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowDepth(value)
             if(browDepthValue) browDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browDepthTiltSlider = document.getElementById("browDepthTilt")
+    const browDepthTiltValue  = document.getElementById("browDepthTiltValue")
+
+    if(browDepthTiltSlider){
+        browDepthTiltSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowDepthTilt(value)
+            if(browDepthTiltValue) browDepthTiltValue.textContent = value.toFixed(3)
         })
     }
 
