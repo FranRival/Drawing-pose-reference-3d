@@ -672,6 +672,11 @@
           <input type="range" id="lidSurfaceLift" min="0" max="0.10" step="0.002" value="0.008">
           <span id="lidSurfaceLiftValue">0.008</span>
         </div>
+        <div class="control profile-only">
+          <label for="lidDepth">Párpado - profundidad (perfil)</label>
+          <input type="range" id="lidDepth" min="-0.30" max="0.30" step="0.005" value="0.000">
+          <span id="lidDepthValue">0.000</span>
+        </div>
       </div>
     </details>
 
@@ -710,8 +715,8 @@
         </div>
         <div class="control profile-only">
           <label for="profilePupilSizeH">Iris perfil - ancho (horizontal)</label>
-          <input type="range" id="profilePupilSizeH" min="0.05" max="3" step="0.05" value="1.00">
-          <span id="profilePupilSizeHValue">1.00</span>
+          <input type="range" id="profilePupilSizeH" min="0.02" max="3" step="0.02" value="0.15">
+          <span id="profilePupilSizeHValue">0.15</span>
         </div>
         <div class="control profile-only">
           <label for="profilePupilSizeV">Iris perfil - alto (vertical)</label>
@@ -798,6 +803,11 @@
           <label for="browDepth">Cejas - profundidad (perfil)</label>
           <input type="range" id="browDepth" min="-0.15" max="0.15" step="0.01" value="0.00">
           <span id="browDepthValue">0.00</span>
+        </div>
+        <div class="control profile-only">
+          <label for="browDepthTilt">Cejas - inclinación en profundidad (cabeza↔cola)</label>
+          <input type="range" id="browDepthTilt" min="-0.30" max="0.30" step="0.005" value="0.000">
+          <span id="browDepthTiltValue">0.000</span>
         </div>
       </div>
     </details>
