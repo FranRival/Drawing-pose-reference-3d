@@ -60,6 +60,15 @@ function currentRef(){ return refs[viewMode] || refs.front }
 // ✅ la PUPILA de perfil: una segunda elipse, más chica, dentro del iris.
 // Tiene sus propios radios y desplazamiento, para poder descentrarla
 // respecto al iris igual que se hace en la vista frontal.
+// ✅ Ajuste del IRIS en la vista de perfil. Esta declaración se había
+// perdido al limpiar el estado local del módulo, y como se usa en el
+// dibujado, cada fotograma lanzaba ReferenceError: eso mataba el resto
+// del dibujo y hacía que nada respondiera.
+//
+// En perfil el iris es un disco visto DE CANTO: su extensión en
+// profundidad (sizeH) debe ser mínima, no un círculo completo.
+let profilePupilAdjust = { depth: 0, height: 0, sizeH: 0.15, sizeV: 1 }
+
 let profileInnerPupil = { sizeH: 0.45, sizeV: 0.45, depth: 0, height: 0 }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
