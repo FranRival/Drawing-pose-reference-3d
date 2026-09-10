@@ -38,7 +38,10 @@ let lidParams = {
     // ✅ separación de la superficie de la cabeza. El pliegue se envuelve
     // sobre la esfera igual que el ojo; antes heredaba la Z del párpado y
     // quedaba flotando fuera de la superficie al desplazarse hacia afuera.
-    surfaceLift: 0.008
+    surfaceLift: 0.008,
+
+    // ✅ profundidad: adelanta o hunde todo el pliegue respecto a la cara
+    depth: 0
 }
 
 let lidGroup = null
@@ -172,7 +175,8 @@ function buildLidPoints(baseRadius, upperLidPts){
         // se le dan al ojo), para acompañar su modelado
         const relief = p.z - surfaceZ(p.x, p.y, baseRadius, 0)
         return new THREE.Vector3(
-            p.x, p.y, surfaceZ(p.x, p.y, baseRadius, lidParams.surfaceLift) + relief
+            p.x, p.y,
+            surfaceZ(p.x, p.y, baseRadius, lidParams.surfaceLift) + relief + lidParams.depth * baseRadius
         )
     })
 }
@@ -237,6 +241,7 @@ export function setLidTailLength(value){ lidParams.tailLength = value; rebuild()
 export function setLidTailAngle(value){ lidParams.tailAngle = value; rebuild() }
 export function setLidCantoFade(value){ lidParams.cantoFade = value; rebuild() }
 export function setLidSurfaceLift(value){ lidParams.surfaceLift = value; rebuild() }
+export function setLidDepth(value){ lidParams.depth = value; rebuild() }
 
 export function setEyelidOcclusion(respectOcclusion){
     ;[rightLidMat, leftLidMat].forEach(mat => {
