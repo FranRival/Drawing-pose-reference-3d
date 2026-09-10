@@ -30,7 +30,12 @@ function defaultBrowParams(){
         vertOffsetMult: 0.15, // altura sobre la linea de ojos, fraccion del radio
 
         // --- profundidad (para calibrar contra una referencia de perfil) ---
-        depthOffset: 0 // 0 = sigue la curvatura natural de la esfera; +/- la mueve adelante/atras
+        depthOffset: 0, // 0 = sigue la curvatura natural de la esfera; +/- la mueve adelante/atras
+
+        // ✅ inclinación en profundidad: la cola de la ceja se hunde o
+        // adelanta respecto a la cabeza. En perfil es lo que define si la
+        // ceja "envuelve" la sien o queda plana.
+        depthTilt: 0
     }
 }
 
@@ -147,14 +152,21 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     const cosAdj = Math.cos(adjRad)
     const sinAdj = Math.sin(adjRad)
 
-    return raw.map(({ x, y }) => {
+    const n = raw.length
+    return raw.map(({ x, y }, i) => {
         const ax = (x * cosAdj - y * sinAdj) * adjust.scale + adjust.x * baseRadius
         const ay = (x * sinAdj + y * cosAdj) * adjust.scale + adjust.y * baseRadius
 
         const worldX = anchorX + ax
         const worldY = anchorY + ay
         const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
-        const z = naturalZ + p.depthOffset * baseRadius
+
+        // ✅ la inclinación reparte profundidad de la cabeza a la cola:
+        // −1 en la cabeza y +1 en la cola, para poder "envolver" la sien.
+        const t = n > 1 ? (i / (n - 1)) : 0.5
+        const tilt = (t - 0.5) * 2 * p.depthTilt
+
+        const z = naturalZ + (p.depthOffset + tilt) * baseRadius
         return new THREE.Vector3(worldX, worldY, z)
     })
 }
@@ -253,6 +265,7 @@ export function setBrowVerticalOffset(mult, side){ setParam('vertOffsetMult', mu
 
 // setter - profundidad (para perfil)
 export function setBrowDepth(value, side){ setParam('depthOffset', value, side) }
+export function setBrowDepthTilt(value, side){ setParam('depthTilt', value, side) }
 
 // setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
 // el modo 2D y el 3D — side es 'right' o 'left'.
