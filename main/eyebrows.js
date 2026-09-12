@@ -21,22 +21,26 @@ function defaultBrowParams(){
         headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
 
         // --- arco ---
-        // ✅ CAMBIO: archPosition bajado de 0.55 a 0.35 para que el pico
-        // del arco (y por tanto la zona de "relleno" del sCurve negativo,
-        // ver mas abajo) caiga en la region 1->2 del boceto, mas cerca de
-        // la cabeza de la ceja.
+        // ✅ CAMBIO: archPosition en 0.35 para que el pico del arco caiga
+        // en la region 1->2 del boceto, mas cerca de la cabeza de la ceja.
+        // Un arco simple (archBump) YA vuelve a cero en ambos extremos
+        // (cabeza y cola) por diseño - por eso mover el pico hacia 1->2
+        // ya infla esa zona SIN mover la punta, sin necesitar nada mas.
         archPosition: 0.35, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
         archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
         archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
-        // ✅ forma general del trazo: 0 = ARCO simple (una sola joroba).
-        // Positivo = S normal (la cola baja); negativo = S invertida (la
-        // cola sube y es la cabeza la que baja). Se consigue sumando o
-        // restando una segunda joroba situada en la cola.
-        // ✅ CAMBIO: sCurve puesto en -0.5 (S invertida) para INFLAR la
-        // zona 1->2 del boceto sin mover la punta/cola (direccion oreja),
-        // tal como se marco con las flechas.
-        sCurve: -0.5,
+        // ✅ forma general del trazo: 0 = ARCO simple (una sola joroba,
+        // uniforme, sin ondulaciones - esto es lo que da el arco "limpio"
+        // como el de la referencia rosa). Positivo = S normal (la cola
+        // baja); negativo = S invertida (la cola sube).
+        // ⚠️ CORREGIDO: se revirtio a 0. El valor -0.5 sumaba una SEGUNDA
+        // joroba cerca de la punta para "rellenar", pero eso es justo lo
+        // que producia la ondulacion/gancho no uniforme (la ceja verde).
+        // Para inflar la zona 1->2 sin mover la punta NO hace falta esto:
+        // basta con archPosition (ver arriba). sCurve se deja disponible
+        // para cuando de verdad se quiera una forma en S expresiva.
+        sCurve: 0,
 
         // --- posicion del par en la cara ---
         gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
