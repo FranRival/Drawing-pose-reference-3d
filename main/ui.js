@@ -26,6 +26,7 @@ import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth, setBrowDepthTilt, setBrowSCurve,
+         setBrowTipLift,
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
@@ -477,6 +478,11 @@ export function initUI(){
         ["sideBrowArchHeight", "archHeight", setBrowArchHeight, 3],
         ["sideBrowArchSharpness", "archSharpness", setBrowArchSharpness, 2],
         ["sideBrowSCurve", "sCurve", setBrowSCurve, 2],
+        // ✅ NUEVO: faltaba esta entrada - por eso "sideBrowTipLift" nunca
+        // hacia nada, aunque el slider existiera en el HTML y la funcion
+        // setBrowTipLift existiera en eyebrows.js. Sin esta linea, ningun
+        // listener quedaba enganchado a ese input.
+        ["sideBrowTipLift", "tipLift", setBrowTipLift, 3],
         ["sideBrowGap", "gapMult", setBrowGap, 2],
         ["sideBrowVerticalOffset", "vertOffsetMult", setBrowVerticalOffset, 2],
         ["sideBrowDepth", "depthOffset", setBrowDepth, 2]
@@ -1474,6 +1480,20 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowSCurve(value)
             if(browSCurveValue) browSCurveValue.textContent = value.toFixed(2)
+        })
+    }
+
+    // ✅ NUEVO: listener del slider global "Cejas - elevar/bajar SOLO la
+    // punta (cola)". Esto era lo que faltaba - el slider y setBrowTipLift
+    // ya existian por separado, pero nada los conectaba.
+    const browTipLiftSlider = document.getElementById("browTipLift")
+    const browTipLiftValue  = document.getElementById("browTipLiftValue")
+
+    if(browTipLiftSlider){
+        browTipLiftSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowTipLift(value)
+            if(browTipLiftValue) browTipLiftValue.textContent = value.toFixed(3)
         })
     }
 
