@@ -48,8 +48,27 @@ function defaultBrowParams(){
         // ✅ inclinación en profundidad: la cola de la ceja se hunde o
         // adelanta respecto a la cabeza. En perfil es lo que define si la
         // ceja "envuelve" la sien o queda plana.
-        depthTilt: 0
+        depthTilt: 0,
+
+        // ✅ NUEVO: eleva o baja SOLO la punta/cola (direccion oreja), sin
+        // tocar el resto del trazo (cabeza, zona del arco, etc). Positivo
+        // = sube la punta, negativo = la baja. Fraccion del radio de
+        // cabeza. La transicion es suave (ver tipLiftFactor) para que no
+        // se forme un quiebre justo antes de la punta.
+        tipLift: 0
     }
+}
+
+// ✅ Curva de activacion del tipLift: 0 desde la cabeza hasta
+// TIP_LIFT_START, y sube suavemente (smoothstep) hasta 1 justo en la
+// punta (t=1). Asi el desplazamiento se concentra SOLO en el ultimo
+// tramo de la ceja, sin mover nada antes de ese punto.
+const TIP_LIFT_START = 0.75
+
+function tipLiftFactor(t){
+    if(t <= TIP_LIFT_START) return 0
+    const u = (t - TIP_LIFT_START) / (1 - TIP_LIFT_START)
+    return u * u * (3 - 2 * u) // smoothstep: transicion suave, sin quiebres
 }
 
 let browParams = {
@@ -156,12 +175,17 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     const archShapeSum = THREE.MathUtils.lerp(ARCH_SHAPE_SUM_MIN, ARCH_SHAPE_SUM_MAX, THREE.MathUtils.clamp(p.archSharpness, 0, 1))
     const halfThicknessBase = (baseRadius * p.thicknessMult) / 2
 
+    // ✅ tipLift en unidades de mundo - se suma al arco solo en el ultimo
+    // tramo (ver tipLiftFactor), moviendo la punta como bloque sin afectar
+    // el resto del trazo.
+    const tipLiftWorld = baseRadius * p.tipLift
+
     const raw = []
 
     // --- borde superior: cabeza (t=0) -> cola (t=1) ---
     for(let i = 0; i <= segs; i++){
         const t = i / segs
-        const arch = archHeightWorld * archShape(t, p, archShapeSum)
+        const arch = archHeightWorld * archShape(t, p, archShapeSum) + tipLiftWorld * tipLiftFactor(t)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
@@ -173,7 +197,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // --- borde inferior: cola (t=1) -> cabeza (t=0), cierra el lazo ---
     for(let i = segs; i >= 0; i--){
         const t = i / segs
-        const arch = archHeightWorld * archShape(t, p, archShapeSum)
+        const arch = archHeightWorld * archShape(t, p, archShapeSum) + tipLiftWorld * tipLiftFactor(t)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
@@ -308,6 +332,9 @@ export function setBrowVerticalOffset(mult, side){ setParam('vertOffsetMult', mu
 export function setBrowDepth(value, side){ setParam('depthOffset', value, side) }
 export function setBrowDepthTilt(value, side){ setParam('depthTilt', value, side) }
 export function setBrowSCurve(value, side){ setParam('sCurve', value, side) }
+
+// setter - eleva/baja SOLO la punta (cola), sin afectar el resto del trazo
+export function setBrowTipLift(value, side){ setParam('tipLift', value, side) }
 
 // setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
 // el modo 2D y el 3D — side es 'right' o 'left'.
