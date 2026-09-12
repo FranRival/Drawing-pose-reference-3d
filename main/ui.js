@@ -25,7 +25,7 @@ import { setLidOffsetInner, setLidOffsetOuter, setLidArchAmount,
 import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
-         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth, setBrowDepthTilt,
+         setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth, setBrowDepthTilt, setBrowSCurve,
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
@@ -476,6 +476,7 @@ export function initUI(){
         ["sideBrowArchPosition", "archPosition", setBrowArchPosition, 2],
         ["sideBrowArchHeight", "archHeight", setBrowArchHeight, 3],
         ["sideBrowArchSharpness", "archSharpness", setBrowArchSharpness, 2],
+        ["sideBrowSCurve", "sCurve", setBrowSCurve, 2],
         ["sideBrowGap", "gapMult", setBrowGap, 2],
         ["sideBrowVerticalOffset", "vertOffsetMult", setBrowVerticalOffset, 2],
         ["sideBrowDepth", "depthOffset", setBrowDepth, 2]
@@ -1462,6 +1463,17 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowDepth(value)
             if(browDepthValue) browDepthValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browSCurveSlider = document.getElementById("browSCurve")
+    const browSCurveValue  = document.getElementById("browSCurveValue")
+
+    if(browSCurveSlider){
+        browSCurveSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowSCurve(value)
+            if(browSCurveValue) browSCurveValue.textContent = value.toFixed(2)
         })
     }
 
