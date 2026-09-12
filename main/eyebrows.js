@@ -25,9 +25,10 @@ function defaultBrowParams(){
         archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
         archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
-        // ✅ forma general del trazo: 0 = ARCO simple (una sola joroba),
-        // 1 = forma de S (la cola baja tanto como sube la cabeza). Se
-        // consigue restando una segunda joroba invertida en la cola.
+        // ✅ forma general del trazo: 0 = ARCO simple (una sola joroba).
+        // Positivo = S normal (la cola baja); negativo = S invertida (la
+        // cola sube y es la cabeza la que baja). Se consigue sumando o
+        // restando una segunda joroba situada en la cola.
         sCurve: 0,
 
         // --- posicion del par en la cara ---
@@ -87,7 +88,7 @@ let browShapeAdjust = {
 // Con sCurve = 0 queda el arco de siempre.
 function archShape(t, p, shapeSum){
     const main = archBump(t, p.archPosition, shapeSum)
-    const s = THREE.MathUtils.clamp(p.sCurve, 0, 1)
+    const s = THREE.MathUtils.clamp(p.sCurve, -1, 1)
     if(!s) return main
     // joroba secundaria, hacia el lado opuesto del pico principal
     const tailPos = THREE.MathUtils.clamp(p.archPosition + 0.45, 0.03, 0.97)
