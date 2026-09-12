@@ -17,7 +17,14 @@ function defaultBrowParams(){
 
         // --- espesor de la banda ---
         thicknessMult: 0.040, // espesor base, fraccion del radio de cabeza (engrosar = subir esto)
-        tailTaper: 0.85,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
+        // ⚠️ CORREGIDO: tailTaper estaba en 0.85, no en 1.0. Con 0.85 la
+        // punta se queda con ~15% de grosor y el borde superior/inferior
+        // NUNCA se tocan ahi - queda una horquilla/bifurcacion en vez de
+        // un punto, sin importar cuanto se mueva/escale/rote el trazo
+        // (por eso los sliders de ajuste fino no lo arreglaban: el
+        // problema es de forma, no de posicion). En 1.0 el grosor llega
+        // exactamente a cero en t=1 y ambos bordes convergen en un punto.
+        tailTaper: 1.00,       // 0 = espesor uniforme en la cola, 1 = la cola se afina hasta un punto
         headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
 
         // --- arco ---
