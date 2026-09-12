@@ -21,7 +21,11 @@ function defaultBrowParams(){
         headTaper: 0.00,       // 0 = espesor uniforme en la cabeza, 1 = la cabeza se afina hasta un punto
 
         // --- arco ---
-        archPosition: 0.55, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
+        // ✅ CAMBIO: archPosition bajado de 0.55 a 0.35 para que el pico
+        // del arco (y por tanto la zona de "relleno" del sCurve negativo,
+        // ver mas abajo) caiga en la region 1->2 del boceto, mas cerca de
+        // la cabeza de la ceja.
+        archPosition: 0.35, // donde se ubica el pico del arco (0 = junto a la cabeza, 1 = junto a la cola)
         archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
         archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
@@ -29,7 +33,10 @@ function defaultBrowParams(){
         // Positivo = S normal (la cola baja); negativo = S invertida (la
         // cola sube y es la cabeza la que baja). Se consigue sumando o
         // restando una segunda joroba situada en la cola.
-        sCurve: 0,
+        // ✅ CAMBIO: sCurve puesto en -0.5 (S invertida) para INFLAR la
+        // zona 1->2 del boceto sin mover la punta/cola (direccion oreja),
+        // tal como se marco con las flechas.
+        sCurve: -0.5,
 
         // --- posicion del par en la cara ---
         gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
