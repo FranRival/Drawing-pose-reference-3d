@@ -25,6 +25,11 @@ function defaultBrowParams(){
         archHeight: 0.02,   // que tan pronunciado es el arco, fraccion del radio de cabeza
         archSharpness: 0.00, // que tan ANCHA es la joroba del arco - 0 = muy ancha y suave (arco simple), 1 = angosta y marcada
 
+        // ✅ forma general del trazo: 0 = ARCO simple (una sola joroba),
+        // 1 = forma de S (la cola baja tanto como sube la cabeza). Se
+        // consigue restando una segunda joroba invertida en la cola.
+        sCurve: 0,
+
         // --- posicion del par en la cara ---
         gapMult: 0.55,       // distancia del centro de la cara a la cabeza de la ceja, fraccion del radio
         vertOffsetMult: 0.15, // altura sobre la linea de ojos, fraccion del radio
@@ -76,6 +81,20 @@ let browShapeAdjust = {
 // las curvas de inflado del ojo, pero aca SI queremos una sola joroba
 // suave (no dos esquinas picudas), asi que la funcion de potencias es la
 // herramienta correcta para esto.
+// ✅ Mezcla entre ARCO simple y forma de S. La S se obtiene restando una
+// segunda joroba, situada en la cola, a la joroba principal: el trazo sube
+// cerca de la cabeza y baja hacia la cola, que es justo el perfil en S.
+// Con sCurve = 0 queda el arco de siempre.
+function archShape(t, p, shapeSum){
+    const main = archBump(t, p.archPosition, shapeSum)
+    const s = THREE.MathUtils.clamp(p.sCurve, 0, 1)
+    if(!s) return main
+    // joroba secundaria, hacia el lado opuesto del pico principal
+    const tailPos = THREE.MathUtils.clamp(p.archPosition + 0.45, 0.03, 0.97)
+    const tail = archBump(t, tailPos, shapeSum)
+    return main - s * tail * 1.4
+}
+
 function archBump(t, archPosition, shapeSum){
     const clampedPos = THREE.MathUtils.clamp(archPosition, 0.03, 0.97) // antes 0.05/0.95 - ahora sí llega casi a ambos extremos
     const a = shapeSum * clampedPos
@@ -120,7 +139,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // --- borde superior: cabeza (t=0) -> cola (t=1) ---
     for(let i = 0; i <= segs; i++){
         const t = i / segs
-        const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
+        const arch = archHeightWorld * archShape(t, p, archShapeSum)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
@@ -132,7 +151,7 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
     // --- borde inferior: cola (t=1) -> cabeza (t=0), cierra el lazo ---
     for(let i = segs; i >= 0; i--){
         const t = i / segs
-        const arch = archHeightWorld * archBump(t, p.archPosition, archShapeSum)
+        const arch = archHeightWorld * archShape(t, p, archShapeSum)
         const halfThickness = halfThicknessBase * (1 - p.tailTaper * t) * (1 - p.headTaper * (1 - t))
 
         raw.push({
@@ -266,6 +285,7 @@ export function setBrowVerticalOffset(mult, side){ setParam('vertOffsetMult', mu
 // setter - profundidad (para perfil)
 export function setBrowDepth(value, side){ setParam('depthOffset', value, side) }
 export function setBrowDepthTilt(value, side){ setParam('depthTilt', value, side) }
+export function setBrowSCurve(value, side){ setParam('sCurve', value, side) }
 
 // setters/getter - ajuste POR CEJA (derecho/izquierdo), compartido entre
 // el modo 2D y el 3D — side es 'right' o 'left'.
