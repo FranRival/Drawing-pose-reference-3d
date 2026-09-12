@@ -97,13 +97,17 @@ function archShape(t, p, shapeSum){
         return main - s * archBump(t, dipPos, shapeSum) * 1.4
     }
 
-    // ✅ s < 0 → LEVANTA LA PUNTA DE LA COLA. Antes se usaba aquí otra
-    // joroba centrada, pero una joroba se anula justo en el extremo, así
-    // que nunca movía la punta — que es donde está el problema. Este
-    // término crece hacia la cola y es máximo EN la punta (t = 1), que es
-    // lo que corrige la caída y deshace la S.
-    const tailLift = t * t
-    return main + Math.abs(s) * tailLift * 1.4
+    // ✅ s < 0 → INFLA la zona justo adelante del pico. No traslada la
+    // cola (eso hacía el término t², que subía también la punta y solo
+    // movía la forma): añade volumen localizado ahí para RELLENAR la
+    // caída, dejando la punta donde estaba.
+    //
+    // El abultamiento es angosto y se sitúa poco después del pico, que es
+    // donde el trazo se hunde y se forma la S no deseada.
+    const fillPos = THREE.MathUtils.clamp(p.archPosition + 0.22, 0.03, 0.97)
+    const fillWidth = shapeSum * 1.6 // más angosto que la joroba principal
+    const fill = archBump(t, fillPos, fillWidth)
+    return main + Math.abs(s) * fill * 1.1
 }
 
 function archBump(t, archPosition, shapeSum){
