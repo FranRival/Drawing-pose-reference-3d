@@ -90,10 +90,17 @@ function archShape(t, p, shapeSum){
     const main = archBump(t, p.archPosition, shapeSum)
     const s = THREE.MathUtils.clamp(p.sCurve, -1, 1)
     if(!s) return main
-    // joroba secundaria, hacia el lado opuesto del pico principal
-    const tailPos = THREE.MathUtils.clamp(p.archPosition + 0.45, 0.03, 0.97)
-    const tail = archBump(t, tailPos, shapeSum)
-    return main - s * tail * 1.4
+
+    // ✅ La joroba secundaria CAMBIA DE LADO con el signo, y siempre se
+    // resta. Antes se restaba o se sumaba siempre en la cola: con valores
+    // negativos eso solo añadía un segundo bulto ahí, en vez de producir
+    // la S espejada.
+    //   s > 0 → el hundimiento va en la COLA   (S normal)
+    //   s < 0 → el hundimiento va en la CABEZA (S invertida)
+    const dir = s > 0 ? 1 : -1
+    const dipPos = THREE.MathUtils.clamp(p.archPosition + dir * 0.45, 0.03, 0.97)
+    const dip = archBump(t, dipPos, shapeSum)
+    return main - Math.abs(s) * dip * 1.4
 }
 
 function archBump(t, archPosition, shapeSum){
