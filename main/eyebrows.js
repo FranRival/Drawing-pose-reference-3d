@@ -91,16 +91,19 @@ function archShape(t, p, shapeSum){
     const s = THREE.MathUtils.clamp(p.sCurve, -1, 1)
     if(!s) return main
 
-    // ✅ La joroba secundaria va al lado opuesto según el signo, y en
-    // negativo se ELEVA en vez de hundirse — que es lo que hacía falta:
-    //   s > 0 → hunde la COLA    (S normal)
-    //   s < 0 → eleva la CABEZA  (S invertida, sin hundir nada)
-    const dir = s > 0 ? 1 : -1
-    const sidePos = THREE.MathUtils.clamp(p.archPosition + dir * 0.45, 0.03, 0.97)
-    const side = archBump(t, sidePos, shapeSum)
-    return s > 0
-        ? main - s * side * 1.4
-        : main + Math.abs(s) * side * 1.4
+    // ✅ s > 0 → hunde la cola con una joroba secundaria (S más marcada).
+    if(s > 0){
+        const dipPos = THREE.MathUtils.clamp(p.archPosition + 0.45, 0.03, 0.97)
+        return main - s * archBump(t, dipPos, shapeSum) * 1.4
+    }
+
+    // ✅ s < 0 → LEVANTA LA PUNTA DE LA COLA. Antes se usaba aquí otra
+    // joroba centrada, pero una joroba se anula justo en el extremo, así
+    // que nunca movía la punta — que es donde está el problema. Este
+    // término crece hacia la cola y es máximo EN la punta (t = 1), que es
+    // lo que corrige la caída y deshace la S.
+    const tailLift = t * t
+    return main + Math.abs(s) * tailLift * 1.4
 }
 
 function archBump(t, archPosition, shapeSum){
