@@ -133,6 +133,7 @@ function buildLashClaws(baseRadius, lidPoints){
     if(n < 3) return out
 
     const center = curveCenter(lidPoints)
+    const { upperMult } = balanceMultipliers()
     const tangentAt = (i) => {
         const a = lidPoints[Math.max(i - 1, 0)], b = lidPoints[Math.min(i + 1, n - 1)]
         let x = b.x - a.x, y = b.y - a.y, z = b.z - a.z
@@ -147,8 +148,23 @@ function buildLashClaws(baseRadius, lidPoints){
 
     if(lashParams.tipLength > 0){
         const i = n - 1
-        const p = lidPoints[i]
         const { px, py } = localPerpAway(lidPoints, i, center)
+        // ✅ CORREGIDO: antes esta punta nacía en lidPoints[i] — el punto
+        // CRUDO del párpado, sin el grosor de la banda de pestañas. Eso la
+        // dejaba separada de donde en verdad convergen los trazos
+        // superior/inferior de la pestaña (que sí incluyen ese grosor).
+        // Ahora se calcula el mismo desplazamiento que usan
+        // buildUpperLashPoints/buildFusedLashPoints para su propio
+        // "cantoBase" (thickness en t=1 = outerThickness, con el mismo
+        // upperMult del balance) — así esta punta nace exactamente en el
+        // punto donde el contorno principal de la pestaña tiene su canto,
+        // en vez de en un punto vecino pero distinto.
+        const thickness = lashParams.outerThickness * baseRadius * upperMult
+        const p = {
+            x: lidPoints[i].x + px * thickness,
+            y: lidPoints[i].y + py * thickness,
+            z: lidPoints[i].z
+        }
         const nrm = { x: px, y: py, z: 0 }
         const dir = rotInPlane(tangentAt(i), nrm, lashParams.tipAngleDeg)
         out.push(clawSpike({ x: p.x, y: p.y, z: p.z }, dir, nrm,
