@@ -53,23 +53,19 @@ let lashParams = {
 
     // pico del canto (garra larga en la esquina, lado oreja)
     tipLength: 0, tipAngleDeg: 0, tipWidth: 0.03, tipCurve: 0.35,
-    // ✅ CORREGIDO: ahora son offsets en los ejes MUNDIALES X/Y (los
-    // mismos que usa el resto del sistema para cejas/ojos), no
-    // tangente/perpendicular a la curva del parpado como antes - eso
-    // hacia que la direccion real del movimiento cambiara segun en que
-    // punto del parpado cae el canto, y era imposible saber "para donde"
-    // se iba a mover antes de probarlo.
-    //   tipOffsetX = izquierda/derecha (eje X)
-    //   tipOffsetY = arriba/abajo (eje Y)
-    tipOffsetX: 0, tipOffsetY: 0,
-    // ✅ NUEVO: rotacion con PIVOTE EN LA PUNTA (el extremo lejano), en
-    // vez de en el origen. tipAngleDeg ya rota la direccion desde el
-    // origen (la punta se mueve, el origen queda fijo); esta es la
-    // rotacion complementaria - la punta queda FIJA en su lugar y el
-    // origen gira alrededor de ella. Utilisima para ajustar el angulo
-    // sin perder la alineacion ya lograda en la punta.
+    // ✅ CORREGIDO: la vista de perfil (mode2d.js) solo dibuja Z
+    // (horizontal en pantalla) e Y (vertical) — el eje X queda "de canto"
+    // y nunca se ve ahi. Por eso el desplazamiento manual vive en Z/Y, NO
+    // en X/Y como se implemento antes por error.
+    //   tipOffsetZ = izquierda/derecha EN EL PERFIL (eje Z del mundo)
+    //   tipOffsetY = arriba/abajo (eje Y del mundo)
+    tipOffsetZ: 0, tipOffsetY: 0,
+    // ✅ CORREGIDO: rotacion de 360° del CUERPO COMPLETO de la garra
+    // (todos sus vertices, la forma triangular entera), no solo del
+    // origen. Pivotea sobre la PUNTA (el vertice donde converge, fijo en
+    // su lugar) y gira en el plano Y/Z — el mismo plano que se ve en la
+    // vista de perfil.
     tipPivotAngleDeg: 0,
-    tipOffsetX: 0, tipOffsetY: 0,
 
     // racimo de garras irregulares
     clCount: 0, clLength: 0.05, clSpread: 0.5, clAngleDeg: 0,
@@ -180,52 +176,53 @@ function buildLashClaws(baseRadius, lidPoints){
         const tan = tangentAt(i)
         const nrm = { x: px, y: py, z: 0 }
 
-        // ✅ CORREGIDO: offset MANUAL en los ejes MUNDIALES X/Y (izquierda/
-        // derecha, arriba/abajo) - no en tangente/perpendicular a la
-        // curva, que cambiaba de sentido segun el punto exacto del canto.
+        // ✅ CORREGIDO: offset MANUAL en Z (izquierda/derecha EN LA VISTA
+        // DE PERFIL) e Y (arriba/abajo) — la vista de perfil solo dibuja
+        // estos dos ejes (Z horizontal, Y vertical); X no se ve ahí, así
+        // que ya no se ofrece un control en X.
         const origin = {
-            x: lidPoints[i].x + px * thickness + baseRadius * lashParams.tipOffsetX,
+            x: lidPoints[i].x + px * thickness,
             y: lidPoints[i].y + py * thickness + baseRadius * lashParams.tipOffsetY,
-            z: lidPoints[i].z
+            z: lidPoints[i].z + baseRadius * lashParams.tipOffsetZ
         }
 
         const length = baseRadius * lashParams.tipLength
-        const dirAtOrigin = rotInPlane(tan, nrm, lashParams.tipAngleDeg)
+        const dir = rotInPlane(tan, nrm, lashParams.tipAngleDeg)
 
-        // punto final del segmento (la "punta" real) ANTES del pivote -
-        // clawSpike siempre termina exactamente en o + dir*length, sin
-        // importar la curvatura (el bend solo dobla el trazo intermedio).
+        // punto final del segmento (la "punta" real) — clawSpike siempre
+        // termina exactamente en o + dir*length, sin importar la
+        // curvatura (el bend solo dobla el trazo intermedio, nunca mueve
+        // el extremo).
         const tip = {
-            x: origin.x + dirAtOrigin.x * length,
-            y: origin.y + dirAtOrigin.y * length,
-            z: origin.z + dirAtOrigin.z * length
+            x: origin.x + dir.x * length,
+            y: origin.y + dir.y * length,
+            z: origin.z + dir.z * length
         }
 
-        // ✅ NUEVO: rotacion con pivote en la PUNTA (tip), no en el origen.
-        // Se gira el origen alrededor de tip por tipPivotAngleDeg (rotacion
-        // 2D en el plano X/Y) y se recalcula la direccion resultante -
-        // asi la punta queda clavada en su sitio y el origen es el que
-        // barre alrededor de ella.
+        // cuerpo completo de la garra (la forma triangular entera: base
+        // ancha en el origen, afinándose hasta un punto exacto en `tip`)
+        const rawSpike = clawSpike(origin, dir, nrm,
+            length, baseRadius * lashParams.tipWidth, lashParams.tipCurve, 1)
+
+        // ✅ NUEVO: rotación de 360° del CUERPO COMPLETO (todos los
+        // vértices de rawSpike, no solo el origen), con pivote FIJO en la
+        // punta — se gira en el plano Y/Z, el mismo que se ve en la vista
+        // de perfil, así el efecto en pantalla es exactamente "girar
+        // alrededor de la punta".
         const pivotRad = THREE.MathUtils.degToRad(lashParams.tipPivotAngleDeg)
         const cosP = Math.cos(pivotRad)
         const sinP = Math.sin(pivotRad)
-        const relX = origin.x - tip.x
-        const relY = origin.y - tip.y
-        const finalOrigin = {
-            x: tip.x + (relX * cosP - relY * sinP),
-            y: tip.y + (relX * sinP + relY * cosP),
-            z: origin.z
-        }
+        const rotatedSpike = rawSpike.map(v => {
+            const relY = v.y - tip.y
+            const relZ = v.z - tip.z
+            return new THREE.Vector3(
+                v.x,
+                tip.y + (relY * cosP - relZ * sinP),
+                tip.z + (relY * sinP + relZ * cosP)
+            )
+        })
 
-        let finalDirX = tip.x - finalOrigin.x
-        let finalDirY = tip.y - finalOrigin.y
-        const finalDirLen = Math.hypot(finalDirX, finalDirY) || 1
-        finalDirX /= finalDirLen
-        finalDirY /= finalDirLen
-
-        out.push(clawSpike(finalOrigin, { x: finalDirX, y: finalDirY, z: 0 }, nrm,
-            length, baseRadius * lashParams.tipWidth,
-            lashParams.tipCurve, 1))
+        out.push(rotatedSpike)
     }
 
     const count = Math.round(lashParams.clCount)
@@ -878,7 +875,7 @@ export function setLashTipLength(v){ lashParams.tipLength = v; rebuild() }
 export function setLashTipAngle(v){ lashParams.tipAngleDeg = v; rebuild() }
 export function setLashTipWidth(v){ lashParams.tipWidth = v; rebuild() }
 export function setLashTipCurve(v){ lashParams.tipCurve = v; rebuild() }
-export function setLashTipOffsetX(v){ lashParams.tipOffsetX = v; rebuild() }
+export function setLashTipOffsetZ(v){ lashParams.tipOffsetZ = v; rebuild() }
 export function setLashTipOffsetY(v){ lashParams.tipOffsetY = v; rebuild() }
 export function setLashTipPivotAngle(v){ lashParams.tipPivotAngleDeg = v; rebuild() }
 export function setLashClCount(v){ lashParams.clCount = v; rebuild() }
