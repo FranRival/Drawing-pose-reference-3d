@@ -61,6 +61,23 @@ function defaultBrowParams(){
         // ceja "envuelve" la sien o queda plana.
         depthTilt: 0,
 
+        // ✅ NUEVO: joroba de profundidad INDEPENDIENTE de X/Y. depthOffset
+        // y depthTilt solo pueden sumar una constante o una inclinacion
+        // lineal - no alcanzan para compensar la curvatura NO lineal que
+        // el arco de frontal (archHeight/archPosition/sCurve/tipLift)
+        // imprime automaticamente en Z via naturalZ (Z se calcula de la
+        // esfera segun X/Y, asi que un arco no lineal en Y genera
+        // automaticamente un "bache" no lineal en Z). Sin esto, arreglar
+        // ese bache en perfil obligaba a tocar archHeight/tipLift, que
+        // tambien controlan la silueta de frontal - rompiendola.
+        // depthArchHeight/-Position funcionan EXACTAMENTE igual que
+        // archHeight/archPosition (misma funcion archBump, mismo criterio:
+        // vuelve a cero en ambos extremos), pero se suman directo a Z, sin
+        // pasar por X/Y - así se puede esculpir el perfil sin mover nada
+        // de lo ya calzado en frontal.
+        depthArchPosition: 0.5, // donde cae el pico de la joroba en Z (0=cabeza, 1=cola)
+        depthArchHeight: 0,     // que tan pronunciada es esa joroba en Z, fraccion del radio de cabeza
+
         // ✅ NUEVO: eleva o baja SOLO la punta/cola (direccion oreja), sin
         // tocar el resto del trazo (cabeza, zona del arco, etc). Positivo
         // = sube la punta, negativo = la baja. Fraccion del radio de
@@ -98,6 +115,12 @@ const BROW_SURFACE_OFFSET = 1.02
 // suma baja (ancha, arco simple y suave) a suma alta (angosta, acento marcado)
 const ARCH_SHAPE_SUM_MIN = 2.5  // muy ancho, casi imperceptible como "joroba" - arco simple
 const ARCH_SHAPE_SUM_MAX = 16   // muy angosto, pico marcado y localizado
+
+// ✅ NUEVO: ancho fijo para la joroba de PROFUNDIDAD (depthArch) - se deja
+// suave y moderado a proposito, sin exponer un slider de "sharpness"
+// aparte para no duplicar controles; si hace falta mas o menos angostura
+// se ajusta subiendo/bajando este valor.
+const DEPTH_ARCH_SHAPE_SUM = 6
 
 let browGroup = null
 let rightBrowLine = null
@@ -242,7 +265,14 @@ function buildBrowPoints(baseRadius, mirrorX, anchorX, anchorY){
         const t = n > 1 ? (i / (n - 1)) : 0.5
         const tilt = (t - 0.5) * 2 * p.depthTilt
 
-        const z = naturalZ + (p.depthOffset + tilt) * baseRadius
+        // ✅ NUEVO: joroba de Z independiente - misma funcion archBump que
+        // usa el arco de frontal, pero sumada DIRECTO a Z, sin pasar por
+        // X/Y. Esto permite esculpir una caida/realce no lineal en el
+        // perfil sin tocar archHeight/archPosition/tipLift (que
+        // afectarian tambien la silueta ya calzada en frontal).
+        const depthArch = archBump(t, p.depthArchPosition, DEPTH_ARCH_SHAPE_SUM) * p.depthArchHeight * baseRadius
+
+        const z = naturalZ + (p.depthOffset + tilt) * baseRadius + depthArch
         return new THREE.Vector3(worldX, worldY, z)
     })
 }
@@ -342,6 +372,8 @@ export function setBrowVerticalOffset(mult, side){ setParam('vertOffsetMult', mu
 // setter - profundidad (para perfil)
 export function setBrowDepth(value, side){ setParam('depthOffset', value, side) }
 export function setBrowDepthTilt(value, side){ setParam('depthTilt', value, side) }
+export function setBrowDepthArchPosition(value, side){ setParam('depthArchPosition', value, side) }
+export function setBrowDepthArchHeight(value, side){ setParam('depthArchHeight', value, side) }
 export function setBrowSCurve(value, side){ setParam('sCurve', value, side) }
 
 // setter - eleva/baja SOLO la punta (cola), sin afectar el resto del trazo
