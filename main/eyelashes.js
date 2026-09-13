@@ -53,6 +53,16 @@ let lashParams = {
 
     // pico del canto (garra larga en la esquina, lado oreja)
     tipLength: 0, tipAngleDeg: 0, tipWidth: 0.03, tipCurve: 0.35,
+    // ✅ NUEVO: posicion MANUAL del punto de partida de la punta, en dos
+    // ejes independientes del calculo automatico:
+    //   tipOffsetX = a lo largo del parpado (a lo largo de la banda,
+    //                "adelante/atras": + hacia la cabeza de la pestaña
+    //                (lagrimal), - hacia la cola (mas alla del canto))
+    //   tipOffsetY = perpendicular a la superficie del ojo
+    //                ("arriba/abajo": + se aleja del ojo, - se acerca)
+    // Se suman DESPUES del anclaje automatico (ver buildLashClaws), asi
+    // que siempre parten del punto correcto y solo lo desplazan a mano.
+    tipOffsetX: 0, tipOffsetY: 0,
 
     // racimo de garras irregulares
     clCount: 0, clLength: 0.05, clSpread: 0.5, clAngleDeg: 0,
@@ -160,13 +170,18 @@ function buildLashClaws(baseRadius, lidPoints){
         // punto donde el contorno principal de la pestaña tiene su canto,
         // en vez de en un punto vecino pero distinto.
         const thickness = lashParams.outerThickness * baseRadius * upperMult
+        const tan = tangentAt(i)
+        // ✅ NUEVO: offset MANUAL en dos ejes, sumado sobre el anclaje ya
+        // corregido - tan (a lo largo del parpado) y (px,py) (perpendicular
+        // a la superficie), cada uno escalado por baseRadius para que el
+        // valor del slider sea una fraccion del tamaño de cabeza.
         const p = {
-            x: lidPoints[i].x + px * thickness,
-            y: lidPoints[i].y + py * thickness,
+            x: lidPoints[i].x + px * thickness + tan.x * baseRadius * lashParams.tipOffsetX + px * baseRadius * lashParams.tipOffsetY,
+            y: lidPoints[i].y + py * thickness + tan.y * baseRadius * lashParams.tipOffsetX + py * baseRadius * lashParams.tipOffsetY,
             z: lidPoints[i].z
         }
         const nrm = { x: px, y: py, z: 0 }
-        const dir = rotInPlane(tangentAt(i), nrm, lashParams.tipAngleDeg)
+        const dir = rotInPlane(tan, nrm, lashParams.tipAngleDeg)
         out.push(clawSpike({ x: p.x, y: p.y, z: p.z }, dir, nrm,
             baseRadius * lashParams.tipLength, baseRadius * lashParams.tipWidth,
             lashParams.tipCurve, 1))
@@ -822,6 +837,8 @@ export function setLashTipLength(v){ lashParams.tipLength = v; rebuild() }
 export function setLashTipAngle(v){ lashParams.tipAngleDeg = v; rebuild() }
 export function setLashTipWidth(v){ lashParams.tipWidth = v; rebuild() }
 export function setLashTipCurve(v){ lashParams.tipCurve = v; rebuild() }
+export function setLashTipOffsetX(v){ lashParams.tipOffsetX = v; rebuild() }
+export function setLashTipOffsetY(v){ lashParams.tipOffsetY = v; rebuild() }
 export function setLashClCount(v){ lashParams.clCount = v; rebuild() }
 export function setLashClLength(v){ lashParams.clLength = v; rebuild() }
 export function setLashClSpread(v){ lashParams.clSpread = v; rebuild() }
