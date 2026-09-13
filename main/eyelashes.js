@@ -53,15 +53,22 @@ let lashParams = {
 
     // pico del canto (garra larga en la esquina, lado oreja)
     tipLength: 0, tipAngleDeg: 0, tipWidth: 0.03, tipCurve: 0.35,
-    // ✅ NUEVO: posicion MANUAL del punto de partida de la punta, en dos
-    // ejes independientes del calculo automatico:
-    //   tipOffsetX = a lo largo del parpado (a lo largo de la banda,
-    //                "adelante/atras": + hacia la cabeza de la pestaña
-    //                (lagrimal), - hacia la cola (mas alla del canto))
-    //   tipOffsetY = perpendicular a la superficie del ojo
-    //                ("arriba/abajo": + se aleja del ojo, - se acerca)
-    // Se suman DESPUES del anclaje automatico (ver buildLashClaws), asi
-    // que siempre parten del punto correcto y solo lo desplazan a mano.
+    // ✅ CORREGIDO: ahora son offsets en los ejes MUNDIALES X/Y (los
+    // mismos que usa el resto del sistema para cejas/ojos), no
+    // tangente/perpendicular a la curva del parpado como antes - eso
+    // hacia que la direccion real del movimiento cambiara segun en que
+    // punto del parpado cae el canto, y era imposible saber "para donde"
+    // se iba a mover antes de probarlo.
+    //   tipOffsetX = izquierda/derecha (eje X)
+    //   tipOffsetY = arriba/abajo (eje Y)
+    tipOffsetX: 0, tipOffsetY: 0,
+    // ✅ NUEVO: rotacion con PIVOTE EN LA PUNTA (el extremo lejano), en
+    // vez de en el origen. tipAngleDeg ya rota la direccion desde el
+    // origen (la punta se mueve, el origen queda fijo); esta es la
+    // rotacion complementaria - la punta queda FIJA en su lugar y el
+    // origen gira alrededor de ella. Utilisima para ajustar el angulo
+    // sin perder la alineacion ya lograda en la punta.
+    tipPivotAngleDeg: 0,
     tipOffsetX: 0, tipOffsetY: 0,
 
     // racimo de garras irregulares
@@ -171,19 +178,53 @@ function buildLashClaws(baseRadius, lidPoints){
         // en vez de en un punto vecino pero distinto.
         const thickness = lashParams.outerThickness * baseRadius * upperMult
         const tan = tangentAt(i)
-        // ✅ NUEVO: offset MANUAL en dos ejes, sumado sobre el anclaje ya
-        // corregido - tan (a lo largo del parpado) y (px,py) (perpendicular
-        // a la superficie), cada uno escalado por baseRadius para que el
-        // valor del slider sea una fraccion del tamaño de cabeza.
-        const p = {
-            x: lidPoints[i].x + px * thickness + tan.x * baseRadius * lashParams.tipOffsetX + px * baseRadius * lashParams.tipOffsetY,
-            y: lidPoints[i].y + py * thickness + tan.y * baseRadius * lashParams.tipOffsetX + py * baseRadius * lashParams.tipOffsetY,
+        const nrm = { x: px, y: py, z: 0 }
+
+        // ✅ CORREGIDO: offset MANUAL en los ejes MUNDIALES X/Y (izquierda/
+        // derecha, arriba/abajo) - no en tangente/perpendicular a la
+        // curva, que cambiaba de sentido segun el punto exacto del canto.
+        const origin = {
+            x: lidPoints[i].x + px * thickness + baseRadius * lashParams.tipOffsetX,
+            y: lidPoints[i].y + py * thickness + baseRadius * lashParams.tipOffsetY,
             z: lidPoints[i].z
         }
-        const nrm = { x: px, y: py, z: 0 }
-        const dir = rotInPlane(tan, nrm, lashParams.tipAngleDeg)
-        out.push(clawSpike({ x: p.x, y: p.y, z: p.z }, dir, nrm,
-            baseRadius * lashParams.tipLength, baseRadius * lashParams.tipWidth,
+
+        const length = baseRadius * lashParams.tipLength
+        const dirAtOrigin = rotInPlane(tan, nrm, lashParams.tipAngleDeg)
+
+        // punto final del segmento (la "punta" real) ANTES del pivote -
+        // clawSpike siempre termina exactamente en o + dir*length, sin
+        // importar la curvatura (el bend solo dobla el trazo intermedio).
+        const tip = {
+            x: origin.x + dirAtOrigin.x * length,
+            y: origin.y + dirAtOrigin.y * length,
+            z: origin.z + dirAtOrigin.z * length
+        }
+
+        // ✅ NUEVO: rotacion con pivote en la PUNTA (tip), no en el origen.
+        // Se gira el origen alrededor de tip por tipPivotAngleDeg (rotacion
+        // 2D en el plano X/Y) y se recalcula la direccion resultante -
+        // asi la punta queda clavada en su sitio y el origen es el que
+        // barre alrededor de ella.
+        const pivotRad = THREE.MathUtils.degToRad(lashParams.tipPivotAngleDeg)
+        const cosP = Math.cos(pivotRad)
+        const sinP = Math.sin(pivotRad)
+        const relX = origin.x - tip.x
+        const relY = origin.y - tip.y
+        const finalOrigin = {
+            x: tip.x + (relX * cosP - relY * sinP),
+            y: tip.y + (relX * sinP + relY * cosP),
+            z: origin.z
+        }
+
+        let finalDirX = tip.x - finalOrigin.x
+        let finalDirY = tip.y - finalOrigin.y
+        const finalDirLen = Math.hypot(finalDirX, finalDirY) || 1
+        finalDirX /= finalDirLen
+        finalDirY /= finalDirLen
+
+        out.push(clawSpike(finalOrigin, { x: finalDirX, y: finalDirY, z: 0 }, nrm,
+            length, baseRadius * lashParams.tipWidth,
             lashParams.tipCurve, 1))
     }
 
@@ -839,6 +880,7 @@ export function setLashTipWidth(v){ lashParams.tipWidth = v; rebuild() }
 export function setLashTipCurve(v){ lashParams.tipCurve = v; rebuild() }
 export function setLashTipOffsetX(v){ lashParams.tipOffsetX = v; rebuild() }
 export function setLashTipOffsetY(v){ lashParams.tipOffsetY = v; rebuild() }
+export function setLashTipPivotAngle(v){ lashParams.tipPivotAngleDeg = v; rebuild() }
 export function setLashClCount(v){ lashParams.clCount = v; rebuild() }
 export function setLashClLength(v){ lashParams.clLength = v; rebuild() }
 export function setLashClSpread(v){ lashParams.clSpread = v; rebuild() }
