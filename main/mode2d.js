@@ -2,6 +2,7 @@ import { setEyeOpenUpper, setEyeOpenLower } from './eyes.js'
 import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getEyelashOutlines2D, getLashClaws2D,
          setLashDepth, setLashOpen,
+         setLashSurfaceLift as setLashSurfaceLiftReal,
          setLashTipLength, setLashTipAngle, setLashTipWidth, setLashTipCurve,
          setLashClCount, setLashClLength, setLashClSpread, setLashClAngle,
          setLashClExtent, setLashClOffset, setLashClSeed, setLashClWidth,
@@ -71,17 +72,14 @@ let profilePupilAdjust = { depth: 0, height: 0, sizeH: 0.15, sizeV: 1 }
 
 let profileInnerPupil = { sizeH: 0.45, sizeV: 0.45, depth: 0, height: 0 }
 
-// ✅ NUEVO: "despegue de la superficie" para las pestañas en PERFIL. El
-// setter existia declarado en el panel (ui.js lo busca como
-// m2d.setLashSurfaceLift) pero nunca se habia implementado aqui - por eso
-// el slider quedaba deshabilitado (ui.js desactiva cualquier control cuyo
-// setter no exista). Reutiliza shiftProfile, que ya estaba escrita pero
-// sin usar: desplaza el trazo en Z (profundidad) para separarlo
-// visualmente de la superficie del ojo/parpado en el dibujo de perfil,
-// evitando que se vea pegado o se solape.
-let lashSurfaceLift = 0.015
-
-export function setLashSurfaceLift(value){ lashSurfaceLift = value; drawFrame() }
+// ✅ CORREGIDO: "despegue de la superficie" (Pestañas - despegue de la
+// superficie). ui.js busca esta funcion como m2d.setLashSurfaceLift, pero
+// aqui nunca se importaba desde eyelashes.js - por eso el slider quedaba
+// deshabilitado, aunque la implementacion REAL (que ya modifica la
+// geometria 3D de verdad via lashParams.surfaceLift) siempre existio en
+// eyelashes.js. No hacia falta ningun estado nuevo aqui: solo faltaba
+// este wrapper.
+export function setLashSurfaceLift(value){ setLashSurfaceLiftReal(value); drawFrame() }
 
 // ✅ NUEVO: visibilidad por capa en el modo 2D. Al calibrar contra una
 // referencia hay tantas guías superpuestas que cuesta distinguir cuál es
@@ -419,14 +417,9 @@ function drawFrame(){
 
         if(layerVisibility.lashes){
             const lo = getEyelashOutlines2D()
-            // ✅ CORREGIDO: "despegue de la superficie" (lashSurfaceLift)
-            // ahora SI se aplica - se desplaza cada trazo en Z antes de
-            // proyectarlo, usando shiftProfile (ya existia, pero nunca se
-            // llamaba desde aqui). Antes el slider no tenia ningun efecto
-            // porque nada leia lashSurfaceLift.
-            drawOutline(shiftProfile(lo[side].upper, lashSurfaceLift, 0).map(proj), '#ff2222')
-            drawOutline(shiftProfile(lo[side].lower, lashSurfaceLift, 0).map(proj), '#ff2222')
-            getLashClaws2D()[side].forEach(stroke => drawOutline(shiftProfile(stroke, lashSurfaceLift, 0).map(proj), '#ff2222'))
+            drawOutline(lo[side].upper.map(proj), '#ff2222')
+            drawOutline(lo[side].lower.map(proj), '#ff2222')
+            getLashClaws2D()[side].forEach(stroke => drawOutline(stroke.map(proj), '#ff2222'))
         }
 
         if(layerVisibility.lids){
