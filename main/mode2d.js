@@ -4,6 +4,7 @@ import { getEyelashOutlines2D, getLashClaws2D,
          setLashDepth, setLashOpen,
          setLashSurfaceLift as setLashSurfaceLiftReal,
          setLashTipLength, setLashTipAngle, setLashTipWidth, setLashTipCurve,
+         setLashTipOffsetX, setLashTipOffsetY,
          setLashClCount, setLashClLength, setLashClSpread, setLashClAngle,
          setLashClExtent, setLashClOffset, setLashClSeed, setLashClWidth,
          setLashClCurve, setLashClHook, setLashClLift, setLashClShift } from './eyelashes.js'
@@ -588,6 +589,8 @@ export function setProfileLashTipLength(value){ setLashTipLength(value); drawFra
 export function setProfileLashTipAngle(value){ setLashTipAngle(value); drawFrame() }
 export function setProfileLashTipWidth(value){ setLashTipWidth(value); drawFrame() }
 export function setProfileLashTipCurve(value){ setLashTipCurve(value); drawFrame() }
+export function setProfileLashTipOffsetX(value){ setLashTipOffsetX(value); drawFrame() }
+export function setProfileLashTipOffsetY(value){ setLashTipOffsetY(value); drawFrame() }
 export function setProfileLashClusterCount(value){ setLashClCount(value); drawFrame() }
 export function setProfileLashClusterLength(value){ setLashClLength(value); drawFrame() }
 export function setProfileLashClusterSpread(value){ setLashClSpread(value); drawFrame() }
