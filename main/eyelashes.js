@@ -718,13 +718,20 @@ function buildLashes(baseRadius){
     leftLashMat = new THREE.LineBasicMaterial({ color: 0xff2222, depthTest: true, depthWrite: false })
 
     if(lashParams.style === 'fusion'){
-        const rightPts = buildFusedLashPoints(baseRadius, upperRight, lowerRight, false)
+        // ✅ CORREGIDO: faltaba aplicar applyLashShift aqui. Esa funcion es
+        // la que lee lashParams.depth y lashParams.open (y tambien
+        // surfaceLift) - sin ella, "Pestañas perfil - profundidad" y
+        // "Pestañas perfil - separar del ojo" cambiaban el valor guardado
+        // pero ningun punto del trazo lo leia, porque el modo 'fusion' es
+        // el estilo activo por defecto y esta rama nunca llamaba a
+        // applyLashShift (solo lo hacian 'shadow'/'spikes', mas abajo).
+        const rightPts = applyLashShift(buildFusedLashPoints(baseRadius, upperRight, lowerRight, false), baseRadius)
         rightUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightPts), rightLashMat)
         rightUpperLine.renderOrder = 999
         lashGroup.add(rightUpperLine)
         rightLowerLine = null
 
-        const leftPts = buildFusedLashPoints(baseRadius, upperLeft, lowerLeft, true)
+        const leftPts = applyLashShift(buildFusedLashPoints(baseRadius, upperLeft, lowerLeft, true), baseRadius)
         leftUpperLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftPts), leftLashMat)
         leftUpperLine.renderOrder = 999
         lashGroup.add(leftUpperLine)
@@ -858,9 +865,13 @@ export function getEyelashOutlines2D(){
     const flat = v => ({ x: v.x, y: v.y, z: v.z })
 
     if(lashParams.style === 'fusion'){
+        // ✅ CORREGIDO: mismo fix que en buildLashes() - faltaba
+        // applyLashShift, por eso depth/open (y surfaceLift) no tenian
+        // ningun efecto visible en el dibujo del perfil con el estilo
+        // 'fusion' activo.
         return {
-            right: { upper: buildFusedLashPoints(1, upperRight, lowerRight, false).map(flat), lower: [] },
-            left: { upper: buildFusedLashPoints(1, upperLeft, lowerLeft, true).map(flat), lower: [] }
+            right: { upper: applyLashShift(buildFusedLashPoints(1, upperRight, lowerRight, false), 1).map(flat), lower: [] },
+            left: { upper: applyLashShift(buildFusedLashPoints(1, upperLeft, lowerLeft, true), 1).map(flat), lower: [] }
         }
     }
 
