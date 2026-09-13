@@ -26,6 +26,7 @@ import { downloadPreset, loadPresetFromFile } from './presets.js'
 import { setIrisRadius, setPupilRadius, setIrisHorizontalBias, setIrisVerticalBias } from './pupils.js'
 import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBrowHeadTaper,
          setBrowArchPosition, setBrowArchHeight, setBrowArchSharpness, setBrowGap, setBrowVerticalOffset, setBrowDepth, setBrowDepthTilt, setBrowSCurve,
+         setBrowDepthArchPosition, setBrowDepthArchHeight,
          setBrowTipLift,
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
@@ -485,7 +486,9 @@ export function initUI(){
         ["sideBrowTipLift", "tipLift", setBrowTipLift, 3],
         ["sideBrowGap", "gapMult", setBrowGap, 2],
         ["sideBrowVerticalOffset", "vertOffsetMult", setBrowVerticalOffset, 2],
-        ["sideBrowDepth", "depthOffset", setBrowDepth, 2]
+        ["sideBrowDepth", "depthOffset", setBrowDepth, 2],
+        ["sideBrowDepthArchPosition", "depthArchPosition", setBrowDepthArchPosition, 2],
+        ["sideBrowDepthArchHeight", "depthArchHeight", setBrowDepthArchHeight, 3]
     ]
 
     // lado actualmente mostrado en el panel ('right' | 'left' | null)
@@ -1508,6 +1511,31 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setBrowDepthTilt(value)
             if(browDepthTiltValue) browDepthTiltValue.textContent = value.toFixed(3)
+        })
+    }
+
+    // ✅ NUEVO: joroba de profundidad independiente - permite esculpir el
+    // perfil sin tocar archHeight/archPosition/tipLift (que romperian la
+    // silueta ya calzada en frontal).
+    const browDepthArchPositionSlider = document.getElementById("browDepthArchPosition")
+    const browDepthArchPositionValue  = document.getElementById("browDepthArchPositionValue")
+
+    if(browDepthArchPositionSlider){
+        browDepthArchPositionSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowDepthArchPosition(value)
+            if(browDepthArchPositionValue) browDepthArchPositionValue.textContent = value.toFixed(2)
+        })
+    }
+
+    const browDepthArchHeightSlider = document.getElementById("browDepthArchHeight")
+    const browDepthArchHeightValue  = document.getElementById("browDepthArchHeightValue")
+
+    if(browDepthArchHeightSlider){
+        browDepthArchHeightSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setBrowDepthArchHeight(value)
+            if(browDepthArchHeightValue) browDepthArchHeightValue.textContent = value.toFixed(3)
         })
     }
 
