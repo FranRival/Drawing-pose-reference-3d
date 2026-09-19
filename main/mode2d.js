@@ -11,7 +11,9 @@ import { getEyelashOutlines2D, getLashClaws2D,
 import { getEyelidOutlines2D } from './eyelids.js'
 import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
-import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D } from './viewer.js'
+import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D,
+         getHeadAnimationDelta } from './viewer.js'
+import * as THREE from 'three'
 
 // Modo 2D: un canvas plano donde se carga un model sheet / dibujo de
 // referencia, y se superpone la silueta de ojos y cejas (solo vista
@@ -143,6 +145,35 @@ let viewMode = 'front'
 export function setViewMode(mode){
     viewMode = (mode === 'profile') ? 'profile' : 'front'
     drawFrame()
+}
+
+// ✅ NUEVO: "Mostrar animación 2D" — cuando está activo, el canvas 2D deja
+// de asumir pose neutral: cada frame consulta cuánto ha girado la cabeza
+// en 3D (getHeadAnimationDelta, viewer.js) y aplica ESE MISMO giro a los
+// puntos de las guías antes de proyectarlos. Así el canvas 2D refleja en
+// vivo la animación de cuerpo/cuello que ya corre en segundo plano
+// (updateAnimation en viewer.js corre siempre, sin importar la vista
+// activa) — igual que en 3D, donde cuello→cabeza→guías es una sola
+// cadena de transformaciones y el giro se hereda solo.
+// Se deja APAGADO por defecto: mientras se calibra contra una imagen de
+// referencia (el uso principal de este modo hasta ahora), conviene que
+// la guía se quede quieta.
+let show2DAnimationActive = false
+export function setShow2DAnimationActive(value){
+    show2DAnimationActive = !!value
+}
+
+// aplica el delta de rotación de cabeza a un arreglo de puntos {x,y,z},
+// pivoteando sobre el origen (0,0,0) — el mismo pivote que usa la cadena
+// real cuello→cabeza→loomisGroup en 3D. Sin delta (animación apagada, o
+// getHeadAnimationDelta() no disponible todavía), devuelve los puntos tal
+// cual, sin coste extra.
+function applyHeadDelta(points, quat){
+    if(!quat) return points
+    return points.map(p => {
+        const v = new THREE.Vector3(p.x, p.y, p.z ?? 0).applyQuaternion(quat)
+        return { x: v.x, y: v.y, z: v.z }
+    })
 }
 
 function resizeCanvas(){
@@ -328,6 +359,11 @@ function drawFrame(){
     // se puede calibrar la profundidad contra una referencia de perfil. ---
     const { stretchX, stretchY, stretchZ } = getLoomisTransform2D()
 
+    // ✅ NUEVO: se calcula UNA vez por frame — si la animación 2D está
+    // activa, este es el giro que hay que aplicarle a cada guía antes de
+    // proyectarla (ver applyHeadDelta más arriba).
+    const animDelta = show2DAnimationActive ? getHeadAnimationDelta() : null
+
     if(viewMode === 'front'){
         if(layerVisibility.headCircle){
             drawHeadReferenceCircle(centerX, centerY, pxPerUnit, stretchX, stretchY)
@@ -339,41 +375,41 @@ function drawFrame(){
         // lazo cerrado, así que se dibujan con drawLine, no drawOutline.
         if(layerVisibility.eye){
             const eyeOutlines = getEyeOutlines2D()
-            drawLine(eyeOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-            drawLine(eyeOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-            drawLine(eyeOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
-            drawLine(eyeOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(applyHeadDelta(eyeOutlines.right.upper, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(applyHeadDelta(eyeOutlines.right.lower, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(applyHeadDelta(eyeOutlines.left.upper, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
+            drawLine(applyHeadDelta(eyeOutlines.left.lower, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#00ffcc')
         }
 
         if(layerVisibility.brows){
             const browOutlines = getBrowOutlines2D()
-            drawOutline(browOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
-            drawOutline(browOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+            drawOutline(applyHeadDelta(browOutlines.right, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
+            drawOutline(applyHeadDelta(browOutlines.left, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffaa00')
         }
 
         // pestañas — encima del ojo
         if(layerVisibility.lashes){
             const lashOutlines = getEyelashOutlines2D()
-            drawOutline(lashOutlines.right.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-            drawOutline(lashOutlines.right.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-            drawOutline(lashOutlines.left.upper.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
-            drawOutline(lashOutlines.left.lower.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(applyHeadDelta(lashOutlines.right.upper, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(applyHeadDelta(lashOutlines.right.lower, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(applyHeadDelta(lashOutlines.left.upper, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
+            drawOutline(applyHeadDelta(lashOutlines.left.lower, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ff2222')
         }
 
         // párpados — el pliegue por encima del ojo (trazo abierto, no lazo)
         if(layerVisibility.lids){
             const lidOutlines = getEyelidOutlines2D()
-            drawLine(lidOutlines.right.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
-            drawLine(lidOutlines.left.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+            drawLine(applyHeadDelta(lidOutlines.right, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
+            drawLine(applyHeadDelta(lidOutlines.left, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffcc66')
         }
 
         // iris y pupila — cada uno con su propio ajuste 2D-only (no toca el 3D)
         if(layerVisibility.pupils){
             const pupilOutlines = getPupilOutlines2D()
-            drawOutline(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-            drawOutline(applyPupilAdjust2D(pupilOutlines.leftIris, pupilAdjust2D.leftIris).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
-            drawOutline(applyPupilAdjust2D(pupilOutlines.rightPupil, pupilAdjust2D.rightPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
-            drawOutline(applyPupilAdjust2D(pupilOutlines.leftPupil, pupilAdjust2D.leftPupil).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+            drawOutline(applyHeadDelta(applyPupilAdjust2D(pupilOutlines.rightIris, pupilAdjust2D.rightIris), animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+            drawOutline(applyHeadDelta(applyPupilAdjust2D(pupilOutlines.leftIris, pupilAdjust2D.leftIris), animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#8888ff')
+            drawOutline(applyHeadDelta(applyPupilAdjust2D(pupilOutlines.rightPupil, pupilAdjust2D.rightPupil), animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
+            drawOutline(applyHeadDelta(applyPupilAdjust2D(pupilOutlines.leftPupil, pupilAdjust2D.leftPupil), animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#000000')
         }
 
         // mandíbula — 7 segmentos abiertos (no lazos cerrados), mismo
@@ -384,13 +420,13 @@ function drawFrame(){
             const templeColor = '#66ccff'
             const bridgeColor = '#cccccc'
 
-            drawLine(jawOutlines.leftJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-            drawLine(jawOutlines.rightJaw.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-            drawLine(jawOutlines.chin.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
-            drawLine(jawOutlines.mouth.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
-            drawLine(jawOutlines.leftTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-            drawLine(jawOutlines.rightTemple.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
-            drawLine(jawOutlines.bridge.map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
+            drawLine(applyHeadDelta(jawOutlines.leftJaw, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(applyHeadDelta(jawOutlines.rightJaw, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(applyHeadDelta(jawOutlines.chin, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), jawColor)
+            drawLine(applyHeadDelta(jawOutlines.mouth, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), '#ffffff')
+            drawLine(applyHeadDelta(jawOutlines.leftTemple, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+            drawLine(applyHeadDelta(jawOutlines.rightTemple, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), templeColor)
+            drawLine(applyHeadDelta(jawOutlines.bridge, animDelta).map(p => project(p, centerX, centerY, pxPerUnit, stretchX, stretchY)), bridgeColor)
         }
     } else {
         // --- vista de PERFIL: círculo de referencia con Z/Y (el "ancho"
@@ -409,23 +445,27 @@ function drawFrame(){
         const side = t.side || 'right'
 
         const proj = p => projectProfile(p, centerX, centerY, pxPerUnit, stretchZ, stretchY)
+        // ✅ NUEVO: la rotación de animación se aplica ANTES de proyectar
+        // (proj espera coordenadas locales x/y/z) — mismo criterio que en
+        // la rama frontal.
+        const projA = pts => applyHeadDelta(pts, animDelta).map(proj)
 
         if(layerVisibility.eye){
             const eo = getEyeOutlines2D()
-            drawLine(eo[side].upper.map(proj), '#00ffcc')
-            drawLine(eo[side].lower.map(proj), '#00ffcc')
+            drawLine(projA(eo[side].upper), '#00ffcc')
+            drawLine(projA(eo[side].lower), '#00ffcc')
         }
 
         if(layerVisibility.lashes){
             const lo = getEyelashOutlines2D()
-            drawOutline(lo[side].upper.map(proj), '#ff2222')
-            drawOutline(lo[side].lower.map(proj), '#ff2222')
-            getLashClaws2D()[side].forEach(stroke => drawOutline(stroke.map(proj), '#ff2222'))
+            drawOutline(projA(lo[side].upper), '#ff2222')
+            drawOutline(projA(lo[side].lower), '#ff2222')
+            getLashClaws2D()[side].forEach(stroke => drawOutline(projA(stroke), '#ff2222'))
         }
 
         if(layerVisibility.lids){
             const lid = getEyelidOutlines2D()
-            drawLine(lid[side].map(proj), '#ffcc66')
+            drawLine(projA(lid[side]), '#ffcc66')
         }
 
         if(layerVisibility.pupils){
@@ -444,29 +484,29 @@ function drawFrame(){
                 return pts
             }
 
-            drawOutline(buildEllipse(cz, cy, rz, ry).map(proj), '#8888ff')
-            drawOutline(buildEllipse(
+            drawOutline(projA(buildEllipse(cz, cy, rz, ry)), '#8888ff')
+            drawOutline(projA(buildEllipse(
                 cz + profileInnerPupil.depth,
                 cy + profileInnerPupil.height,
                 m.radius * profileInnerPupil.sizeH,
                 m.radius * profileInnerPupil.sizeV
-            ).map(proj), '#000000')
+            )), '#000000')
         }
 
         if(layerVisibility.brows){
             const bo = getBrowOutlines2D()
-            drawOutline(bo[side].map(proj), '#ffaa00')
+            drawOutline(projA(bo[side]), '#ffaa00')
         }
 
         if(layerVisibility.jaw){
             const jo = getJawOutlines2D()
-            drawLine(jo.leftJaw.map(proj), '#ff66cc')
-            drawLine(jo.rightJaw.map(proj), '#ff66cc')
-            drawLine(jo.chin.map(proj), '#ff66cc')
-            drawLine(jo.mouth.map(proj), '#ffffff')
-            drawLine(jo.leftTemple.map(proj), '#66ccff')
-            drawLine(jo.rightTemple.map(proj), '#66ccff')
-            drawLine(jo.bridge.map(proj), '#cccccc')
+            drawLine(projA(jo.leftJaw), '#ff66cc')
+            drawLine(projA(jo.rightJaw), '#ff66cc')
+            drawLine(projA(jo.chin), '#ff66cc')
+            drawLine(projA(jo.mouth), '#ffffff')
+            drawLine(projA(jo.leftTemple), '#66ccff')
+            drawLine(projA(jo.rightTemple), '#66ccff')
+            drawLine(projA(jo.bridge), '#cccccc')
         }
     }
 
