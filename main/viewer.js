@@ -74,6 +74,16 @@ let loomisBaseRadius = 0 // radio local ya calculado, usado como referencia para
 let loomisOffset = { x: 0, y: -0.80, z: -0.50 } // multiplicadores sobre loomisBaseRadius, por eje
 let loomisScaleDefault = 0.80
 
+// ✅ NUEVO: rotación de "reposo" del hueso de cabeza (en espacio MUNDIAL),
+// capturada UNA SOLA VEZ al crear la guía (con el modelo todavía en pose
+// neutral, antes de cualquier animación). Es la referencia contra la cual
+// se mide cuánto ha girado la cabeza en un momento dado — necesaria para
+// que mode2d.js pueda replicar ese mismo giro en el canvas 2D, ya que ahí
+// no existe una jerarquía de huesos real que lo haga automáticamente
+// (como sí ocurre en 3D, donde cuello→cabeza→guías es una sola cadena de
+// transformaciones y el giro se hereda solo).
+let headRestWorldQuat = null
+
 // ✅ NUEVO: cuña de mandíbula (pómulo → barbilla → pómulo, + línea de boca).
 // A diferencia del resto de la guía, esta geometría sí necesita ajuste fino
 // por separado (no basta con mover/escalar todo el grupo), así que se
@@ -291,6 +301,17 @@ export function createLoomisGuide(radius){
 
     const headBone = bones.head || bones.neck
     if(!headBone || !radius) return
+
+    // ✅ NUEVO: se captura la rotación de reposo del hueso de cabeza AQUÍ,
+    // con el modelo todavía en pose neutral (createLoomisGuide se llama
+    // una sola vez al cargar, antes de cualquier animación). Solo la
+    // primera vez — si el modelo se recarga, esta condición evita pisar
+    // una captura ya válida con una que llegara en mitad de una pose.
+    headBone.updateMatrixWorld(true)
+    if(!headRestWorldQuat){
+        headRestWorldQuat = new THREE.Quaternion()
+        headBone.getWorldQuaternion(headRestWorldQuat)
+    }
 
     // ✅ el radio llega en unidades del MUNDO, pero la geometría que colgamos
     // del hueso se dibuja en su espacio LOCAL. Si el esqueleto tiene una
@@ -531,6 +552,27 @@ export function createLoomisGuide(radius){
 
 export function setLoomisGuideVisible(visible){
     if(loomisGroup) loomisGroup.visible = visible
+}
+
+// ✅ NUEVO: expone cuánto ha girado la cabeza respecto a su pose de
+// reposo, como un quaternion "delta" en espacio mundial — es decir,
+// currentWorldQuat * inverse(restWorldQuat). Aplicar este delta a un
+// punto que vivía en el espacio local de la guía (loomisGroup, con origen
+// en el hueso de cabeza) reproduce el mismo giro rígido que ya ocurre
+// automáticamente en 3D (porque ahí cuello→cabeza→loomisGroup es una sola
+// cadena de transformaciones). mode2d.js usa esto para que el canvas 2D
+// refleje la animación del cuerpo en tiempo real.
+// Devuelve null si todavía no hay guía/hueso o no se capturó la pose de
+// reposo (por ejemplo, antes de que el modelo termine de cargar).
+export function getHeadAnimationDelta(){
+    const headBone = bones.head || bones.neck
+    if(!headBone || !headRestWorldQuat) return null
+
+    headBone.updateMatrixWorld(true)
+    const currentWorldQuat = new THREE.Quaternion()
+    headBone.getWorldQuaternion(currentWorldQuat)
+
+    return currentWorldQuat.multiply(headRestWorldQuat.clone().invert())
 }
 
 // ✅ NUEVO: alterna si la guía respeta la oclusión del modelo (solo se ve la
