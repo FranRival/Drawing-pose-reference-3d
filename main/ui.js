@@ -31,7 +31,7 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
-         setLayerVisible, getRefSettings, isMode2DActive } from './mode2d.js'
+         setLayerVisible, getRefSettings, isMode2DActive, setShow2DAnimationActive } from './mode2d.js'
 // ✅ Los ajustes exclusivos de perfil se importan como ESPACIO DE NOMBRES,
 // no uno por uno. Con imports nombrados, si mode2d.js está desactualizado
 // y le falta uno solo, el módulo entero falla y TODO el panel deja de
@@ -380,6 +380,32 @@ export function initUI(){
         mode2DToggle.addEventListener("change",(e)=>{
             setMode2DActive(e.target.checked)
             refreshProfileOnlyControls()
+        })
+    }
+
+    // ✅ NUEVO: "Mostrar animación 2D" — el checkbox activa/desactiva que
+    // el canvas 2D refleje el giro de cabeza calculado en viewer.js; el
+    // botón reutiliza EL MISMO togglePlay/keyframes que ya existe (no hay
+    // un sistema de animación paralelo) — solo un segundo control visible
+    // mientras se está en este panel, para no tener que ir a buscar el
+    // otro botón en "Animación (Folioscopio)".
+    const show2DAnimationToggle = document.getElementById("show2DAnimationToggle")
+    if(show2DAnimationToggle){
+        show2DAnimationToggle.addEventListener("change",(e)=>{
+            setShow2DAnimationActive(e.target.checked)
+        })
+    }
+
+    const btn2DPlay = document.getElementById("btn2DPlay")
+    if(btn2DPlay){
+        btn2DPlay.addEventListener("click", ()=>{
+            const playing = togglePlay()
+            btn2DPlay.textContent = playing ? "⏸ Pausar" : "▶ Reproducir"
+            // el otro botón de play (en "Animación (Folioscopio)") no se
+            // entera de este cambio de estado si ya está pintado en
+            // pantalla - se sincroniza aquí también para que ambos
+            // reflejen lo mismo sin importar cuál se use.
+            if(btnPlay) btnPlay.textContent = playing ? "⏸ Pausar" : "▶ Reproducir"
         })
     }
 
