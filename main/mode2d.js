@@ -1,5 +1,5 @@
 import { setEyeOpenUpper, setEyeOpenLower } from './eyes.js'
-import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
+import { getEyeOutlines2D, setEyeShapeOffsetX, setEyeShapeOffsetY, setEyeShapeDepth, setEyeShapeScale, setEyeShapeRotation, getEyeShapeAdjust } from './eyes.js'
 import { getEyelashOutlines2D, getLashClaws2D,
          setLashDepth, setLashOpen,
          setLashSurfaceLift as setLashSurfaceLiftReal,
@@ -10,7 +10,8 @@ import { getEyelashOutlines2D, getLashClaws2D,
          setLashClCurve, setLashClHook, setLashClLift, setLashClShift } from './eyelashes.js'
 import { getEyelidOutlines2D } from './eyelids.js'
 import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
-import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust } from './eyebrows.js'
+import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust,
+         setBrowDepth, getBrowParam } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D,
          getHeadAnimationDelta } from './viewer.js'
 import * as THREE from 'three'
@@ -136,9 +137,9 @@ let pupilAdjust2D = {
 // independiente es la ceja, que tiene su propio anclaje.
 const GROUP_TARGET_KEYS = ['groupRight', 'groupLeft', 'groupBoth']
 let groupAdjust = {
-    groupRight: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    groupLeft:  { x: 0, y: 0, scale: 1, rotationDeg: 0 },
-    groupBoth:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+    groupRight: { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    groupLeft:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    groupBoth:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 }
 }
 
 // qué piezas mueve cada grupo
@@ -171,6 +172,35 @@ function applyGroupOffset(key, axis, newValue){
             const a = getBrowShapeAdjust(m.side)
             if(axis === 'x') setBrowShapeOffsetX(m.side, a.x + delta)
             else             setBrowShapeOffsetY(m.side, a.y + delta)
+        }
+    })
+}
+
+// ✅ NUEVO: movimiento del grupo en PROFUNDIDAD (Z) — el eje horizontal de
+// la vista de PERFIL. Misma lógica de delta que X/Y, pero escribiendo en
+// la profundidad de cada pieza. Es el control seguro para acomodar el
+// perfil: Z no se proyecta en la vista frontal, así que nada de lo ya
+// calibrado de frente se mueve.
+//
+// Pestañas y párpados NO están en la lista a propósito: construyen su Z a
+// partir del "relieve" de los puntos del ojo (ver applyLashShift en
+// eyelashes.js y buildLidPoints en eyelids.js), así que heredan este
+// desplazamiento solos. El iris tampoco: pupils.js ahora lee
+// eyeShapeAdjust.z directamente.
+function applyGroupDepth(key, newValue){
+    const g = groupAdjust[key]
+    if(!g) return
+    const delta = newValue - g.z
+    g.z = newValue
+    if(!delta) return
+
+    groupMembers(key).forEach(m => {
+        if(m.kind === 'eye'){
+            const a = getEyeShapeAdjust(m.side)
+            setEyeShapeDepth(m.side, (a.z || 0) + delta)
+        } else {
+            const current = getBrowParam(m.side, 'depthOffset') || 0
+            setBrowDepth(current + delta, m.side)
         }
     })
 }
@@ -825,6 +855,19 @@ export function setTargetOffsetY(value){
     if(t.kind === 'eye') setEyeShapeOffsetY(t.side, value)
     else if(t.kind === 'brow') setBrowShapeOffsetY(t.side, value)
     else setJawShapeOffsetY(value)
+    drawFrame()
+}
+
+// ✅ NUEVO: profundidad (Z) del objetivo — el eje horizontal de la vista
+// de PERFIL. Solo tiene sentido ahí; en frontal Z no se proyecta, así que
+// este control se oculta (ver index.html: class "profile-only").
+export function setTargetDepth(value){
+    if(GROUP_TARGET_KEYS.includes(selectedTarget)){ applyGroupDepth(selectedTarget, value); drawFrame(); return }
+    const t = resolveTarget(selectedTarget)
+    if(t.kind === 'eye') setEyeShapeDepth(t.side, value)
+    else if(t.kind === 'brow') setBrowDepth(value, t.side)
+    // mandíbula e iris/pupila tienen sus propios controles de profundidad
+    // en sus grupos respectivos; aquí no se tocan.
     drawFrame()
 }
 
