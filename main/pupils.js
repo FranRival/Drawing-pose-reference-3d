@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { getEyeFullPoints } from './eyes.js'
+import { getEyeFullPoints, getEyeShapeAdjust } from './eyes.js'
 
 // Iris y pupila: dos círculos centrados en la caja del ojo REAL (calculada
 // a partir de su contorno completo, no de un eje propio) — así se ajustan
@@ -55,13 +55,19 @@ function computeEyeBox(points){
     }
 }
 
-function buildEyeDisks(baseRadius, eyePoints){
+function buildEyeDisks(baseRadius, eyePoints, side = 'right'){
     const box = computeEyeBox(eyePoints)
     const cx = box.cx + pupilParams.horizontalBias * box.halfWidth * 2
     const cy = box.cy + pupilParams.verticalBias * box.halfHeight * 2
 
     const surfaceR = baseRadius * PUPIL_SURFACE_OFFSET
-    const cz = Math.sqrt(Math.max(surfaceR * surfaceR - cx * cx - cy * cy, 0.0001))
+    // ✅ NUEVO: el iris hereda la profundidad del OJO (eyeShapeAdjust.z).
+    // Sin esto, mover el ojo en Z (lo que hace el movimiento por grupo en
+    // la vista de perfil) dejaba al iris clavado en la esfera mientras el
+    // resto del ojo se adelantaba/hundía — el mismo tipo de desfase que
+    // ya se corrigió en la rotación de animación.
+    const eyeDepth = (getEyeShapeAdjust(side).z || 0) * baseRadius
+    const cz = Math.sqrt(Math.max(surfaceR * surfaceR - cx * cx - cy * cy, 0.0001)) + eyeDepth
 
     const irisRadius = box.halfWidth * pupilParams.irisRadiusMult
     const pupilRadius = irisRadius * pupilParams.pupilRadiusMult
@@ -81,7 +87,7 @@ function buildPupils(baseRadius){
 
     const { right, left } = getEyeFullPoints(baseRadius)
 
-    const rightDisks = buildEyeDisks(baseRadius, right)
+    const rightDisks = buildEyeDisks(baseRadius, right, 'right')
     rightIrisMat = new THREE.LineBasicMaterial({ color: 0x8888ff, depthTest: true, depthWrite: false })
     rightIrisLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightDisks.irisPts), rightIrisMat)
     rightIrisLine.renderOrder = 999
@@ -92,7 +98,7 @@ function buildPupils(baseRadius){
     rightPupilLine.renderOrder = 999
     pupilGroup.add(rightPupilLine)
 
-    const leftDisks = buildEyeDisks(baseRadius, left)
+    const leftDisks = buildEyeDisks(baseRadius, left, 'left')
     leftIrisMat = new THREE.LineBasicMaterial({ color: 0x8888ff, depthTest: true, depthWrite: false })
     leftIrisLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftDisks.irisPts), leftIrisMat)
     leftIrisLine.renderOrder = 999
@@ -163,8 +169,8 @@ export function setPupilOcclusion(respectOcclusion){
 // al ojo.
 export function getPupilOutlines2D(){
     const { right, left } = getEyeFullPoints(1)
-    const rightDisks = buildEyeDisks(1, right)
-    const leftDisks = buildEyeDisks(1, left)
+    const rightDisks = buildEyeDisks(1, right, 'right')
+    const leftDisks = buildEyeDisks(1, left, 'left')
     const flat = v => ({ x: v.x, y: v.y, z: v.z })
     return {
         rightIris: rightDisks.irisPts.map(flat),
@@ -183,7 +189,7 @@ export function getPupilOutlines2D(){
 export function getPupilProfileMark(side){
     const { right, left } = getEyeFullPoints(1)
     const points = side === 'left' ? left : right
-    const disks = buildEyeDisks(1, points)
+    const disks = buildEyeDisks(1, points, side === 'left' ? 'left' : 'right')
     // el centro de todos los puntos del iris es el mismo (cx,cy,cz) - basta leer uno
     const center = disks.irisPts[0]
     const box = computeEyeBox(points)
