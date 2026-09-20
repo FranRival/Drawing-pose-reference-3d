@@ -1,5 +1,5 @@
 import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes, deleteKeyframe, reorderKeyframes, getKeyframeCount,
-         togglePlay, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
+         togglePlay, getIsPlaying, exportFrameSequence, exportKeyframesOnly, setGizmoOpacity, setMeshDisplayMode,
          setLoomisGuideVisible, setLoomisOffsetX, setLoomisOffsetY, setLoomisOffsetZ, setLoomisScale, setLoomisStructureVisible, setLoomisRespectOcclusion,
          setLoomisStretchX, setLoomisStretchY, setLoomisStretchZ,
          setEarRadius,
@@ -406,6 +406,23 @@ export function initUI(){
             // pantalla - se sincroniza aquí también para que ambos
             // reflejen lo mismo sin importar cuál se use.
             if(btnPlay) btnPlay.textContent = playing ? "⏸ Pausar" : "▶ Reproducir"
+        })
+    }
+
+    // ✅ NUEVO: "Reset pose" propio de este panel — pausa la reproducción
+    // si estaba corriendo (si no, resetPose() se vería pisada de
+    // inmediato por el siguiente frame de la animación) y vuelve el
+    // cuerpo a la pose neutral (T-pose). Sincroniza el texto de AMBOS
+    // botones de play, igual que btn2DPlay hace arriba.
+    const btn2DReset = document.getElementById("btn2DReset")
+    if(btn2DReset){
+        btn2DReset.addEventListener("click", ()=>{
+            if(getIsPlaying()){
+                togglePlay()
+                if(btn2DPlay) btn2DPlay.textContent = "▶ Reproducir"
+                if(btnPlay) btnPlay.textContent = "▶ Reproducir"
+            }
+            resetPose()
         })
     }
 
