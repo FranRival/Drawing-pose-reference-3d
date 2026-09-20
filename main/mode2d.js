@@ -136,17 +136,21 @@ let pupilAdjust2D = {
 // getEyeUpperLidPoints(), y pupils.js sobre getEyeFullPoints()), así que
 // mover el ojo ya los arrastra automáticamente. Lo único realmente
 // independiente es la ceja, que tiene su propio anclaje.
-const GROUP_TARGET_KEYS = ['groupRight', 'groupLeft', 'groupBoth']
+// ✅ Los grupos son POR TIPO DE PIEZA, no por lado: mover una sola ceja o
+// un solo ojo ya se puede hacer con las opciones individuales de abajo.
+// Lo útil como grupo es mover el PAR completo (las dos cejas, los dos
+// ojos) o todo junto, manteniendo la simetría.
+const GROUP_TARGET_KEYS = ['groupBrows', 'groupEyes', 'groupBoth']
 let groupAdjust = {
-    groupRight: { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
-    groupLeft:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    groupBrows: { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    groupEyes:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
     groupBoth:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 }
 }
 
 // qué piezas mueve cada grupo
 function groupMembers(key){
-    if(key === 'groupRight') return [{ kind: 'eye', side: 'right' }, { kind: 'brow', side: 'right' }]
-    if(key === 'groupLeft')  return [{ kind: 'eye', side: 'left' },  { kind: 'brow', side: 'left' }]
+    if(key === 'groupBrows') return [{ kind: 'brow', side: 'right' }, { kind: 'brow', side: 'left' }]
+    if(key === 'groupEyes')  return [{ kind: 'eye', side: 'right' },  { kind: 'eye', side: 'left' }]
     return [
         { kind: 'eye', side: 'right' }, { kind: 'brow', side: 'right' },
         { kind: 'eye', side: 'left' },  { kind: 'brow', side: 'left' }
@@ -873,9 +877,11 @@ function resolveTarget(key){
         case 'rightBrow': return { kind: 'brow', side: 'right' }
         case 'leftBrow':  return { kind: 'brow', side: 'left' }
         case 'jaw':       return { kind: 'jaw' }
-        // ✅ los grupos solo influyen en QUÉ LADO se dibuja en perfil
-        case 'groupLeft': return { kind: 'group', side: 'left' }
-        case 'groupRight':
+        // ✅ los grupos solo influyen en QUÉ LADO se dibuja en perfil.
+        // Como ahora agrupan por tipo de pieza (no por lado), todos
+        // muestran el lado derecho, que es el que se ve de perfil.
+        case 'groupBrows':
+        case 'groupEyes':
         case 'groupBoth': return { kind: 'group', side: 'right' }
         default:          return { kind: 'eye', side: 'right' }
     }
