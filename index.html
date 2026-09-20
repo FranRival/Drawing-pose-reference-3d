@@ -261,6 +261,45 @@
       </div>
     </details>
 
+    <details class="control-group">
+      <summary>Área de captura (encuadre de exportación)</summary>
+      <div class="group-body">
+        <div class="control">
+          <label><input type="checkbox" id="captureAreaVisible" checked> Mostrar guía amarilla</label>
+        </div>
+        <div class="control">
+          <label><input type="checkbox" id="captureAreaCustom"> Usar área personalizada (si no, 16:9 centrado)</label>
+        </div>
+        <div class="control">
+          <label for="captureAreaX">Posición horizontal (centro)</label>
+          <input type="range" id="captureAreaX" min="0" max="1" step="0.01" value="0.5">
+          <span id="captureAreaXValue">0.50</span>
+        </div>
+        <div class="control">
+          <label for="captureAreaY">Posición vertical (centro)</label>
+          <input type="range" id="captureAreaY" min="0" max="1" step="0.01" value="0.5">
+          <span id="captureAreaYValue">0.50</span>
+        </div>
+        <div class="control">
+          <label for="captureAreaWidth">Ancho</label>
+          <input type="range" id="captureAreaWidth" min="0.05" max="1" step="0.01" value="0.6">
+          <span id="captureAreaWidthValue">0.60</span>
+        </div>
+        <div class="control">
+          <label for="captureAreaHeight">Alto</label>
+          <input type="range" id="captureAreaHeight" min="0.05" max="1" step="0.01" value="0.6">
+          <span id="captureAreaHeightValue">0.60</span>
+        </div>
+        <div class="control">
+          <span style="font-size:12px; color:#777;">
+            Encuadra la zona a exportar (cabeza, torso, una pierna...).
+            El rectángulo amarillo marca exactamente lo que sale en las
+            imágenes.
+          </span>
+        </div>
+      </div>
+    </details>
+
     <details class="control-group" open>
       <summary>Perspectivas</summary>
       <div class="group-body">
