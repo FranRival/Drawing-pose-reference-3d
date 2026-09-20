@@ -149,15 +149,28 @@ export function setPupilOcclusion(respectOcclusion){
 }
 
 // ✅ silueta 2D (vista frontal) — mismo patrón que el resto.
+// ⚠️ CORREGIDO: antes descartaba la Z (solo devolvía {x, y}), a
+// diferencia de getEyeOutlines2D()/getBrowOutlines2D(), que SÍ la
+// conservan. Como mode2d.js rota cada guía con applyHeadDelta() usando
+// `p.z ?? 0`, una pupila sin Z real rotaba como si estuviera aplanada en
+// el centro exacto de la esfera (Z=0) en vez de en su posición real
+// -ligeramente elevada sobre la superficie del ojo, como el resto de los
+// rasgos-. Eso hacía que, al girar la cabeza, la pupila describiera un
+// arco distinto al del ojo/ceja (que sí tienen su Z correcta) y se
+// desfasara del resto — el "se queda atrás" que se ve en la vista 2D
+// durante la animación. Ahora se devuelve {x, y, z} igual que las demás
+// guías, así la pupila gira sobre su posición real y se mantiene pegada
+// al ojo.
 export function getPupilOutlines2D(){
     const { right, left } = getEyeFullPoints(1)
     const rightDisks = buildEyeDisks(1, right)
     const leftDisks = buildEyeDisks(1, left)
+    const flat = v => ({ x: v.x, y: v.y, z: v.z })
     return {
-        rightIris: rightDisks.irisPts.map(v => ({ x: v.x, y: v.y })),
-        rightPupil: rightDisks.pupilPts.map(v => ({ x: v.x, y: v.y })),
-        leftIris: leftDisks.irisPts.map(v => ({ x: v.x, y: v.y })),
-        leftPupil: leftDisks.pupilPts.map(v => ({ x: v.x, y: v.y }))
+        rightIris: rightDisks.irisPts.map(flat),
+        rightPupil: rightDisks.pupilPts.map(flat),
+        leftIris: leftDisks.irisPts.map(flat),
+        leftPupil: leftDisks.pupilPts.map(flat)
     }
 }
 
