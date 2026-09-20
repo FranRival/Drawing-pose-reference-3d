@@ -13,7 +13,8 @@ import { getPupilOutlines2D, getPupilProfileMark } from './pupils.js'
 import { getBrowOutlines2D, setBrowShapeOffsetX, setBrowShapeOffsetY, setBrowShapeScale, setBrowShapeRotation, getBrowShapeAdjust,
          setBrowDepth, getBrowParam } from './eyebrows.js'
 import { getJawOutlines2D, setJawShapeOffsetX, setJawShapeOffsetY, setJawShapeScale, setJawShapeRotation, getJawShapeAdjust, getLoomisTransform2D,
-         getHeadAnimationDelta } from './viewer.js'
+         getHeadAnimationDelta,
+         updateAnimationAtTime, getKeyframeCount, goToKeyframe, savePose, loadPose } from './viewer.js'
 import * as THREE from 'three'
 
 // Modo 2D: un canvas plano donde se carga un model sheet / dibujo de
@@ -260,6 +261,62 @@ function applyHeadDelta(points, quat){
         const v = new THREE.Vector3(p.x, p.y, p.z ?? 0).applyQuaternion(quat)
         return { x: v.x, y: v.y, z: v.z }
     })
+}
+
+// ✅ NUEVO: área de captura PROPIA del modo 2D, independiente de la del
+// modo 3D (que vive en viewer.js). En 2D se exporta este canvas y se
+// recorta con ESTE rectángulo; en 3D se exporta el render y se usa el
+// otro. Ninguno de los dos interfiere con el otro.
+let captureArea2D = {
+    visible: true,
+    custom: false,
+    x: 0.5, y: 0.5, width: 0.6, height: 0.6
+}
+
+export function getCaptureArea2D(){ return { ...captureArea2D } }
+export function setCaptureArea2DVisible(v){ captureArea2D.visible = !!v; drawFrame() }
+export function setCaptureArea2DCustom(v){ captureArea2D.custom = !!v; drawFrame() }
+export function setCaptureArea2DX(v){ captureArea2D.x = v; drawFrame() }
+export function setCaptureArea2DY(v){ captureArea2D.y = v; drawFrame() }
+export function setCaptureArea2DWidth(v){ captureArea2D.width = v; drawFrame() }
+export function setCaptureArea2DHeight(v){ captureArea2D.height = v; drawFrame() }
+
+const MODE2D_TARGET_ASPECT = 16 / 9
+
+// rectángulo de recorte en píxeles del canvas 2D
+function computeCrop2D(){
+    if(!canvas) return { x: 0, y: 0, width: 0, height: 0 }
+    const W = canvas.width
+    const H = canvas.height
+
+    if(!captureArea2D.custom){
+        let w, h
+        if(W / H > MODE2D_TARGET_ASPECT){ h = H; w = h * MODE2D_TARGET_ASPECT }
+        else { w = W; h = w / MODE2D_TARGET_ASPECT }
+        return { x: (W - w) / 2, y: (H - h) / 2, width: w, height: h }
+    }
+
+    const w = Math.max(W * captureArea2D.width, 1)
+    const h = Math.max(H * captureArea2D.height, 1)
+    const x = Math.min(Math.max(W * captureArea2D.x - w / 2, 0), Math.max(W - w, 0))
+    const y = Math.min(Math.max(H * captureArea2D.y - h / 2, 0), Math.max(H - h, 0))
+    return { x, y, width: w, height: h }
+}
+
+// el rectángulo se dibuja DENTRO del canvas 2D (no como overlay HTML)
+// porque en modo 2D el div #viewer está oculto y mide 0x0, así que un
+// overlay posicionado contra él no se podría ubicar bien.
+function drawCaptureArea2D(){
+    if(!ctx || !captureArea2D.visible) return
+    const r = computeCrop2D()
+    if(r.width < 1 || r.height < 1) return
+
+    ctx.save()
+    ctx.strokeStyle = '#ffcc00'
+    ctx.lineWidth = 2
+    ctx.setLineDash([8, 6])
+    ctx.strokeRect(r.x + 1, r.y + 1, r.width - 2, r.height - 2)
+    ctx.restore()
 }
 
 function resizeCanvas(){
@@ -599,6 +656,9 @@ function drawFrame(){
     // ✅ NUEVO: cruz de referencia, dibujada al final para que quede
     // siempre encima de todo (imagen y guías) y sea fácil de ubicar.
     drawCenterCross(centerX, centerY)
+
+    // el encuadre de exportación, encima de todo
+    drawCaptureArea2D()
 }
 
 function loop(){
@@ -899,4 +959,139 @@ export function setTargetRotation(degrees){
     else if(t.kind === 'brow') setBrowShapeRotation(t.side, degrees)
     else setJawShapeRotation(degrees)
     drawFrame()
+}
+
+/* ========================================================= */
+/* EXPORTACIÓN DEL CANVAS 2D                                  */
+/* ========================================================= */
+// Ruta de exportación PROPIA del modo 2D. Antes, exportar estando en 2D
+// intentaba capturar el render 3D — que está oculto y mide 0x0 en ese
+// modo, por eso fallaba con "El área de captura quedó en cero". Ahora
+// cada modo exporta su propio canvas, con su propio rectángulo:
+//   modo 2D  → este canvas, recortado con captureArea2D
+//   modo 3D  → el render de Three.js, recortado con el área de viewer.js
+// Ninguno de los dos mira el rectángulo del otro.
+
+function capture2DBlob(mime, label){
+    if(!canvas) return Promise.reject(new Error("El canvas 2D no está disponible."))
+    const r = computeCrop2D()
+    if(!(r.width >= 1) || !(r.height >= 1)){
+        return Promise.reject(new Error("El área de captura 2D quedó en cero. Revisa el ancho/alto del encuadre."))
+    }
+
+    const cropCanvas = document.createElement('canvas')
+    cropCanvas.width = r.width
+    cropCanvas.height = r.height
+    const cctx = cropCanvas.getContext('2d')
+    cctx.drawImage(canvas, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height)
+
+    if(label){
+        const fontSize = Math.max(r.height * 0.045, 20)
+        cctx.font = `bold ${fontSize}px sans-serif`
+        cctx.textBaseline = 'bottom'
+        const padding = fontSize * 0.5
+        const textWidth = cctx.measureText(label).width
+        const boxW = textWidth + padding * 2
+        const boxH = fontSize + padding
+        const boxX = r.width - boxW - padding
+        const boxY = r.height - boxH - padding
+
+        cctx.fillStyle = 'rgba(0,0,0,0.6)'
+        cctx.fillRect(boxX, boxY, boxW, boxH)
+        cctx.fillStyle = '#ffffff'
+        cctx.fillText(label, boxX + padding, boxY + boxH - padding * 0.3)
+    }
+
+    return new Promise(resolve => cropCanvas.toBlob(resolve, mime, 0.92))
+}
+
+async function downloadZip2D(zip, filename){
+    const content = await zip.generateAsync({ type: "blob" })
+    const url = URL.createObjectURL(content)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+}
+
+// prepara el canvas para capturar: fuerza la animación encendida (si no,
+// todos los frames saldrían idénticos) y esconde el rectángulo amarillo
+// para que no quede grabado dentro de las imágenes.
+function begin2DCapture(){
+    const saved = { anim: show2DAnimationActive, guide: captureArea2D.visible, pose: savePose() }
+    show2DAnimationActive = true
+    captureArea2D.visible = false
+    return saved
+}
+
+function end2DCapture(saved){
+    show2DAnimationActive = saved.anim
+    captureArea2D.visible = saved.guide
+    loadPose(saved.pose)
+    drawFrame()
+}
+
+export async function exportMode2DSequence(frameCount = 24, format = 'png', showLabel = true){
+    const count = getKeyframeCount()
+    if(count < 2){
+        alert("Necesitas al menos 2 keyframes grabados para exportar una secuencia.")
+        return
+    }
+    if(typeof JSZip === 'undefined'){
+        alert("No se pudo cargar JSZip (revisa tu conexión).")
+        return
+    }
+
+    const saved = begin2DCapture()
+    const zip = new JSZip()
+    // los tiempos de keyframe se asignan como 0,1,2... así que la
+    // duración total es simplemente la cantidad menos uno
+    const totalDuration = count - 1
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+
+    try {
+        for(let i = 0; i < frameCount; i++){
+            const t = frameCount === 1 ? 0 : (i / (frameCount - 1)) * totalDuration
+            updateAnimationAtTime(t)
+            drawFrame()
+            const label = showLabel ? `${i + 1}/${frameCount}` : null
+            const blob = await capture2DBlob(mime, label)
+            zip.file(`frame2d_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        }
+    } finally {
+        end2DCapture(saved)
+    }
+
+    await downloadZip2D(zip, `secuencia2d_${frameCount}frames.zip`)
+}
+
+export async function exportMode2DKeyframes(format = 'png', showLabel = true){
+    const count = getKeyframeCount()
+    if(count === 0){
+        alert("No hay keyframes grabados todavía.")
+        return
+    }
+    if(typeof JSZip === 'undefined'){
+        alert("No se pudo cargar JSZip (revisa tu conexión).")
+        return
+    }
+
+    const saved = begin2DCapture()
+    const zip = new JSZip()
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+
+    try {
+        for(let i = 0; i < count; i++){
+            goToKeyframe(i)
+            drawFrame()
+            const label = showLabel ? `${i + 1}/${count}` : null
+            const blob = await capture2DBlob(mime, label)
+            zip.file(`keyframe2d_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        }
+    } finally {
+        end2DCapture(saved)
+    }
+
+    await downloadZip2D(zip, "keyframes2d.zip")
 }
