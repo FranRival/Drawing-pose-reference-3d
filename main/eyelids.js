@@ -35,6 +35,16 @@ let lidParams = {
     // la mitad exterior).
     cantoFade: 0.20,
 
+    // ✅ NUEVO: desvanecimiento en el LAGRIMAL — el espejo de cantoFade.
+    // Recorta el pliegue desde el lado del lagrimal, así se puede hacer
+    // desaparecer la parte que nace ahí (0 = arranca pegado al lagrimal;
+    // 0.5 = se borra la mitad interior).
+    //
+    // ⚠️ No confundir con tailLength: ese controla la COLA (el segmento
+    // corto que baja a buscar el lagrimal), mientras que este recorta el
+    // arranque del PLIEGUE en sí.
+    lagrimalFade: 0,
+
     // ✅ separación de la superficie de la cabeza. El pliegue se envuelve
     // sobre la esfera igual que el ojo; antes heredaba la Z del párpado y
     // quedaba flotando fuera de la superficie al desplazarse hacia afuera.
@@ -101,10 +111,17 @@ function buildLidPoints(baseRadius, upperLidPts){
 
     const center = curveCenter(upperLidPts)
     const fade = THREE.MathUtils.clamp(lidParams.cantoFade, 0, 0.9)
+    // ✅ NUEVO: recorte desde el lagrimal. Se limita para que sumado al
+    // recorte del canto nunca se coma el trazo entero (siempre queda al
+    // menos un 10% dibujado).
+    const fadeIn = THREE.MathUtils.clamp(lidParams.lagrimalFade, 0, Math.max(0.9 - fade, 0))
 
     const pts = []
     for(let i = 0; i < n; i++){
         const t = i / (n - 1) // 0 = lagrimal, 1 = canto
+        // ✅ el desvanecimiento del lagrimal salta el arranque del trazo:
+        // el pliegue "empieza más tarde", hacia el canto.
+        if(t < fadeIn) continue
         // ✅ el desvanecimiento del canto recorta el recorrido por el lado
         // del canto: se deja de dibujar antes de llegar al final.
         if(t > 1 - fade) break
@@ -240,6 +257,8 @@ export function setLidArchPosition(value){ lidParams.archPosition = value; rebui
 export function setLidTailLength(value){ lidParams.tailLength = value; rebuild() }
 export function setLidTailAngle(value){ lidParams.tailAngle = value; rebuild() }
 export function setLidCantoFade(value){ lidParams.cantoFade = value; rebuild() }
+// ✅ NUEVO: espejo de setLidCantoFade, desde el lado del lagrimal
+export function setLidLagrimalFade(value){ lidParams.lagrimalFade = value; rebuild() }
 export function setLidSurfaceLift(value){ lidParams.surfaceLift = value; rebuild() }
 export function setLidDepth(value){ lidParams.depth = value; rebuild() }
 
