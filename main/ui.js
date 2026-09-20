@@ -612,7 +612,11 @@ export function initUI(){
         // ✅ NUEVO: en modo GRUPO, escala y rotación no se propagan (ver
         // setTargetScale/setTargetRotation en mode2d.js) — se deshabilitan
         // para que quede claro que ahí solo funciona el movimiento X/Y.
-        const isGroup = key.startsWith("group")
+        // ⚠️ el prefijo es "grp", NO "group": los <details> del panel ya
+        // usan ids como "groupBrows"/"groupEye", así que un prefijo
+        // "group" colisionaba con ellos (getElementById devolvía el
+        // panel equivocado y este check daba falsos positivos).
+        const isGroup = key.startsWith("grp")
         if(targetScaleSlider) targetScaleSlider.disabled = isGroup
         if(targetRotationSlider) targetRotationSlider.disabled = isGroup
     }
