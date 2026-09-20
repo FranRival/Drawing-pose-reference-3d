@@ -1488,6 +1488,36 @@ export function loadAnimation(json){
 // en ui.js — si se cambia el aspect ratio ahí, hay que cambiarlo aquí también.
 const TARGET_ASPECT = 16 / 9
 
+// ✅ NUEVO: área de captura CONFIGURABLE. Antes el recorte era siempre un
+// 16:9 centrado, así que al exportar quedaba lo que cayera en esa franja
+// (típicamente medio cuerpo). Ahora se puede elegir la zona: cabeza,
+// torso, una pierna, etc.
+//
+// Las medidas son FRACCIONES del canvas (0..1), no píxeles, para que el
+// encuadre se mantenga igual aunque cambie el tamaño de la ventana o se
+// suba la resolución al exportar. x/y son el CENTRO del rectángulo.
+//
+// Este estado vive aquí (y no en ui.js) porque lo necesitan los dos
+// lados: ui.js para dibujar la guía amarilla en pantalla, y
+// getExportCropRect para recortar de verdad. Una sola fuente de verdad
+// evita que el rectángulo que ves y el que se exporta se desincronicen.
+let captureArea = {
+    custom: false,  // false = 16:9 centrado automático (comportamiento anterior)
+    visible: true,  // mostrar/ocultar la guía amarilla en pantalla
+    x: 0.5,         // centro horizontal, fracción del ancho disponible
+    y: 0.5,         // centro vertical, fracción del alto disponible
+    width: 0.6,     // ancho, fracción del ancho disponible
+    height: 0.6     // alto, fracción del alto disponible
+}
+
+export function getCaptureArea(){ return { ...captureArea } }
+export function setCaptureAreaCustom(v){ captureArea.custom = !!v }
+export function setCaptureAreaVisible(v){ captureArea.visible = !!v }
+export function setCaptureAreaX(v){ captureArea.x = v }
+export function setCaptureAreaY(v){ captureArea.y = v }
+export function setCaptureAreaWidth(v){ captureArea.width = v }
+export function setCaptureAreaHeight(v){ captureArea.height = v }
+
 function getExportCropRect(){
     const canvas = renderer.domElement
     const headerBar = document.getElementById('posePresetsBar')
@@ -1503,6 +1533,19 @@ function getExportCropRect(){
 
     const availableWidth = canvas.width
     const availableHeight = Math.max(canvas.height - topCrop - bottomCrop, 1)
+
+    // ✅ área personalizada: se respeta tal cual, con el aspecto que el
+    // usuario haya elegido (ya no se fuerza 16:9)
+    if(captureArea.custom){
+        const w = Math.max(availableWidth * captureArea.width, 1)
+        const h = Math.max(availableHeight * captureArea.height, 1)
+        // el centro se limita para que el rectángulo no se salga del canvas
+        const cx = availableWidth * captureArea.x
+        const cy = topCrop + availableHeight * captureArea.y
+        const x = Math.min(Math.max(cx - w / 2, 0), Math.max(availableWidth - w, 0))
+        const y = Math.min(Math.max(cy - h / 2, topCrop), Math.max(topCrop + availableHeight - h, topCrop))
+        return { x, y, width: w, height: h }
+    }
 
     let width, height
     if(availableWidth / availableHeight > TARGET_ASPECT){
