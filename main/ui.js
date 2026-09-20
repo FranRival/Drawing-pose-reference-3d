@@ -30,7 +30,7 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          setBrowTipLift,
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
-         setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetScale, setTargetRotation,
+         setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetDepth, setTargetScale, setTargetRotation,
          setLayerVisible, getRefSettings, isMode2DActive, setShow2DAnimationActive } from './mode2d.js'
 // ✅ Los ajustes exclusivos de perfil se importan como ESPACIO DE NOMBRES,
 // no uno por uno. Con imports nombrados, si mode2d.js está desactualizado
@@ -485,6 +485,8 @@ export function initUI(){
     const targetOffsetXValue  = document.getElementById("targetOffsetXValue")
     const targetOffsetYSlider = document.getElementById("targetOffsetY")
     const targetOffsetYValue  = document.getElementById("targetOffsetYValue")
+    const targetOffsetZSlider = document.getElementById("targetOffsetZ")
+    const targetOffsetZValue  = document.getElementById("targetOffsetZValue")
     const targetScaleSlider  = document.getElementById("targetScale")
     const targetScaleValue   = document.getElementById("targetScaleValue")
     const targetRotationSlider = document.getElementById("targetRotation")
@@ -500,6 +502,7 @@ export function initUI(){
 
         if(targetOffsetXSlider){ targetOffsetXSlider.value = adj.x; if(targetOffsetXValue) targetOffsetXValue.textContent = adj.x.toFixed(2) }
         if(targetOffsetYSlider){ targetOffsetYSlider.value = adj.y; if(targetOffsetYValue) targetOffsetYValue.textContent = adj.y.toFixed(2) }
+        if(targetOffsetZSlider){ const z = adj.z || 0; targetOffsetZSlider.value = z; if(targetOffsetZValue) targetOffsetZValue.textContent = Number(z).toFixed(2) }
         if(targetScaleSlider){ targetScaleSlider.value = adj.scale; if(targetScaleValue) targetScaleValue.textContent = adj.scale.toFixed(2) }
         if(targetRotationSlider){ targetRotationSlider.value = adj.rotationDeg; if(targetRotationValue) targetRotationValue.textContent = adj.rotationDeg.toFixed(0) }
 
@@ -592,6 +595,14 @@ export function initUI(){
             const value = parseFloat(e.target.value)
             setTargetOffsetY(value)
             if(targetOffsetYValue) targetOffsetYValue.textContent = value.toFixed(2)
+        })
+    }
+
+    if(targetOffsetZSlider){
+        targetOffsetZSlider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setTargetDepth(value)
+            if(targetOffsetZValue) targetOffsetZValue.textContent = value.toFixed(2)
         })
     }
 
