@@ -124,6 +124,57 @@ let pupilAdjust2D = {
     leftPupil:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
 }
 
+// ✅ NUEVO: movimiento POR GRUPO — para acomodar varios rasgos a la vez
+// contra la referencia, sin perder la calibración relativa que ya tengan
+// entre ellos.
+//
+// ⚠️ Nota de arquitectura: pestañas, párpados e iris/pupila NO son
+// miembros del grupo porque NO hacen falta — su geometría se deriva del
+// ojo (eyelashes.js y eyelids.js se construyen sobre
+// getEyeUpperLidPoints(), y pupils.js sobre getEyeFullPoints()), así que
+// mover el ojo ya los arrastra automáticamente. Lo único realmente
+// independiente es la ceja, que tiene su propio anclaje.
+const GROUP_TARGET_KEYS = ['groupRight', 'groupLeft', 'groupBoth']
+let groupAdjust = {
+    groupRight: { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    groupLeft:  { x: 0, y: 0, scale: 1, rotationDeg: 0 },
+    groupBoth:  { x: 0, y: 0, scale: 1, rotationDeg: 0 }
+}
+
+// qué piezas mueve cada grupo
+function groupMembers(key){
+    if(key === 'groupRight') return [{ kind: 'eye', side: 'right' }, { kind: 'brow', side: 'right' }]
+    if(key === 'groupLeft')  return [{ kind: 'eye', side: 'left' },  { kind: 'brow', side: 'left' }]
+    return [
+        { kind: 'eye', side: 'right' }, { kind: 'brow', side: 'right' },
+        { kind: 'eye', side: 'left' },  { kind: 'brow', side: 'left' }
+    ]
+}
+
+// El slider entrega un valor ABSOLUTO del grupo, pero cada miembro tiene
+// su propio ajuste ya calibrado. Por eso se calcula el DELTA respecto al
+// último valor del grupo y se SUMA a cada miembro — así el grupo se mueve
+// como bloque y nadie pierde su posición relativa.
+function applyGroupOffset(key, axis, newValue){
+    const g = groupAdjust[key]
+    if(!g) return
+    const delta = newValue - g[axis]
+    g[axis] = newValue
+    if(!delta) return
+
+    groupMembers(key).forEach(m => {
+        if(m.kind === 'eye'){
+            const a = getEyeShapeAdjust(m.side)
+            if(axis === 'x') setEyeShapeOffsetX(m.side, a.x + delta)
+            else             setEyeShapeOffsetY(m.side, a.y + delta)
+        } else {
+            const a = getBrowShapeAdjust(m.side)
+            if(axis === 'x') setBrowShapeOffsetX(m.side, a.x + delta)
+            else             setBrowShapeOffsetY(m.side, a.y + delta)
+        }
+    })
+}
+
 function applyPupilAdjust2D(points, adjust){
     if(!points || points.length === 0) return points
     let sx = 0, sy = 0
@@ -732,6 +783,10 @@ function resolveTarget(key){
         case 'rightBrow': return { kind: 'brow', side: 'right' }
         case 'leftBrow':  return { kind: 'brow', side: 'left' }
         case 'jaw':       return { kind: 'jaw' }
+        // ✅ los grupos solo influyen en QUÉ LADO se dibuja en perfil
+        case 'groupLeft': return { kind: 'group', side: 'left' }
+        case 'groupRight':
+        case 'groupBoth': return { kind: 'group', side: 'right' }
         default:          return { kind: 'eye', side: 'right' }
     }
 }
@@ -741,6 +796,7 @@ function resolveTarget(key){
 // un cambio real. Lee directo de eyes.js/eyebrows.js/viewer.js — no hay
 // copia local (salvo iris/pupila, que sí vive aquí — ver PUPIL_TARGET_KEYS).
 export function getTargetAdjust(key){
+    if(GROUP_TARGET_KEYS.includes(key)) return groupAdjust[key]
     if(PUPIL_TARGET_KEYS.includes(key)) return pupilAdjust2D[key]
     const t = resolveTarget(key)
     if(t.kind === 'eye') return getEyeShapeAdjust(t.side)
@@ -753,6 +809,7 @@ export function getTargetAdjust(key){
 // DIRECTO en eyes.js/eyebrows.js/viewer.js (también usado por el 3D).
 // Para iris/pupila escriben en pupilAdjust2D (solo aquí, solo 2D frontal).
 export function setTargetOffsetX(value){
+    if(GROUP_TARGET_KEYS.includes(selectedTarget)){ applyGroupOffset(selectedTarget, 'x', value); drawFrame(); return }
     if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].x = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeOffsetX(t.side, value)
@@ -762,6 +819,7 @@ export function setTargetOffsetX(value){
 }
 
 export function setTargetOffsetY(value){
+    if(GROUP_TARGET_KEYS.includes(selectedTarget)){ applyGroupOffset(selectedTarget, 'y', value); drawFrame(); return }
     if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].y = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeOffsetY(t.side, value)
@@ -771,6 +829,12 @@ export function setTargetOffsetY(value){
 }
 
 export function setTargetScale(value){
+    // ⚠️ En modo GRUPO la escala no se aplica: escalar cada miembro sobre
+    // su propio pivote NO es una escala de grupo real (las piezas se
+    // separarían entre sí en vez de acercarse al centro común). Se guarda
+    // el valor para que el slider no salte, pero no se propaga — para
+    // escalar, selecciona cada forma por separado.
+    if(GROUP_TARGET_KEYS.includes(selectedTarget)){ groupAdjust[selectedTarget].scale = value; return }
     if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].scale = value; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeScale(t.side, value)
@@ -782,6 +846,10 @@ export function setTargetScale(value){
 export function setTargetRotation(degrees){
     // la rotación no cambia visualmente un círculo — se guarda por
     // consistencia con el resto del panel, pero no tiene efecto.
+    // ⚠️ En modo GRUPO tampoco se propaga, por la misma razón que la
+    // escala: rotar cada pieza sobre su propio pivote no equivale a
+    // rotar el grupo alrededor de un centro común.
+    if(GROUP_TARGET_KEYS.includes(selectedTarget)){ groupAdjust[selectedTarget].rotationDeg = degrees; return }
     if(PUPIL_TARGET_KEYS.includes(selectedTarget)){ pupilAdjust2D[selectedTarget].rotationDeg = degrees; drawFrame(); return }
     const t = resolveTarget(selectedTarget)
     if(t.kind === 'eye') setEyeShapeRotation(t.side, degrees)
