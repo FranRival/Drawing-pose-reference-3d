@@ -126,10 +126,15 @@
                 </optgroup>
               </select>
             </div>
-            <div class="control">
-              <label for="targetOffsetX">Forma - posición X</label>
+            <div class="control front-only">
+              <label for="targetOffsetX">Forma - posición X (izq/der, solo frontal)</label>
               <input type="range" id="targetOffsetX" min="-0.5" max="0.5" step="0.01" value="0">
               <span id="targetOffsetXValue">0.00</span>
+            </div>
+            <div class="control profile-only">
+              <label for="targetOffsetZ">Forma - profundidad Z (adelante/atrás, solo perfil)</label>
+              <input type="range" id="targetOffsetZ" min="-0.5" max="0.5" step="0.01" value="0">
+              <span id="targetOffsetZValue">0.00</span>
             </div>
             <div class="control">
               <label for="targetOffsetY">Forma - posición Y</label>
