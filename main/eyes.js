@@ -139,9 +139,16 @@ let currentBaseRadius = 0
 // es lo que usan TANTO el 3D (buildEyes) COMO el 2D (getEyeOutlines2D) —
 // una sola fuente de verdad, así que ajustar en cualquiera de los dos
 // modos mueve el mismo dato. Pivotea sobre el propio lagrimal (el ancla).
+//
+// ✅ NUEVO: `z` = profundidad (adelante/atrás) por ojo. Es el eje que se
+// ve en la vista de PERFIL (junto con Y) y que NO se proyecta en frontal
+// — por eso mover z es seguro: acomoda el perfil sin descuadrar nada de
+// lo ya calibrado de frente. Lo usa el movimiento por GRUPO en perfil
+// (ver mode2d.js). Las pestañas y los párpados lo heredan solos, porque
+// construyen su Z a partir del "relieve" de estos mismos puntos.
 let eyeShapeAdjust = {
-    right: { x: 0, y: -0.03, scale: 1.36, rotationDeg: -5 },
-    left:  { x: -0.05, y: -0.05, scale: 1.28, rotationDeg: 0 }
+    right: { x: 0, y: -0.03, z: 0, scale: 1.36, rotationDeg: -5 },
+    left:  { x: -0.05, y: -0.05, z: 0, scale: 1.28, rotationDeg: 0 }
 }
 
 // Curvas Bezier cubicas de verdad, como los manejadores de la pluma de
@@ -417,7 +424,10 @@ function buildEyePoints(baseRadius, mirrorX, anchorX, anchorY){
         const naturalZ = Math.sqrt(Math.max(surfaceR * surfaceR - worldX * worldX - worldY * worldY, 0.0001))
         const lidAmp = side === 'upper' ? p.profileUpperDepth : p.profileLowerDepth
         const lidBulge = lidAmp * lidDepthBump(axisT, p.profileArchPosition) * baseRadius
-        const z = naturalZ + depthOffsetAt(axisT) * baseRadius + lidBulge
+        // ✅ NUEVO: adjust.z desplaza TODO el ojo en profundidad, por lado.
+        // Como Z no se proyecta en la vista frontal, mover esto acomoda el
+        // perfil sin alterar nada de lo calibrado de frente.
+        const z = naturalZ + depthOffsetAt(axisT) * baseRadius + lidBulge + (adjust.z || 0) * baseRadius
 
         return new THREE.Vector3(worldX, worldY, z)
     }
@@ -539,6 +549,9 @@ export function setEyeVerticalOffset(mult){ eyeParams.vertOffsetMult = mult; reb
 // el modo 2D y el 3D — side es 'right' o 'left'.
 export function setEyeShapeOffsetX(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].x = value; rebuild() } }
 export function setEyeShapeOffsetY(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].y = value; rebuild() } }
+// ✅ NUEVO: profundidad por ojo — el eje que se ve en PERFIL. No afecta
+// la vista frontal, que ignora Z por completo.
+export function setEyeShapeDepth(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].z = value; rebuild() } }
 export function setEyeShapeScale(side, value){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].scale = value; rebuild() } }
 export function setEyeShapeRotation(side, degrees){ if(eyeShapeAdjust[side]){ eyeShapeAdjust[side].rotationDeg = degrees; rebuild() } }
 export function getEyeShapeAdjust(side){ return eyeShapeAdjust[side] || eyeShapeAdjust.right }
