@@ -33,7 +33,10 @@ import { setBrowLength, setBrowAngle, setBrowThickness, setBrowTailTaper, setBro
          getBrowParams } from './eyebrows.js'
 import { initMode2D, setMode2DActive, setRefImage, setRefScale, setRefOffsetX, setRefOffsetY, setViewMode,
          setSelectedTarget, getTargetAdjust, setTargetOffsetX, setTargetOffsetY, setTargetDepth, setTargetScale, setTargetRotation,
-         setLayerVisible, getRefSettings, isMode2DActive, setShow2DAnimationActive } from './mode2d.js'
+         setLayerVisible, getRefSettings, isMode2DActive, setShow2DAnimationActive,
+         getCaptureArea2D, setCaptureArea2DVisible, setCaptureArea2DCustom,
+         setCaptureArea2DX, setCaptureArea2DY, setCaptureArea2DWidth, setCaptureArea2DHeight,
+         exportMode2DSequence, exportMode2DKeyframes } from './mode2d.js'
 // ✅ Los ajustes exclusivos de perfil se importan como ESPACIO DE NOMBRES,
 // no uno por uno. Con imports nombrados, si mode2d.js está desactualizado
 // y le falta uno solo, el módulo entero falla y TODO el panel deja de
@@ -266,6 +269,15 @@ function updateCaptureAreaGuide(){
     // ✅ lee el MISMO estado que usa getExportCropRect en viewer.js, así
     // el rectángulo que ves en pantalla y el recorte que se exporta no
     // pueden desincronizarse.
+    // ✅ en modo 2D el rectángulo se dibuja DENTRO del canvas 2D
+    // (drawCaptureArea2D en mode2d.js), porque aquí el div #viewer está
+    // oculto y mide 0x0 — un overlay posicionado contra él no se podría
+    // ubicar. Así que este overlay HTML es exclusivo del modo 3D.
+    if(isMode2DActive()){
+        guide.style.display = "none"
+        return
+    }
+
     const area = getCaptureArea()
 
     guide.style.display = area.visible ? "" : "none"
@@ -325,40 +337,61 @@ export function initUI(){
 
     // cada control escribe en viewer.js (fuente de verdad compartida con
     // getExportCropRect) y luego repinta la guía amarilla
-    const captureAreaChecks = [
-        ["captureAreaVisible", setCaptureAreaVisible],
-        ["captureAreaCustom", setCaptureAreaCustom]
-    ]
-    captureAreaChecks.forEach(([id, setter]) => {
+    // ✅ Cada modo tiene su PROPIA área de captura: la de 2D vive en
+    // mode2d.js y la de 3D en viewer.js. Estos controles escriben en la
+    // del modo ACTIVO, y al alternar de modo se recargan con los valores
+    // de esa área — así ninguna pisa a la otra.
+    const CAPTURE_FIELDS = {
+        visible: { d2: setCaptureArea2DVisible, d3: setCaptureAreaVisible },
+        custom:  { d2: setCaptureArea2DCustom,  d3: setCaptureAreaCustom },
+        x:       { d2: setCaptureArea2DX,       d3: setCaptureAreaX },
+        y:       { d2: setCaptureArea2DY,       d3: setCaptureAreaY },
+        width:   { d2: setCaptureArea2DWidth,   d3: setCaptureAreaWidth },
+        height:  { d2: setCaptureArea2DHeight,  d3: setCaptureAreaHeight }
+    }
+
+    function writeCaptureField(field, value){
+        const pair = CAPTURE_FIELDS[field]
+        if(!pair) return
+        if(isMode2DActive()) pair.d2(value)
+        else { pair.d3(value); updateCaptureAreaGuide() }
+    }
+
+    // refresca los controles con los valores del área del modo activo
+    function refreshCaptureAreaPanel(){
+        const area = isMode2DActive() ? getCaptureArea2D() : getCaptureArea()
+        const setCheck = (id, v) => { const el = document.getElementById(id); if(el) el.checked = !!v }
+        setCheck("captureAreaVisible", area.visible)
+        setCheck("captureAreaCustom", area.custom)
+        ;[["captureAreaX", area.x], ["captureAreaY", area.y],
+          ["captureAreaWidth", area.width], ["captureAreaHeight", area.height]].forEach(([id, v]) => {
+            const slider = document.getElementById(id)
+            const label = document.getElementById(id + "Value")
+            if(slider) slider.value = v
+            if(label) label.textContent = Number(v).toFixed(2)
+        })
+    }
+
+    ;[["captureAreaVisible", "visible"], ["captureAreaCustom", "custom"]].forEach(([id, field]) => {
         const box = document.getElementById(id)
         if(!box) return
-        setter(box.checked) // sincroniza el estado inicial con el HTML
-        box.addEventListener("change",(e)=>{
-            setter(e.target.checked)
-            updateCaptureAreaGuide()
-        })
+        box.addEventListener("change",(e)=>{ writeCaptureField(field, e.target.checked) })
     })
 
-    const captureAreaSliders = [
-        ["captureAreaX", setCaptureAreaX],
-        ["captureAreaY", setCaptureAreaY],
-        ["captureAreaWidth", setCaptureAreaWidth],
-        ["captureAreaHeight", setCaptureAreaHeight]
-    ]
-    captureAreaSliders.forEach(([id, setter]) => {
+    ;[["captureAreaX", "x"], ["captureAreaY", "y"],
+      ["captureAreaWidth", "width"], ["captureAreaHeight", "height"]].forEach(([id, field]) => {
         const slider = document.getElementById(id)
         const label = document.getElementById(id + "Value")
         if(!slider) return
-        setter(parseFloat(slider.value))
         slider.addEventListener("input",(e)=>{
             const value = parseFloat(e.target.value)
-            setter(value)
+            writeCaptureField(field, value)
             if(label) label.textContent = value.toFixed(2)
-            updateCaptureAreaGuide()
         })
     })
 
-    updateCaptureAreaGuide() // repinta ya con el estado inicial aplicado
+    refreshCaptureAreaPanel()
+    updateCaptureAreaGuide()
 
     /* ========================= */
     /* MODO 2D (mode2d.js) */
@@ -446,6 +479,8 @@ export function initUI(){
         mode2DToggle.addEventListener("change",(e)=>{
             setMode2DActive(e.target.checked)
             refreshProfileOnlyControls()
+            refreshCaptureAreaPanel() // cada modo tiene su propia área
+            updateCaptureAreaGuide()
         })
     }
 
@@ -1914,7 +1949,10 @@ export function initUI(){
             btnExportSequence.disabled = true
             btnExportSequence.textContent = "Exportando..."
 
-            await exportFrameSequence(frameCount, format, showLabel)
+            // ✅ cada modo exporta SU canvas con SU rectángulo: en 2D el
+            // canvas de guías, en 3D el render de Three.js
+            if(isMode2DActive()) await exportMode2DSequence(frameCount, format, showLabel)
+            else                 await exportFrameSequence(frameCount, format, showLabel)
 
             btnExportSequence.disabled = false
             btnExportSequence.textContent = "Exportar secuencia completa (.zip)"
@@ -1929,7 +1967,8 @@ export function initUI(){
             btnExportKeyframes.disabled = true
             btnExportKeyframes.textContent = "Exportando..."
 
-            await exportKeyframesOnly(format, showLabel)
+            if(isMode2DActive()) await exportMode2DKeyframes(format, showLabel)
+            else                 await exportKeyframesOnly(format, showLabel)
 
             btnExportKeyframes.disabled = false
             btnExportKeyframes.textContent = "Exportar solo keyframes (.zip)"
