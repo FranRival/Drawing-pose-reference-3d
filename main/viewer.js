@@ -1545,9 +1545,57 @@ function endHighResExport(){
     camera.updateProjectionMatrix()
 }
 
+// ✅ NUEVO: el modo 2D pone el visor 3D en display:none, así que su canvas
+// pasa a medir 0×0. Si se exporta en ese estado, beginHighResExport hace
+// setSize(0,0), getExportCropRect devuelve un recorte de área cero, y
+// cropCanvas.toBlob() lanza InvalidStateError ("The object is in an
+// invalid state") — la exportación entera falla.
+//
+// Estas dos funciones muestran el visor 3D solo durante la captura y
+// restauran exactamente el estado anterior al terminar. Se manipula el
+// DOM directo en vez de importar setMode2DActive desde mode2d.js, porque
+// mode2d.js ya importa de este archivo y crearía un ciclo de imports.
+function beginExportViewport(){
+    const viewerEl = document.getElementById('viewer')
+    const canvas2D = document.getElementById('mode2DCanvas')
+    const wasHidden = viewerEl ? getComputedStyle(viewerEl).display === 'none' : false
+
+    const saved = {
+        wasHidden,
+        viewerDisplay: viewerEl ? viewerEl.style.display : null,
+        canvas2DDisplay: canvas2D ? canvas2D.style.display : null
+    }
+
+    if(wasHidden){
+        if(viewerEl) viewerEl.style.display = 'block'
+        if(canvas2D) canvas2D.style.display = 'none'
+        // leer una medida fuerza el reflow, así clientWidth/clientHeight
+        // ya son reales cuando beginHighResExport los consulte
+        if(viewerEl) void viewerEl.clientWidth
+    }
+
+    return saved
+}
+
+function endExportViewport(saved){
+    if(!saved || !saved.wasHidden) return
+    const viewerEl = document.getElementById('viewer')
+    const canvas2D = document.getElementById('mode2DCanvas')
+    if(viewerEl) viewerEl.style.display = saved.viewerDisplay
+    if(canvas2D) canvas2D.style.display = saved.canvas2DDisplay
+}
+
 function captureFrameBlob(mime, label){
     const canvas = renderer.domElement
     const rect = getExportCropRect()
+
+    // ✅ NUEVO: guarda defensiva — un canvas de área cero hace que toBlob
+    // lance InvalidStateError. Mejor fallar con un mensaje entendible.
+    if(!(rect.width >= 1) || !(rect.height >= 1)){
+        return Promise.reject(new Error(
+            "El área de captura quedó en cero (el visor 3D no estaba visible al exportar)."
+        ))
+    }
 
     const cropCanvas = document.createElement('canvas')
     cropCanvas.width = rect.width
@@ -1610,6 +1658,9 @@ export async function exportFrameSequence(frameCount = 24, format = 'png', showL
     const savedPoseJson = savePose()
     const savedTime = currentTime
 
+    // ✅ el visor 3D debe estar visible para capturar: en modo 2D está
+    // oculto y su canvas mide 0x0 (ver beginExportViewport)
+    const savedViewport = beginExportViewport()
     setHelpersVisible(false)
     setGizmosVisible(false)
     beginHighResExport()
@@ -1620,24 +1671,29 @@ export async function exportFrameSequence(frameCount = 24, format = 'png', showL
     const totalDuration = keyframes[keyframes.length - 1].time
     const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
 
-    for(let i = 0; i < frameCount; i++){
-        const t = frameCount === 1 ? 0 : (i / (frameCount - 1)) * totalDuration
-        updateAnimationAtTime(t)
+    try {
+        for(let i = 0; i < frameCount; i++){
+            const t = frameCount === 1 ? 0 : (i / (frameCount - 1)) * totalDuration
+            updateAnimationAtTime(t)
+            renderer.render(scene, camera)
+
+            const label = showLabel ? `${i + 1}/${frameCount}` : null
+            const blob = await captureFrameBlob(mime, label)
+            zip.file(`frame_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        }
+    } finally {
+        // ✅ finally: aunque una captura falle, el visor y la pose vuelven
+        // a su estado anterior en vez de quedarse a medio camino
+        endHighResExport()
+        setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
+        setHelpersVisible(true)
+        setGizmosVisible(true)
+        loadPose(savedPoseJson)
+        currentTime = savedTime
+        isPlaying = wasPlaying
         renderer.render(scene, camera)
-
-        const label = showLabel ? `${i + 1}/${frameCount}` : null
-        const blob = await captureFrameBlob(mime, label)
-        zip.file(`frame_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        endExportViewport(savedViewport)
     }
-
-    endHighResExport()
-    setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
-    setHelpersVisible(true)
-    setGizmosVisible(true)
-    loadPose(savedPoseJson)
-    currentTime = savedTime
-    isPlaying = wasPlaying
-    renderer.render(scene, camera)
 
     await downloadZip(zip, `secuencia_${frameCount}frames.zip`)
 }
@@ -1659,6 +1715,8 @@ export async function exportKeyframesOnly(format = 'png', showLabel = true){
     const savedPoseJson = savePose()
     const savedTime = currentTime
 
+    // ✅ igual que en exportFrameSequence: el visor 3D debe estar visible
+    const savedViewport = beginExportViewport()
     setHelpersVisible(false)
     setGizmosVisible(false)
     beginHighResExport()
@@ -1668,23 +1726,26 @@ export async function exportKeyframesOnly(format = 'png', showLabel = true){
     const zip = new JSZip()
     const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
 
-    for(let i = 0; i < keyframes.length; i++){
-        loadPose(JSON.stringify(keyframes[i].pose))
+    try {
+        for(let i = 0; i < keyframes.length; i++){
+            loadPose(JSON.stringify(keyframes[i].pose))
+            renderer.render(scene, camera)
+
+            const label = showLabel ? `${i + 1}/${keyframes.length}` : null
+            const blob = await captureFrameBlob(mime, label)
+            zip.file(`keyframe_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        }
+    } finally {
+        endHighResExport()
+        setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
+        setHelpersVisible(true)
+        setGizmosVisible(true)
+        loadPose(savedPoseJson)
+        currentTime = savedTime
+        isPlaying = wasPlaying
         renderer.render(scene, camera)
-
-        const label = showLabel ? `${i + 1}/${keyframes.length}` : null
-        const blob = await captureFrameBlob(mime, label)
-        zip.file(`keyframe_${String(i + 1).padStart(3, '0')}.${format}`, blob)
+        endExportViewport(savedViewport)
     }
-
-    endHighResExport()
-    setLoomisRespectOcclusion(savedOcclusion) // regresa al modo que tenías antes de exportar
-    setHelpersVisible(true)
-    setGizmosVisible(true)
-    loadPose(savedPoseJson)
-    currentTime = savedTime
-    isPlaying = wasPlaying
-    renderer.render(scene, camera)
 
     await downloadZip(zip, "keyframes.zip")
 }
