@@ -140,17 +140,17 @@ let pupilAdjust2D = {
 // un solo ojo ya se puede hacer con las opciones individuales de abajo.
 // Lo útil como grupo es mover el PAR completo (las dos cejas, los dos
 // ojos) o todo junto, manteniendo la simetría.
-const GROUP_TARGET_KEYS = ['groupBrows', 'groupEyes', 'groupBoth']
+const GROUP_TARGET_KEYS = ['grpBrows', 'grpEyes', 'grpBoth']
 let groupAdjust = {
-    groupBrows: { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
-    groupEyes:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
-    groupBoth:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 }
+    grpBrows: { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    grpEyes:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 },
+    grpBoth:  { x: 0, y: 0, z: 0, scale: 1, rotationDeg: 0 }
 }
 
 // qué piezas mueve cada grupo
 function groupMembers(key){
-    if(key === 'groupBrows') return [{ kind: 'brow', side: 'right' }, { kind: 'brow', side: 'left' }]
-    if(key === 'groupEyes')  return [{ kind: 'eye', side: 'right' },  { kind: 'eye', side: 'left' }]
+    if(key === 'grpBrows') return [{ kind: 'brow', side: 'right' }, { kind: 'brow', side: 'left' }]
+    if(key === 'grpEyes')   return [{ kind: 'eye', side: 'right' },  { kind: 'eye', side: 'left' }]
     return [
         { kind: 'eye', side: 'right' }, { kind: 'brow', side: 'right' },
         { kind: 'eye', side: 'left' },  { kind: 'brow', side: 'left' }
@@ -880,9 +880,9 @@ function resolveTarget(key){
         // ✅ los grupos solo influyen en QUÉ LADO se dibuja en perfil.
         // Como ahora agrupan por tipo de pieza (no por lado), todos
         // muestran el lado derecho, que es el que se ve de perfil.
-        case 'groupBrows':
-        case 'groupEyes':
-        case 'groupBoth': return { kind: 'group', side: 'right' }
+        case 'grpBrows':
+        case 'grpEyes':
+        case 'grpBoth': return { kind: 'group', side: 'right' }
         default:          return { kind: 'eye', side: 'right' }
     }
 }
