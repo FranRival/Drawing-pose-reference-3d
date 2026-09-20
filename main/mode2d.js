@@ -131,9 +131,14 @@ function applyPupilAdjust2D(points, adjust){
     const cx = sx / points.length
     const cy = sy / points.length
 
+    // ✅ CORREGIDO: conserva la Z de cada punto (antes se perdía aquí
+    // también, aunque pupils.js ya la entregara bien) — sin ella,
+    // applyHeadDelta() la reponía como 0 y la pupila volvía a rotar
+    // aplanada en vez de en su posición real sobre la superficie del ojo.
     return points.map(p => ({
         x: cx + (p.x - cx) * adjust.scale + adjust.x,
-        y: cy + (p.y - cy) * adjust.scale + adjust.y
+        y: cy + (p.y - cy) * adjust.scale + adjust.y,
+        z: p.z
     }))
 }
 
