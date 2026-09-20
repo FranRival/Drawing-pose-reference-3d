@@ -504,6 +504,13 @@ export function initUI(){
         if(targetRotationSlider){ targetRotationSlider.value = adj.rotationDeg; if(targetRotationValue) targetRotationValue.textContent = adj.rotationDeg.toFixed(0) }
 
         refreshBrowSidePanel(key)
+
+        // ✅ NUEVO: en modo GRUPO, escala y rotación no se propagan (ver
+        // setTargetScale/setTargetRotation en mode2d.js) — se deshabilitan
+        // para que quede claro que ahí solo funciona el movimiento X/Y.
+        const isGroup = key.startsWith("group")
+        if(targetScaleSlider) targetScaleSlider.disabled = isGroup
+        if(targetRotationSlider) targetRotationSlider.disabled = isGroup
     }
 
     // ✅ Panel con TODAS las características de la ceja seleccionada.
