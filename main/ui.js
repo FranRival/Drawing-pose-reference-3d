@@ -5,6 +5,8 @@ import { rotateBone, setBoneAxis, bones, resetPose, addKeyframe, clearKeyframes,
          setEarRadius,
          setJawWidth, setJawChinDrop, setJawChinForward, setJawChinWidth, setSideProfileAngle,
          deselectBone,
+         getCaptureArea, setCaptureAreaCustom, setCaptureAreaVisible,
+         setCaptureAreaX, setCaptureAreaY, setCaptureAreaWidth, setCaptureAreaHeight,
          setOnKeyframesChange } from './viewer.js'
 import { setCantoLength, setCantoAngle, setUpperLidBulge, setLowerLidBulge, setInnerSharp, setOuterSharp,
          setLowerLidInnerInset, setLowerLidOuterInset, setLowerLidBaseWidth, setOuterFlickLength,
@@ -261,25 +263,48 @@ function updateCaptureAreaGuide(){
     const footerBar = document.getElementById("poseTimelineBar")
     if(!guide || !viewer) return
 
+    // ✅ lee el MISMO estado que usa getExportCropRect en viewer.js, así
+    // el rectángulo que ves en pantalla y el recorte que se exporta no
+    // pueden desincronizarse.
+    const area = getCaptureArea()
+
+    guide.style.display = area.visible ? "" : "none"
+    if(!area.visible) return
+
     const topPx = headerBar ? headerBar.offsetHeight : 0
     const bottomPx = footerBar ? footerBar.offsetHeight : 0
 
     const availableWidth = viewer.clientWidth
     const availableHeight = Math.max(viewer.clientHeight - topPx - bottomPx, 1)
 
-    let guideWidth, guideHeight
-    if(availableWidth / availableHeight > TARGET_ASPECT){
-        // el espacio disponible es más ancho que 16:9 → la altura manda
-        guideHeight = availableHeight
-        guideWidth = guideHeight * TARGET_ASPECT
-    } else {
-        // el espacio disponible es más angosto que 16:9 (como en celular) → el ancho manda
-        guideWidth = availableWidth
-        guideHeight = guideWidth / TARGET_ASPECT
-    }
+    let guideWidth, guideHeight, leftPx, topOffset
 
-    const leftPx = (availableWidth - guideWidth) / 2
-    const topOffset = topPx + (availableHeight - guideHeight) / 2
+    if(area.custom){
+        // área personalizada — mismo cálculo que getExportCropRect, pero
+        // en píxeles de pantalla en vez de píxeles del buffer
+        guideWidth = Math.max(availableWidth * area.width, 1)
+        guideHeight = Math.max(availableHeight * area.height, 1)
+
+        const cx = availableWidth * area.x
+        const cy = topPx + availableHeight * area.y
+        leftPx = Math.min(Math.max(cx - guideWidth / 2, 0), Math.max(availableWidth - guideWidth, 0))
+        topOffset = Math.min(
+            Math.max(cy - guideHeight / 2, topPx),
+            Math.max(topPx + availableHeight - guideHeight, topPx)
+        )
+    } else {
+        if(availableWidth / availableHeight > TARGET_ASPECT){
+            // el espacio disponible es más ancho que 16:9 → la altura manda
+            guideHeight = availableHeight
+            guideWidth = guideHeight * TARGET_ASPECT
+        } else {
+            // el espacio disponible es más angosto que 16:9 (como en celular) → el ancho manda
+            guideWidth = availableWidth
+            guideHeight = guideWidth / TARGET_ASPECT
+        }
+        leftPx = (availableWidth - guideWidth) / 2
+        topOffset = topPx + (availableHeight - guideHeight) / 2
+    }
 
     guide.style.top = `${topOffset}px`
     guide.style.left = `${leftPx}px`
@@ -293,6 +318,47 @@ export function initUI(){
 
     updateCaptureAreaGuide()
     window.addEventListener("resize", updateCaptureAreaGuide)
+
+    /* ========================= */
+    /* ÁREA DE CAPTURA (encuadre de exportación) */
+    /* ========================= */
+
+    // cada control escribe en viewer.js (fuente de verdad compartida con
+    // getExportCropRect) y luego repinta la guía amarilla
+    const captureAreaChecks = [
+        ["captureAreaVisible", setCaptureAreaVisible],
+        ["captureAreaCustom", setCaptureAreaCustom]
+    ]
+    captureAreaChecks.forEach(([id, setter]) => {
+        const box = document.getElementById(id)
+        if(!box) return
+        setter(box.checked) // sincroniza el estado inicial con el HTML
+        box.addEventListener("change",(e)=>{
+            setter(e.target.checked)
+            updateCaptureAreaGuide()
+        })
+    })
+
+    const captureAreaSliders = [
+        ["captureAreaX", setCaptureAreaX],
+        ["captureAreaY", setCaptureAreaY],
+        ["captureAreaWidth", setCaptureAreaWidth],
+        ["captureAreaHeight", setCaptureAreaHeight]
+    ]
+    captureAreaSliders.forEach(([id, setter]) => {
+        const slider = document.getElementById(id)
+        const label = document.getElementById(id + "Value")
+        if(!slider) return
+        setter(parseFloat(slider.value))
+        slider.addEventListener("input",(e)=>{
+            const value = parseFloat(e.target.value)
+            setter(value)
+            if(label) label.textContent = value.toFixed(2)
+            updateCaptureAreaGuide()
+        })
+    })
+
+    updateCaptureAreaGuide() // repinta ya con el estado inicial aplicado
 
     /* ========================= */
     /* MODO 2D (mode2d.js) */
